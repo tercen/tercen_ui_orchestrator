@@ -1,0 +1,131 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:flutter/foundation.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import '../sdui/event_bus/event_bus.dart';
+import '../sdui/event_bus/event_payload.dart';
+
+/// Connection state for the orchestrator client.
+enum WsConnectionState { disconnected, connecting, connected }
+
+/// Connects to the orchestrator backend via two WebSocket channels:
+/// - /ws/chat: send user messages, receive assistant responses
+/// - /ws/ui: receive layout operations from the server
+///
+/// Handles connection failures gracefully with automatic reconnection.
+class OrchestratorClient extends ChangeNotifier {
+  final String baseUrl;
+  final EventBus eventBus;
+  WebSocketChannel? _chatChannel;
+  WebSocketChannel? _uiChannel;
+  Timer? _reconnectTimer;
+  int _reconnectAttempts = 0;
+  bool _disposed = false;
+
+  static const _maxReconnectDelay = Duration(seconds: 30);
+
+  WsConnectionState _state = WsConnectionState.disconnected;
+  WsConnectionState get state => _state;
+
+  final _chatMessages = StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Stream of chat messages from the server (assistant responses).
+  Stream<Map<String, dynamic>> get chatMessages => _chatMessages.stream;
+
+  OrchestratorClient({
+    required this.baseUrl,
+    required this.eventBus,
+  });
+
+  Future<void> connect() async {
+    if (_disposed) return;
+    _state = WsConnectionState.connecting;
+    notifyListeners();
+
+    try {
+      _chatChannel = WebSocketChannel.connect(Uri.parse('$baseUrl/ws/chat'));
+      _uiChannel = WebSocketChannel.connect(Uri.parse('$baseUrl/ws/ui'));
+
+      // Wait for both connections to be ready.
+      await Future.wait([
+        _chatChannel!.ready,
+        _uiChannel!.ready,
+      ]);
+
+      _state = WsConnectionState.connected;
+      _reconnectAttempts = 0;
+      notifyListeners();
+
+      // Chat responses → stream
+      _chatChannel!.stream.listen(
+        (data) {
+          final json = jsonDecode(data as String) as Map<String, dynamic>;
+          _chatMessages.add(json);
+        },
+        onError: (_) => _onDisconnect(),
+        onDone: _onDisconnect,
+      );
+
+      // UI commands → EventBus
+      _uiChannel!.stream.listen(
+        (data) {
+          final json = jsonDecode(data as String) as Map<String, dynamic>;
+          eventBus.publish(
+            'system.layout.op',
+            EventPayload(type: 'layout.op', data: json),
+          );
+        },
+        onError: (_) => _onDisconnect(),
+        onDone: _onDisconnect,
+      );
+    } catch (e) {
+      debugPrint('WebSocket connection failed: $e');
+      _closeChannels();
+      _state = WsConnectionState.disconnected;
+      notifyListeners();
+      _scheduleReconnect();
+    }
+  }
+
+  void _onDisconnect() {
+    if (_disposed || _state == WsConnectionState.disconnected) return;
+    _closeChannels();
+    _state = WsConnectionState.disconnected;
+    notifyListeners();
+    _scheduleReconnect();
+  }
+
+  void _scheduleReconnect() {
+    if (_disposed) return;
+    _reconnectTimer?.cancel();
+    final delay = Duration(
+      seconds: min(pow(2, _reconnectAttempts).toInt(), _maxReconnectDelay.inSeconds),
+    );
+    _reconnectAttempts++;
+    debugPrint('Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts)');
+    _reconnectTimer = Timer(delay, connect);
+  }
+
+  void sendChat(String message) {
+    _chatChannel?.sink.add(message);
+  }
+
+  void _closeChannels() {
+    _chatChannel?.sink.close();
+    _uiChannel?.sink.close();
+    _chatChannel = null;
+    _uiChannel = null;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _reconnectTimer?.cancel();
+    _chatMessages.close();
+    _closeChannels();
+    super.dispose();
+  }
+}
