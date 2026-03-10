@@ -58,7 +58,7 @@ class WindowAlignment {
 
 class WindowState {
   final String id;
-  final String? title;
+  String? title;
   SduiNode content;
   WindowSize size;
   WindowAlignment alignment;

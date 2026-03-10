@@ -17,15 +17,20 @@ class WindowManager extends ChangeNotifier {
   final EventBus eventBus;
   final WidgetRegistry registry;
   final SduiRenderContext renderContext;
-  StreamSubscription<EventPayload>? _subscription;
+  StreamSubscription<EventPayload>? _layoutSubscription;
+  StreamSubscription<EventPayload>? _intentSubscription;
   int _nextZIndex = 0;
+  String? _focusedWindowId;
 
   WindowManager({
     required this.eventBus,
     required this.registry,
     required this.renderContext,
   }) {
-    _subscription = eventBus.subscribe('system.layout.op').listen(_handleEvent);
+    _layoutSubscription =
+        eventBus.subscribe('system.layout.op').listen(_handleEvent);
+    _intentSubscription =
+        eventBus.subscribe('window.intent').listen(_handleWindowIntent);
   }
 
   List<WindowState> get windows => List.unmodifiable(_windows);
@@ -85,6 +90,43 @@ class WindowManager extends ChangeNotifier {
         );
       }).toList(),
     );
+  }
+
+  // -- Window intent handling --
+
+  void _handleWindowIntent(EventPayload payload) {
+    final data = payload.data;
+    final windowId = data['windowId'] as String?;
+    if (windowId == null) return;
+
+    switch (payload.type) {
+      case 'close':
+        _applyAndNotify(RemoveWindow(windowId: windowId));
+        break;
+      case 'maximize':
+        _applyAndNotify(ResizeWindow(windowId: windowId, size: 'full'));
+        break;
+      case 'restore':
+        _applyAndNotify(RestoreWindow(windowId: windowId));
+        break;
+      case 'contentChanged':
+        final label = data['label'] as String?;
+        if (label != null) {
+          final w = _findWindow(windowId);
+          if (w != null) {
+            w.title = label;
+            notifyListeners();
+          }
+        }
+        break;
+      case 'openResource':
+        // TODO: implement resource type → window type mapping
+        debugPrint(
+            'WindowManager: openResource not yet implemented '
+            '(resourceType=${data['resourceType']}, '
+            'resourceId=${data['resourceId']})');
+        break;
+    }
   }
 
   // -- Event handling --
@@ -147,6 +189,9 @@ class WindowManager extends ChangeNotifier {
     final idx = _windows.indexWhere((w) => w.id == op.windowId);
     if (idx == -1) return _windowNotFound(op.windowId, 'removeWindow');
     _windows.removeAt(idx);
+    if (_focusedWindowId == op.windowId) {
+      _focusedWindowId = null;
+    }
     notifyListeners();
     return _success('removeWindow', {'windowId': op.windowId});
   }
@@ -184,6 +229,22 @@ class WindowManager extends ChangeNotifier {
     final w = _findWindow(op.windowId);
     if (w == null) return _windowNotFound(op.windowId, 'focusWindow');
     w.zIndex = _nextZIndex++;
+
+    // Publish blur to previously focused window, focus to new one.
+    final previousId = _focusedWindowId;
+    _focusedWindowId = op.windowId;
+
+    if (previousId != null && previousId != op.windowId) {
+      eventBus.publish(
+        'window.$previousId.command',
+        EventPayload(type: 'blur', data: {}),
+      );
+    }
+    eventBus.publish(
+      'window.${op.windowId}.command',
+      EventPayload(type: 'focus', data: {}),
+    );
+
     notifyListeners();
     return _success('focusWindow', {'windowId': op.windowId});
   }
@@ -333,7 +394,8 @@ class WindowManager extends ChangeNotifier {
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    _layoutSubscription?.cancel();
+    _intentSubscription?.cancel();
     super.dispose();
   }
 }
