@@ -9,7 +9,22 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  web_socket_channel: ^3.0.3
+  web_socket_channel: ^2.4.5
+  sci_tercen_client:
+    git:
+      ref: 1.16.1
+      url: https://github.com/tercen/sci_tercen_client
+      path: sci_tercen_client
+  sci_base:
+    git:
+      ref: 1.16.1
+      url: https://github.com/tercen/sci_tercen_client
+      path: sci_base
+  sci_http_client:
+    git:
+      ref: 1.16.1
+      url: https://github.com/tercen/sci_tercen_client
+      path: sci_http_client
 
 dev_dependencies:
   flutter_test:

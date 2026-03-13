@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  chunked_stream:
+    dependency: transitive
+    description:
+      name: chunked_stream
+      sha256: b2fde5f81d780f0c1699b8347cae2e413412ae947fc6e64727cc48c6bb54c95c
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.2"
   clock:
     dependency: transitive
     description:
@@ -57,6 +65,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.3"
+  fixnum:
+    dependency: transitive
+    description:
+      name: fixnum
+      sha256: b6dc7065e46c974bc7c5f143080a6764ec7a4be6da1285ececdc37be96de53be
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -75,6 +91,22 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  http:
+    dependency: transitive
+    description:
+      name: http
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.0"
+  http_parser:
+    dependency: transitive
+    description:
+      name: http_parser
+      sha256: "178d74305e7866013777bab2c3d8726205dc5a4dd935297175b19a23a2e66571"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -107,6 +139,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  logging:
+    dependency: transitive
+    description:
+      name: logging
+      sha256: c8245ada5f1717ed44271ed1c26b8ce85ca3228fd2ffdb75468ab01979309d61
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.3.0"
   matcher:
     dependency: transitive
     description:
@@ -139,6 +179,42 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  sci_base:
+    dependency: "direct main"
+    description:
+      path: sci_base
+      ref: "1.16.1"
+      resolved-ref: f179666ecb9a978e51ff94cbed7e37d118f554b7
+      url: "https://github.com/tercen/sci_tercen_client"
+    source: git
+    version: "1.16.1"
+  sci_http_client:
+    dependency: "direct main"
+    description:
+      path: sci_http_client
+      ref: "1.16.1"
+      resolved-ref: f179666ecb9a978e51ff94cbed7e37d118f554b7
+      url: "https://github.com/tercen/sci_tercen_client"
+    source: git
+    version: "1.16.1"
+  sci_tercen_client:
+    dependency: "direct main"
+    description:
+      path: sci_tercen_client
+      ref: "1.16.1"
+      resolved-ref: f179666ecb9a978e51ff94cbed7e37d118f554b7
+      url: "https://github.com/tercen/sci_tercen_client"
+    source: git
+    version: "1.16.1"
+  sci_tercen_model:
+    dependency: transitive
+    description:
+      path: sci_tercen_model
+      ref: "1.16.1"
+      resolved-ref: f179666ecb9a978e51ff94cbed7e37d118f554b7
+      url: "https://github.com/tercen/sci_tercen_client"
+    source: git
+    version: "1.16.1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -192,6 +268,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.6"
+  tson:
+    dependency: transitive
+    description:
+      path: "."
+      ref: "1.5.1"
+      resolved-ref: dd0f955405bbeca6b2a26ea6053a71fe8f6b6c43
+      url: "https://github.com/tercen/dtson"
+    source: git
+    version: "1.5.1"
   typed_data:
     dependency: transitive
     description:
@@ -200,6 +285,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
+  uuid:
+    dependency: transitive
+    description:
+      name: uuid
+      sha256: "1fef9e8e11e2991bb773070d4656b7bd5d850967a2456cfc83cf47925ba79489"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.5.3"
   vector_math:
     dependency: transitive
     description:
@@ -220,26 +313,18 @@ packages:
     dependency: transitive
     description:
       name: web
-      sha256: "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a"
+      sha256: "97da13628db363c635202ad97068d47c5b8aa555808e7a9411963c533b449b27"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.1"
-  web_socket:
-    dependency: transitive
-    description:
-      name: web_socket
-      sha256: "34d64019aa8e36bf9842ac014bb5d2f5586ca73df5e4d9bf5c936975cae6982c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
+    version: "0.5.1"
   web_socket_channel:
     dependency: "direct main"
     description:
       name: web_socket_channel
-      sha256: d645757fb0f4773d602444000a8131ff5d48c9e47adfe9772652dd1a4f2d45c8
+      sha256: "58c6666b342a38816b2e7e50ed0f1e261959630becd4c879c4f26bfa14aa5a42"
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.3"
+    version: "2.4.5"
 sdks:
   dart: ">=3.8.0-0 <4.0.0"
   flutter: ">=3.18.0-18.0.pre.54"

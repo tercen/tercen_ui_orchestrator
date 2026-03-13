@@ -14,49 +14,157 @@ class ChatPanel extends StatefulWidget {
 
 class _ChatPanelState extends State<ChatPanel> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
   final _messages = <_ChatMessage>[];
   StreamSubscription<Map<String, dynamic>>? _chatSub;
+  bool _isStreaming = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _chatSub ??=
-        OrchestratorClientScope.of(context).chatMessages.listen((msg) {
-      setState(() {
-        _messages.add(_ChatMessage(
-          role: msg['role'] as String? ?? 'assistant',
-          text: msg['text'] as String? ?? '',
-        ));
-      });
+        OrchestratorClientScope.of(context).chatMessages.listen(_onEvent);
+  }
+
+  void _onEvent(Map<String, dynamic> msg) {
+    final type = msg['type'] as String?;
+
+    setState(() {
+      switch (type) {
+        case 'thinking':
+          // Claude is thinking — show spinner if not already showing one
+          _ensureStreamingBubble();
+          break;
+
+        case 'text_delta':
+          // Append to the current streaming message (or create one)
+          final bubble = _ensureStreamingBubble();
+          bubble.textBuffer.write(msg['text'] as String? ?? '');
+          break;
+
+        case 'assistant_message':
+          // Final complete message — replace streaming bubble
+          _removeStreamingBubble();
+          _messages.add(_ChatMessage(
+            role: 'assistant',
+            text: msg['text'] as String? ?? '',
+          ));
+          _isStreaming = false;
+          break;
+
+        case 'tool_start':
+          // Remove the thinking spinner — tool info replaces it
+          _removeStreamingBubble();
+          _messages.add(_ChatMessage(
+            role: 'tool',
+            text: '🔧 ${msg['toolName']}...',
+            isStreaming: true,
+            toolName: msg['toolName'] as String?,
+            toolId: msg['toolId'] as String?,
+          ));
+          break;
+
+        case 'tool_end':
+          // Update the tool message with result — match by toolId
+          final toolId = msg['toolId'] as String?;
+          for (int i = _messages.length - 1; i >= 0; i--) {
+            if (_messages[i].role == 'tool' && _messages[i].toolId == toolId) {
+              final name = _messages[i].toolName ?? '';
+              final isError = msg['isError'] == true;
+              _messages[i]
+                ..textBuffer.clear()
+                ..textBuffer.write(isError ? '✗ $name' : '✓ $name')
+                ..isStreaming = false;
+              break;
+            }
+          }
+          break;
+
+        case 'error':
+          _removeStreamingBubble();
+          _messages.add(_ChatMessage(
+            role: 'error',
+            text: msg['text'] as String? ?? 'Unknown error',
+          ));
+          _isStreaming = false;
+          break;
+
+        case 'done':
+          _removeStreamingBubble();
+          _isStreaming = false;
+          break;
+
+        // Ignore raw stream_event — we process the parsed types above
+        case 'stream_event':
+          return;
+
+        default:
+          // Legacy format: {role, text}
+          if (msg.containsKey('role') && msg.containsKey('text')) {
+            _messages.add(_ChatMessage(
+              role: msg['role'] as String? ?? 'assistant',
+              text: msg['text'] as String? ?? '',
+            ));
+          }
+      }
     });
+
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  /// Returns the current streaming assistant bubble, creating one if needed.
+  _ChatMessage _ensureStreamingBubble() {
+    if (_messages.isNotEmpty &&
+        _messages.last.role == 'assistant' &&
+        _messages.last.isStreaming) {
+      return _messages.last;
+    }
+    final bubble = _ChatMessage(role: 'assistant', isStreaming: true);
+    _messages.add(bubble);
+    return bubble;
+  }
+
+  /// Removes the streaming assistant bubble (e.g. before adding the final message).
+  void _removeStreamingBubble() {
+    if (_messages.isNotEmpty &&
+        _messages.last.role == 'assistant' &&
+        _messages.last.isStreaming) {
+      _messages.removeLast();
+    }
   }
 
   void _sendMessage() {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isStreaming) return;
 
     setState(() {
       _messages.add(_ChatMessage(role: 'user', text: text));
+      _messages.add(_ChatMessage(role: 'assistant', isStreaming: true));
+      _isStreaming = true;
     });
     _controller.clear();
+    _scrollToBottom();
 
-    // Send to server via WebSocket
     OrchestratorClientScope.of(context).sendChat(text);
-  }
-
-  void _triggerWidget() {
-    setState(() {
-      _messages.add(
-        _ChatMessage(role: 'user', text: 'Open project list'),
-      );
-    });
-    OrchestratorClientScope.of(context).sendChat('open project list');
   }
 
   @override
   void dispose() {
     _chatSub?.cancel();
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -106,16 +214,6 @@ class _ChatPanelState extends State<ChatPanel> {
             },
           ),
           const Spacer(),
-          TextButton.icon(
-            onPressed: _triggerWidget,
-            icon: const Icon(Icons.widgets_outlined, size: 16),
-            label: const Text('Open Widget'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.blue,
-              textStyle: const TextStyle(fontSize: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            ),
-          ),
         ],
       ),
     );
@@ -132,6 +230,7 @@ class _ChatPanelState extends State<ChatPanel> {
     }
 
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
@@ -143,21 +242,58 @@ class _ChatPanelState extends State<ChatPanel> {
 
   Widget _buildMessageBubble(_ChatMessage msg) {
     final isUser = msg.role == 'user';
+    final isTool = msg.role == 'tool';
+    final isError = msg.role == 'error';
+
+    final IconData icon;
+    final Color iconColor;
+
+    if (isUser) {
+      icon = Icons.person;
+      iconColor = Colors.blue;
+    } else if (isTool) {
+      icon = Icons.build;
+      iconColor = Colors.amber;
+    } else if (isError) {
+      icon = Icons.error_outline;
+      iconColor = Colors.red;
+    } else {
+      icon = Icons.smart_toy;
+      iconColor = Colors.orange;
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isUser ? Icons.person : Icons.smart_toy,
-            color: isUser ? Colors.blue : Colors.orange,
-            size: 18,
-          ),
+          Icon(icon, color: iconColor, size: 18),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              msg.text,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  msg.displayText,
+                  style: TextStyle(
+                    color: isError ? Colors.red.shade300 : (isTool ? Colors.amber.shade200 : Colors.white70),
+                    fontSize: 14,
+                    fontFamily: isTool ? 'monospace' : null,
+                  ),
+                ),
+                if (msg.isStreaming)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -175,7 +311,7 @@ class _ChatPanelState extends State<ChatPanel> {
               controller: _controller,
               style: const TextStyle(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Message Claude...',
+                hintText: _isStreaming ? 'Claude is thinking...' : 'Message Claude...',
                 hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
                 fillColor: const Color(0xFF1E1E1E),
@@ -188,13 +324,17 @@ class _ChatPanelState extends State<ChatPanel> {
                   vertical: 12,
                 ),
               ),
+              enabled: !_isStreaming,
               onSubmitted: (_) => _sendMessage(),
             ),
           ),
           const SizedBox(width: 8),
           IconButton(
-            onPressed: _sendMessage,
-            icon: const Icon(Icons.send, color: Colors.blue),
+            onPressed: _isStreaming ? null : _sendMessage,
+            icon: Icon(
+              Icons.send,
+              color: _isStreaming ? Colors.white24 : Colors.blue,
+            ),
           ),
         ],
       ),
@@ -204,7 +344,18 @@ class _ChatPanelState extends State<ChatPanel> {
 
 class _ChatMessage {
   final String role;
-  final String text;
+  final StringBuffer textBuffer;
+  bool isStreaming;
+  final String? toolName;
+  final String? toolId;
 
-  _ChatMessage({required this.role, required this.text});
+  _ChatMessage({
+    required this.role,
+    String? text,
+    this.isStreaming = false,
+    this.toolName,
+    this.toolId,
+  }) : textBuffer = StringBuffer(text ?? '');
+
+  String get displayText => textBuffer.toString();
 }

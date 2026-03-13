@@ -8,6 +8,9 @@
       "version": "0.1.0",
       "dependencies": [
         "flutter",
+        "sci_base",
+        "sci_http_client",
+        "sci_tercen_client",
         "web_socket_channel"
       ],
       "devDependencies": [
@@ -41,14 +44,38 @@
       ]
     },
     {
+      "name": "sci_http_client",
+      "version": "1.16.1",
+      "dependencies": [
+        "http",
+        "logging",
+        "tson",
+        "uuid",
+        "web_socket_channel"
+      ]
+    },
+    {
+      "name": "sci_base",
+      "version": "1.16.1",
+      "dependencies": [
+        "sci_http_client"
+      ]
+    },
+    {
+      "name": "sci_tercen_client",
+      "version": "1.16.1",
+      "dependencies": [
+        "sci_tercen_model"
+      ]
+    },
+    {
       "name": "web_socket_channel",
-      "version": "3.0.3",
+      "version": "2.4.5",
       "dependencies": [
         "async",
         "crypto",
         "stream_channel",
-        "web",
-        "web_socket"
+        "web"
       ]
     },
     {
@@ -153,15 +180,48 @@
       ]
     },
     {
-      "name": "web_socket",
-      "version": "1.0.1",
+      "name": "uuid",
+      "version": "4.5.3",
       "dependencies": [
+        "crypto",
+        "fixnum"
+      ]
+    },
+    {
+      "name": "tson",
+      "version": "1.5.1",
+      "dependencies": [
+        "chunked_stream",
+        "typed_data"
+      ]
+    },
+    {
+      "name": "logging",
+      "version": "1.3.0",
+      "dependencies": []
+    },
+    {
+      "name": "http",
+      "version": "1.6.0",
+      "dependencies": [
+        "async",
+        "http_parser",
+        "meta",
         "web"
       ]
     },
     {
+      "name": "sci_tercen_model",
+      "version": "1.16.1",
+      "dependencies": [
+        "path",
+        "sci_base",
+        "uuid"
+      ]
+    },
+    {
       "name": "web",
-      "version": "1.1.1",
+      "version": "0.5.1",
       "dependencies": []
     },
     {
@@ -246,10 +306,32 @@
       ]
     },
     {
+      "name": "fixnum",
+      "version": "1.1.1",
+      "dependencies": []
+    },
+    {
+      "name": "chunked_stream",
+      "version": "1.4.2",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
       "name": "typed_data",
       "version": "1.4.0",
       "dependencies": [
         "collection"
+      ]
+    },
+    {
+      "name": "http_parser",
+      "version": "4.1.2",
+      "dependencies": [
+        "collection",
+        "source_span",
+        "string_scanner",
+        "typed_data"
       ]
     },
     {
