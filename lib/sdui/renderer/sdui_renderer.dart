@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../event_bus/event_payload.dart';
 import '../registry/widget_registry.dart';
 import '../schema/sdui_node.dart';
 import 'error_boundary.dart';
@@ -13,6 +16,20 @@ class SduiRenderer {
   const SduiRenderer({required this.registry, required this.renderContext});
 
   Widget render(SduiNode node, [Map<String, dynamic> extraScope = const {}]) {
+    // If this node has reactTo, wrap in a reactive widget that subscribes
+    // to the EventBus channel and overrides props when matched.
+    if (node.reactTo != null) {
+      return ErrorBoundary(
+        key: ValueKey(node.id),
+        nodeId: node.id,
+        child: _ReactiveWidget(
+          node: node,
+          renderer: this,
+          extraScope: extraScope,
+        ),
+      );
+    }
+
     // If this node has a dataSource, wrap in a data-fetching widget.
     if (node.dataSource != null) {
       return ErrorBoundary(
@@ -42,12 +59,60 @@ class SduiRenderer {
     final childWidgets =
         node.children.map((child) => render(child, extraScope)).toList();
 
-    final widget = builder(resolvedNode, childWidgets, renderContext);
+    Widget widget = builder(resolvedNode, childWidgets, renderContext);
+
+    // Wrap with gesture actions if any are defined
+    widget = _wrapWithActions(widget, node, extraScope);
 
     return ErrorBoundary(
       key: ValueKey(node.id),
       nodeId: node.id,
       child: widget,
+    );
+  }
+
+  /// Wraps a widget with GestureDetector if the node has actions defined.
+  /// Resolves template bindings in action payloads using the current scope.
+  Widget _wrapWithActions(
+      Widget child, SduiNode node, Map<String, dynamic> extraScope) {
+    if (node.actions.isEmpty) return child;
+
+    final resolver = renderContext.templateResolver;
+    final eventBus = renderContext.eventBus;
+
+    void Function()? makeHandler(String gesture) {
+      final action = node.actions[gesture];
+      if (action == null) return null;
+      return () {
+        final resolvedChannel = resolver.resolveString(action.channel, extraScope);
+        final resolvedPayload = resolver.resolveProps(action.payload, extraScope);
+        eventBus.publish(
+          resolvedChannel,
+          EventPayload(
+            type: gesture,
+            sourceWidgetId: node.id,
+            data: {...resolvedPayload, '_channel': resolvedChannel},
+          ),
+        );
+      };
+    }
+
+    final onTap = makeHandler('onTap');
+    final onDoubleTap = makeHandler('onDoubleTap');
+    final onLongPress = makeHandler('onLongPress');
+
+    if (onTap == null && onDoubleTap == null && onLongPress == null) {
+      return child;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        onLongPress: onLongPress,
+        child: child,
+      ),
     );
   }
 
@@ -212,7 +277,9 @@ class _DataSourceWidgetState extends State<_DataSourceWidget> {
           .resolveProps(node.props, effectiveScope),
     );
 
-    return builder(resolvedNode, children, renderer.renderContext);
+    Widget result = builder(resolvedNode, children, renderer.renderContext);
+    result = renderer._wrapWithActions(result, node, effectiveScope);
+    return result;
   }
 
   Widget _buildLoading() {
@@ -256,6 +323,88 @@ class _DataSourceWidgetState extends State<_DataSourceWidget> {
         style: TextStyle(color: Colors.grey.withAlpha(178), fontSize: 12),
       ),
     );
+  }
+}
+
+/// Reactive widget: subscribes to an EventBus channel and re-renders the node
+/// with overridden props when the event payload matches the `reactTo.match` criteria.
+///
+/// Same pattern as _DataSourceWidget — a StatefulWidget wrapping a rendered node
+/// that manages async state via EventBus subscription and setState.
+class _ReactiveWidget extends StatefulWidget {
+  final SduiNode node;
+  final SduiRenderer renderer;
+  final Map<String, dynamic> extraScope;
+
+  const _ReactiveWidget({
+    required this.node,
+    required this.renderer,
+    required this.extraScope,
+  });
+
+  @override
+  State<_ReactiveWidget> createState() => _ReactiveWidgetState();
+}
+
+class _ReactiveWidgetState extends State<_ReactiveWidget> {
+  StreamSubscription<EventPayload>? _sub;
+  bool _matched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final reactTo = widget.node.reactTo!;
+    final resolver = widget.renderer.renderContext.templateResolver;
+    final channel = resolver.resolveString(reactTo.channel, widget.extraScope);
+    _sub = widget.renderer.renderContext.eventBus
+        .subscribe(channel)
+        .listen(_onEvent);
+  }
+
+  void _onEvent(EventPayload event) {
+    final reactTo = widget.node.reactTo!;
+    final resolver = widget.renderer.renderContext.templateResolver;
+    final resolvedMatch =
+        resolver.resolveProps(reactTo.match, widget.extraScope);
+
+    // Check if every key in match is equal to the corresponding value in event.data
+    final matched = resolvedMatch.entries.every((entry) {
+      if (entry.key.startsWith('_')) return true;
+      return event.data[entry.key]?.toString() == entry.value?.toString();
+    });
+
+    if (matched != _matched) {
+      setState(() => _matched = matched);
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Build the effective node: merge reactTo.props into node.props when matched
+    final node = widget.node;
+    final effectiveProps = _matched
+        ? {...node.props, ...node.reactTo!.props}
+        : node.props;
+
+    // Create node without reactTo so the inner render doesn't double-wrap
+    final effectiveNode = SduiNode(
+      type: node.type,
+      id: node.id,
+      props: effectiveProps,
+      children: node.children,
+      annotations: node.annotations,
+      dataSource: node.dataSource,
+      actions: node.actions,
+    );
+
+    // Delegate to the normal render path (which handles dataSource, actions, etc.)
+    return widget.renderer.render(effectiveNode, widget.extraScope);
   }
 }
 

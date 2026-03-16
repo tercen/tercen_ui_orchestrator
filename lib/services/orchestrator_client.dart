@@ -30,6 +30,7 @@ class OrchestratorClient extends ChangeNotifier {
   WsConnectionState _state = WsConnectionState.disconnected;
   WsConnectionState get state => _state;
 
+  StreamSubscription? _selectionSub;
   final _chatMessages = StreamController<Map<String, dynamic>>.broadcast();
 
   /// Stream of chat messages from the server (assistant responses).
@@ -81,6 +82,17 @@ class OrchestratorClient extends ChangeNotifier {
         onError: (_) => _onDisconnect(),
         onDone: _onDisconnect,
       );
+
+      // Forward selection events from EventBus → server via /ws/ui
+      _selectionSub?.cancel();
+      _selectionSub = eventBus.subscribePrefix('system.selection.').listen((payload) {
+        sendUiEvent({
+          'type': 'selection',
+          'channel': payload.data['_channel'] ?? 'unknown',
+          'sourceWidgetId': payload.sourceWidgetId,
+          'data': payload.data,
+        });
+      });
     } catch (e) {
       debugPrint('WebSocket connection failed: $e');
       _closeChannels();
@@ -113,6 +125,10 @@ class OrchestratorClient extends ChangeNotifier {
     _chatChannel?.sink.add(message);
   }
 
+  void sendUiEvent(Map<String, dynamic> event) {
+    _uiChannel?.sink.add(jsonEncode(event));
+  }
+
   void _closeChannels() {
     _chatChannel?.sink.close();
     _uiChannel?.sink.close();
@@ -124,6 +140,7 @@ class OrchestratorClient extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _reconnectTimer?.cancel();
+    _selectionSub?.cancel();
     _chatMessages.close();
     _closeChannels();
     super.dispose();

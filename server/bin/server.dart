@@ -14,6 +14,9 @@ final List<dynamic> _uiSinks = [];
 /// Track current windows on screen (id -> full layout op JSON).
 final Map<String, Map<String, dynamic>> _currentWindows = {};
 
+/// User context updated by selection events from the frontend.
+final Map<String, dynamic> _userContext = {};
+
 /// System prompt that teaches Claude about the SDUI architecture.
 const _systemPrompt = '''
 You are an AI assistant powering a Server-Driven UI (SDUI) orchestrator for Tercen, a data analysis platform.
@@ -52,10 +55,11 @@ Any node in the widget tree can include a `dataSource` field to load real data f
 
 ### dataSource field
 ```json
-"dataSource": {"service": "projectService", "method": "findByIsPublicAndLastModifiedDate", "args": [[true, "0000"], [true, "9999"], 20]}
+"dataSource": {"service": "serviceName", "method": "findByViewName", "args": [startKey, endKey, limit]}
 ```
 The args for find methods are: [startKey, endKey, limit]. Keys are arrays matching the view's index fields.
-IMPORTANT: To list projects, always use findByIsPublicAndLastModifiedDate — do NOT use explore (it returns empty results).
+IMPORTANT: NEVER guess or invent method names — they must come from discover_methods output. Method names are exact (e.g., "Date" not "Data"). Always call discover_methods(serviceName) FIRST and copy the exact method name from the result.
+IMPORTANT: Do NOT use explore (it returns empty results on some servers).
 
 ### Template bindings
 - **List result** → children are repeated for each item. Use `{{item.fieldName}}` to bind fields.
@@ -66,14 +70,16 @@ IMPORTANT: To list projects, always use findByIsPublicAndLastModifiedDate — do
 - Bindings work in props and in node IDs (for uniqueness).
 - Note: object IDs are in the `id` field. Null values render as empty string.
 
-### Example — list of projects from real data:
+### Example — data-driven list (use discover_methods to find actual service/method/args):
 ```json
-{"op": "addWindow", "id": "win-projects", "size": "medium", "align": "center", "title": "Projects",
+{"op": "addWindow", "id": "win-items", "size": "medium", "align": "center", "title": "Items",
  "content": {
-   "type": "ListView", "id": "lv-projects", "props": {"padding": 12},
-   "dataSource": {"service": "projectService", "method": "findByIsPublicAndLastModifiedDate", "args": [[true, "0000"], [true, "9999"], 20]},
+   "type": "ListView", "id": "lv-items", "props": {"padding": 12},
+   "dataSource": {"service": "...", "method": "...", "args": [...]},
    "children": [
-     {"type": "Card", "id": "card-{{item.id}}", "props": {"elevation": 2}, "children": [
+     {"type": "Card", "id": "card-{{item.id}}", "props": {"elevation": 2},
+      "actions": {"onTap": {"channel": "system.selection.item", "payload": {"itemId": "{{item.id}}", "itemName": "{{item.name}}"}}},
+      "children": [
        {"type": "Padding", "id": "pad-{{item.id}}", "props": {"padding": 14}, "children": [
          {"type": "Column", "id": "col-{{item.id}}", "props": {"crossAxisAlignment": "start"}, "children": [
            {"type": "Text", "id": "name-{{item.id}}", "props": {"text": "{{item.name}}", "fontSize": 16, "fontWeight": "bold"}},
@@ -85,6 +91,8 @@ IMPORTANT: To list projects, always use findByIsPublicAndLastModifiedDate — do
    ]
  }}
 ```
+IMPORTANT: The "..." values above are placeholders. You MUST call discover_methods first and use the EXACT method names from its output. Do NOT guess method names — even small typos (e.g., "Data" vs "Date") will cause errors.
+For CouchDB views with isPublic in the key, use startKey [false, ...] and endKey [true, ...] to include BOTH public and private items.
 
 ### Example — single object detail:
 ```json
@@ -121,6 +129,79 @@ If a <current_layout> block is present in the user message, it describes the win
 {"op": "removeWindow", "windowId": "win-projects"}
 ```
 
+## Widget Interactivity (actions)
+Widgets can have an `actions` field that fires events on user gestures.
+Supported gestures: onTap, onDoubleTap, onLongPress.
+
+Each action publishes a payload to an EventBus channel. The channel determines what happens:
+- `system.selection.*` channels update the user context (so follow-up questions know what's selected)
+- `system.layout.op` channels trigger layout operations (open/close windows)
+
+### Example — selectable project cards:
+```json
+{"type": "Card", "id": "card-{{item.id}}",
+ "actions": {
+   "onTap": {"channel": "system.selection.project", "payload": {"projectId": "{{item.id}}", "projectName": "{{item.name}}"}}
+ },
+ "children": [...]}
+```
+
+### Example — tap to select, double-tap to open detail window:
+```json
+{"type": "Card", "id": "card-{{item.id}}",
+ "actions": {
+   "onTap": {"channel": "system.selection.project", "payload": {"projectId": "{{item.id}}", "projectName": "{{item.name}}"}},
+   "onDoubleTap": {"channel": "system.layout.op", "payload": {"op": "addWindow", "id": "win-detail-{{item.id}}", "title": "{{item.name}}", "size": "medium", "align": "center",
+     "content": {"type": "Text", "id": "detail-text", "props": {"text": "Loading details for {{item.name}}..."}}}}
+ },
+ "children": [...]}
+```
+
+Selection channels: system.selection.project, system.selection.workflow, system.selection.file
+Always add onTap actions to list items so users can select them.
+
+## Reactive Widgets (reactTo)
+Any widget can reactively change its props when an EventBus event matches.
+Add a `reactTo` field with: channel to subscribe to, match criteria, and override props.
+
+```json
+{"type": "Card", "id": "card-{{item.id}}",
+ "props": {"elevation": 1, "color": "#1E1E1E"},
+ "reactTo": {
+   "channel": "system.selection.project",
+   "match": {"projectId": "{{item.id}}"},
+   "props": {"elevation": 4, "color": "#1565C0"}
+ },
+ "actions": {
+   "onTap": {"channel": "system.selection.project", "payload": {"projectId": "{{item.id}}", "projectName": "{{item.name}}"}}
+ },
+ "children": [...]}
+```
+When the user taps a card, the action publishes to the channel. All cards with `reactTo` on that channel check the match — the matching card gets its props overridden (highlighted), others revert to defaults.
+Template bindings ({{item.field}}) work in match values — they are resolved at render time.
+
+## tercenctl MCP Tools
+You have access to tercenctl tools (prefixed mcp__tercenctl__) for querying and managing real Tercen data:
+- **execute_jq**: Run jq queries against Tercen's data hierarchy. Examples:
+  - `.teams[] | .projects[] | {id, name}` — list all projects
+  - `.teams[] | .projects[] | select(.id == "PROJECT_ID") | .workflows[] | {id, name}` — list workflows in a project
+- **search_tools**: Search for available tercenctl tools by keyword
+- **get_model_description**: Get Tercen API model schema (useful before building jq queries)
+- **patch_object**: Modify Tercen objects via PatchRecords
+- **create_workflow / run_workflow / reset_workflow**: Workflow lifecycle
+- **add_step / run_step**: Step management
+- **upload_csv_file / export_table_csv**: Data import/export
+
+Use these tools when the user asks questions about their data or wants to perform operations.
+
+## User Context
+If a `<user_context>` block is present in the user message, it contains the user's current selections:
+- `selectedProjectId` / `selectedProjectName`: The currently selected project
+- `selectedWorkflowId` / `selectedWorkflowName`: The currently selected workflow
+
+When the user says "this project", "my project", or similar, they mean the one in selectedProjectId.
+Use the selected IDs to scope your tercenctl queries (e.g., filter jq results by project ID).
+
 ## Guidelines
 - Keep text responses concise — the chat panel is narrow
 - When asked to show or modify UI, respond with a brief explanation AND a layout operation JSON block
@@ -130,6 +211,7 @@ If a <current_layout> block is present in the user message, it describes the win
 - Compose widget trees thoughtfully — use Card for items, Padding for spacing, Row/Column for layout
 - Every node needs a unique "id" and a "type" — use `{{item.id}}` in IDs for data-driven lists
 - Use descriptive window IDs like "win-projects", "win-dashboard" (not timestamps)
+- **Always add actions to list items** so users can select and interact with them
 ''';
 
 
@@ -161,7 +243,18 @@ void main() async {
     print('[ws/ui] client connected');
     _uiSinks.add(ws.sink);
     ws.stream.listen(
-      (message) => print('[ws/ui] received: $message'),
+      (message) {
+        print('[ws/ui] received: $message');
+        try {
+          final json = jsonDecode(message as String) as Map<String, dynamic>;
+          final type = json['type'] as String?;
+          if (type == 'selection') {
+            _handleSelectionEvent(json);
+          }
+        } catch (e) {
+          print('[ws/ui] failed to parse message: $e');
+        }
+      },
       onDone: () {
         print('[ws/ui] client disconnected');
         _uiSinks.remove(ws.sink);
@@ -182,6 +275,33 @@ void main() async {
 
   final server = await io.serve(pipeline, '0.0.0.0', port);
   print('Server running on http://localhost:${server.port}');
+}
+
+/// Update user context based on selection events from the frontend.
+void _handleSelectionEvent(Map<String, dynamic> event) {
+  final channel = event['channel'] as String? ?? '';
+  final data = event['data'] as Map<String, dynamic>? ?? {};
+
+  if (channel == 'system.selection.project') {
+    _userContext['selectedProjectId'] = data['projectId'];
+    _userContext['selectedProjectName'] = data['projectName'];
+    // Clear dependent selections when project changes
+    _userContext.remove('selectedWorkflowId');
+    _userContext.remove('selectedWorkflowName');
+  } else if (channel == 'system.selection.workflow') {
+    _userContext['selectedWorkflowId'] = data['workflowId'];
+    _userContext['selectedWorkflowName'] = data['workflowName'];
+  } else {
+    // Generic: store all data keys prefixed with channel leaf name
+    // e.g., system.selection.file → data keys stored as-is
+    data.forEach((key, value) {
+      if (!key.startsWith('_')) {
+        _userContext[key] = value;
+      }
+    });
+  }
+
+  print('[context] updated: $_userContext');
 }
 
 /// Spawn `claude -p` with stream-json and pipe events to the chat WebSocket.
@@ -216,6 +336,9 @@ Future<void> _handleChatMessage(dynamic chatSink, String userMessage) async {
     final scriptDir = Platform.script.resolve('.').toFilePath();
     final mcpServerPath = '${scriptDir}mcp_discover.dart';
 
+    // Find tercenctl binary
+    final tercenctlPath = _findTercenctl();
+
     final mcpConfig = jsonEncode({
       'mcpServers': {
         'tercen': {
@@ -223,6 +346,12 @@ Future<void> _handleChatMessage(dynamic chatSink, String userMessage) async {
           'command': 'dart',
           'args': ['run', mcpServerPath],
         },
+        if (tercenctlPath != null)
+          'tercenctl': {
+            'type': 'stdio',
+            'command': tercenctlPath,
+            'args': ['mcp', '--transport', 'stdio'],
+          },
       },
     });
 
@@ -231,7 +360,7 @@ Future<void> _handleChatMessage(dynamic chatSink, String userMessage) async {
       '--output-format', 'stream-json',
       '--verbose',
       '--mcp-config', mcpConfig,
-      '--allowedTools', 'mcp__tercen__*',
+      '--allowedTools', 'mcp__tercen__*,mcp__tercenctl__*',
       '--system-prompt', _systemPrompt,
     ];
     print('[claude] args: $args');
@@ -432,27 +561,51 @@ String? _findClaude() {
   return null;
 }
 
-/// Build the prompt with current layout state prepended.
+/// Find the tercenctl binary.
+String? _findTercenctl() {
+  final candidates = [
+    '/home/${Platform.environment['USER']}/.local/bin/tercenctl',
+    '/usr/local/bin/tercenctl',
+    '/usr/bin/tercenctl',
+  ];
+
+  for (final path in candidates) {
+    if (File(path).existsSync()) return path;
+  }
+
+  try {
+    final result = Process.runSync('which', ['tercenctl']);
+    if (result.exitCode == 0) {
+      return (result.stdout as String).trim();
+    }
+  } catch (_) {}
+
+  return null;
+}
+
+/// Build the prompt with current layout state and user context prepended.
 String _buildPrompt(String userMessage) {
-  if (_currentWindows.isEmpty) return userMessage;
+  final parts = <String>[];
 
-  // Summarize current windows for Claude
-  final windowSummaries = _currentWindows.entries.map((e) {
-    final w = e.value;
-    return jsonEncode({
-      'id': w['id'],
-      'title': w['title'],
-      'size': w['size'],
-      'content': w['content'],
-    });
-  }).join('\n');
+  if (_currentWindows.isNotEmpty) {
+    final windowSummaries = _currentWindows.entries.map((e) {
+      final w = e.value;
+      return jsonEncode({
+        'id': w['id'],
+        'title': w['title'],
+        'size': w['size'],
+        'content': w['content'],
+      });
+    }).join('\n');
+    parts.add('<current_layout>\n$windowSummaries\n</current_layout>');
+  }
 
-  return '''
-<current_layout>
-$windowSummaries
-</current_layout>
+  if (_userContext.isNotEmpty) {
+    parts.add('<user_context>\n${jsonEncode(_userContext)}\n</user_context>');
+  }
 
-$userMessage''';
+  parts.add(userMessage);
+  return parts.join('\n\n');
 }
 
 /// Extract JSON code blocks from Claude's response and dispatch as layout ops.

@@ -14,13 +14,6 @@ class SduiAnnotation {
   Map<String, dynamic> toJson() => {'text': text, 'position': position};
 }
 
-/// Describes a data source for a node: which service/method/args to call.
-///
-/// When present on a node:
-///   - If the result is a list → children act as a template repeated per item,
-///     with `{{item.field}}` bindings.
-///   - If the result is a single object → `{{data.field}}` bindings resolve in
-///     props and children.
 /// Describes an action triggered by a gesture (tap, double-tap, long-press).
 ///
 /// The action publishes a payload to an EventBus channel. The channel determines
@@ -42,6 +35,41 @@ class SduiAction {
   Map<String, dynamic> toJson() => {
         'channel': channel,
         if (payload.isNotEmpty) 'payload': payload,
+      };
+}
+
+/// Describes a data source for a node: which service/method/args to call.
+///
+/// When present on a node:
+///   - If the result is a list → children act as a template repeated per item,
+///     with `{{item.field}}` bindings.
+///   - If the result is a single object → `{{data.field}}` bindings resolve in
+///     props and children.
+/// Describes a reactive binding: subscribe to an EventBus channel and
+/// override props when the event payload matches.
+class SduiReaction {
+  final String channel;
+  final Map<String, dynamic> match;
+  final Map<String, dynamic> props;
+
+  const SduiReaction({
+    required this.channel,
+    this.match = const {},
+    this.props = const {},
+  });
+
+  factory SduiReaction.fromJson(Map<String, dynamic> json) {
+    return SduiReaction(
+      channel: json['channel'] as String,
+      match: Map<String, dynamic>.from(json['match'] as Map? ?? {}),
+      props: Map<String, dynamic>.from(json['props'] as Map? ?? {}),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'channel': channel,
+        if (match.isNotEmpty) 'match': match,
+        if (props.isNotEmpty) 'props': props,
       };
 }
 
@@ -79,6 +107,13 @@ class SduiNode {
   final List<SduiAnnotation> annotations;
   final SduiDataSource? dataSource;
 
+  /// Gesture actions: keys are gesture types (onTap, onDoubleTap, onLongPress).
+  /// Each action publishes its payload to the specified EventBus channel.
+  final Map<String, SduiAction> actions;
+
+  /// Reactive binding: subscribe to a channel and override props when matched.
+  final SduiReaction? reactTo;
+
   const SduiNode({
     required this.type,
     required this.id,
@@ -86,6 +121,8 @@ class SduiNode {
     this.children = const [],
     this.annotations = const [],
     this.dataSource,
+    this.actions = const {},
+    this.reactTo,
   });
 
   factory SduiNode.fromJson(Map<String, dynamic> json) {
@@ -106,6 +143,12 @@ class SduiNode {
       dataSource: json['dataSource'] != null
           ? SduiDataSource.fromJson(json['dataSource'] as Map<String, dynamic>)
           : null,
+      actions: (json['actions'] as Map<String, dynamic>?)?.map(
+              (k, v) => MapEntry(k, SduiAction.fromJson(v as Map<String, dynamic>))) ??
+          const {},
+      reactTo: json['reactTo'] != null
+          ? SduiReaction.fromJson(json['reactTo'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -118,6 +161,9 @@ class SduiNode {
         if (annotations.isNotEmpty)
           'annotations': annotations.map((a) => a.toJson()).toList(),
         if (dataSource != null) 'dataSource': dataSource!.toJson(),
+        if (actions.isNotEmpty)
+          'actions': actions.map((k, v) => MapEntry(k, v.toJson())),
+        if (reactTo != null) 'reactTo': reactTo!.toJson(),
       };
 
   SduiNode copyWith({
@@ -127,6 +173,8 @@ class SduiNode {
     List<SduiNode>? children,
     List<SduiAnnotation>? annotations,
     SduiDataSource? dataSource,
+    Map<String, SduiAction>? actions,
+    SduiReaction? reactTo,
   }) {
     return SduiNode(
       type: type ?? this.type,
@@ -135,6 +183,8 @@ class SduiNode {
       children: children ?? this.children,
       annotations: annotations ?? this.annotations,
       dataSource: dataSource ?? this.dataSource,
+      actions: actions ?? this.actions,
+      reactTo: reactTo ?? this.reactTo,
     );
   }
 }

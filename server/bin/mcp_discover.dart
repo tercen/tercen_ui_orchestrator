@@ -206,7 +206,13 @@ String? _discoverMethods(String service) {
     buf.writeln();
     buf.writeln('## Named views (for findStartKeys/findKeys)');
     for (final view in views) {
-      buf.writeln('  - $view');
+      if (view is Map) {
+        buf.writeln('  - ${view['name']}');
+        if (view['keys'] != null) buf.writeln('    Keys: ${view['keys']}');
+        if (view['example'] != null) buf.writeln('    Example: ${view['example']}');
+      } else {
+        buf.writeln('  - $view');
+      }
     }
   }
 
@@ -244,8 +250,16 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findByIsPublicAndLastModifiedDate',
-      'findByTeamAndIsPublicAndLastModifiedDate',
+      {
+        'name': 'findByIsPublicAndLastModifiedDate',
+        'keys': '[isPublic: bool, lastModifiedDate: string]',
+        'example': 'args: [[false, ""], [true, "\\uf000"], 20] — gets all projects (public + private)',
+      },
+      {
+        'name': 'findByTeamAndIsPublicAndLastModifiedDate',
+        'keys': '[owner: string, isPublic: bool, lastModifiedDate: string]',
+        'example': 'args: [["teamName", false, ""], ["teamName", true, "\\uf000"], 20]',
+      },
     ],
   },
 
@@ -298,9 +312,8 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findTeamMembers',
-      'findUserByCreatedDateAndName',
-      'findUserByEmail',
+      {'name': 'findUserByCreatedDateAndName', 'keys': '[createdDate: string, name: string]'},
+      {'name': 'findUserByEmail', 'keys': '[email: string]'},
     ],
   },
 
@@ -319,7 +332,7 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findTeamByOwner',
+      {'name': 'findTeamByOwner', 'keys': '[owner: string]'},
     ],
   },
 
@@ -349,8 +362,8 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findFileByWorkflowIdAndStepId',
-      'findByDataUri',
+      {'name': 'findFileByWorkflowIdAndStepId', 'keys': '[workflowId: string, stepId: string]'},
+      {'name': 'findByDataUri', 'keys': '[dataUri: string]'},
     ],
   },
 
@@ -383,8 +396,8 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findByHash',
-      'findGCTaskByLastModifiedDate',
+      {'name': 'findByHash', 'keys': '[taskHash: string]'},
+      {'name': 'findGCTaskByLastModifiedDate', 'keys': '[removeOnGC: bool, lastModifiedDate: string]'},
     ],
   },
 
@@ -408,7 +421,7 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findSchemaByDataDirectory',
+      {'name': 'findSchemaByDataDirectory', 'keys': '[dataDirectory: string]'},
     ],
   },
 
@@ -438,7 +451,7 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findByChannelAndDate',
+      {'name': 'findByChannelAndDate', 'keys': '[channel: string, date: string]'},
     ],
   },
 
@@ -462,11 +475,11 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findWorkflowByTagOwnerCreatedDate',
-      'findProjectByOwnersAndName',
-      'findProjectByOwnersAndCreatedDate',
-      'findOperatorByOwnerLastModifiedDate',
-      'findOperatorByUrlAndVersion',
+      {'name': 'findWorkflowByTagOwnerCreatedDate', 'keys': '[tag: string, owner: string, createdDate: string]'},
+      {'name': 'findProjectByOwnersAndName', 'keys': '[owners: string, name: string]'},
+      {'name': 'findProjectByOwnersAndCreatedDate', 'keys': '[owners: string, createdDate: string]'},
+      {'name': 'findOperatorByOwnerLastModifiedDate', 'keys': '[owner: string, lastModifiedDate: string]'},
+      {'name': 'findOperatorByUrlAndVersion', 'keys': '[url: string, version: string]'},
     ],
   },
 
@@ -488,10 +501,10 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findProjectObjectsByLastModifiedDate',
-      'findProjectObjectsByFolderAndName',
-      'findFileByLastModifiedDate',
-      'findSchemaByLastModifiedDate',
+      {'name': 'findProjectObjectsByLastModifiedDate', 'keys': '[projectId: string, lastModifiedDate: string]'},
+      {'name': 'findProjectObjectsByFolderAndName', 'keys': '[projectId: string, folderId: string, name: string]'},
+      {'name': 'findFileByLastModifiedDate', 'keys': '[projectId: string, lastModifiedDate: string]'},
+      {'name': 'findSchemaByLastModifiedDate', 'keys': '[projectId: string, lastModifiedDate: string]'},
     ],
   },
 
@@ -506,7 +519,7 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findFolderByParentFolderAndName',
+      {'name': 'findFolderByParentFolderAndName', 'keys': '[projectId: string, parentFolderId: string, name: string]'},
     ],
   },
 
@@ -521,11 +534,11 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      'findByOwnerAndKindAndDate',
-      'findByOwnerAndProjectAndKindAndDate',
-      'findByOwnerAndKind',
-      'findPublicByKind',
-      'findByProjectAndKindAndDate',
+      {'name': 'findByOwnerAndKindAndDate', 'keys': '[owner: string, kind: string, date: string]'},
+      {'name': 'findByOwnerAndProjectAndKindAndDate', 'keys': '[owner: string, projectId: string, kind: string, date: string]'},
+      {'name': 'findByOwnerAndKind', 'keys': '[owner: string, kind: string]'},
+      {'name': 'findPublicByKind', 'keys': '[isPublic: bool, kind: string]'},
+      {'name': 'findByProjectAndKindAndDate', 'keys': '[projectId: string, kind: string, date: string]'},
     ],
   },
 
@@ -534,9 +547,9 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
     'entity': 'Activity',
     'extras': [],
     'views': [
-      'findByUserAndDate',
-      'findByTeamAndDate',
-      'findByProjectAndDate',
+      {'name': 'findByUserAndDate', 'keys': '[userId: string, date: string]'},
+      {'name': 'findByTeamAndDate', 'keys': '[teamId: string, date: string]'},
+      {'name': 'findByProjectAndDate', 'keys': '[projectId: string, date: string]'},
     ],
   },
 
