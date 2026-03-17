@@ -2,14 +2,53 @@ import 'dart:convert';
 import 'dart:io';
 
 /// Lightweight MCP server (JSON-RPC 2.0 over stdio) that exposes
-/// Tercen service discovery tools to Claude Code.
+/// Tercen service/interaction discovery tools to Claude Code.
 ///
 /// Tools:
 ///   - discover_services: List all available Tercen services
 ///   - discover_methods: List methods for a specific service
+///   - discover_interactions: Widget interaction patterns (Action, ReactTo, event channels)
+///   - get_ui_state: Current selections and active windows
 ///
 /// Protocol: https://modelcontextprotocol.io/specification
+
+/// UI state passed from server.dart via TERCEN_UI_STATE env var.
+/// Contains userContext (selections) and currentWindows (active windows).
+late final Map<String, dynamic> _uiState;
+
+void _loadUiState() {
+  final raw = Platform.environment['TERCEN_UI_STATE'];
+  if (raw != null && raw.isNotEmpty) {
+    try {
+      _uiState = jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      _uiState = {};
+    }
+  } else {
+    _uiState = {};
+  }
+}
+
+/// Widget catalog metadata passed from server.dart via TERCEN_WIDGET_CATALOG env var.
+late final List<dynamic> _widgetCatalog;
+
+void _loadWidgetCatalog() {
+  final raw = Platform.environment['TERCEN_WIDGET_CATALOG'];
+  if (raw != null && raw.isNotEmpty) {
+    try {
+      _widgetCatalog = jsonDecode(raw) as List<dynamic>;
+    } catch (_) {
+      _widgetCatalog = [];
+    }
+  } else {
+    _widgetCatalog = [];
+  }
+}
+
 void main() {
+  _loadUiState();
+  _loadWidgetCatalog();
+
   stdin.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
     if (line.trim().isEmpty) return;
 
@@ -75,6 +114,40 @@ Map<String, dynamic>? _handleRequest(Map<String, dynamic> request) {
               'required': ['service'],
             },
           },
+          {
+            'name': 'discover_interactions',
+            'description':
+                'Returns the full catalog of SDUI widget interaction patterns: '
+                    'gesture actions (onTap/onDoubleTap/onLongPress), event channels, '
+                    'Action and ReactTo widget usage, and event channels. '
+                    'Call this when building interactive widgets.',
+            'inputSchema': {
+              'type': 'object',
+              'properties': {},
+            },
+          },
+          {
+            'name': 'get_ui_state',
+            'description':
+                'Returns the current UI state: user selections (selected project, '
+                    'workflow, etc.) and active windows on screen. '
+                    'Call this to understand what the user sees and has selected.',
+            'inputSchema': {
+              'type': 'object',
+              'properties': {},
+            },
+          },
+          {
+            'name': 'discover_widgets',
+            'description':
+                'Returns the catalog of installed template widgets (Tier 2). '
+                    'These are higher-level widgets that compose Tier 1 primitives. '
+                    'Use them by type name instead of building from scratch.',
+            'inputSchema': {
+              'type': 'object',
+              'properties': {},
+            },
+          },
         ],
       });
 
@@ -119,6 +192,27 @@ Map<String, dynamic>? _handleRequest(Map<String, dynamic> request) {
                 'type': 'text',
                 'text': result,
               }
+            ],
+          });
+
+        case 'discover_interactions':
+          return _jsonRpcResult(id, {
+            'content': [
+              {'type': 'text', 'text': _discoverInteractions()}
+            ],
+          });
+
+        case 'get_ui_state':
+          return _jsonRpcResult(id, {
+            'content': [
+              {'type': 'text', 'text': _getUiState()}
+            ],
+          });
+
+        case 'discover_widgets':
+          return _jsonRpcResult(id, {
+            'content': [
+              {'type': 'text', 'text': _discoverWidgets()}
             ],
           });
 
@@ -214,6 +308,172 @@ String? _discoverMethods(String service) {
         buf.writeln('  - $view');
       }
     }
+  }
+
+  return buf.toString();
+}
+
+// -- Interaction discovery --
+
+String _discoverInteractions() {
+  final buf = StringBuffer();
+  buf.writeln('# SDUI Widget Interactions');
+  buf.writeln();
+  buf.writeln('## Action Widget');
+  buf.writeln('Wrap any widget in an Action node to make it interactive.');
+  buf.writeln('Props: gesture (onTap|onDoubleTap|onLongPress|onSecondaryTap), channel, payload');
+  buf.writeln();
+  buf.writeln('### Example — selectable card:');
+  buf.writeln('```json');
+  buf.writeln('{"type": "Action", "id": "act-{{item.id}}",');
+  buf.writeln(' "props": {"gesture": "onTap", "channel": "system.selection.project",');
+  buf.writeln('           "payload": {"projectId": "{{item.id}}", "projectName": "{{item.name}}"}},');
+  buf.writeln(' "children": [{"type": "Card", "id": "card-{{item.id}}", ...}]}');
+  buf.writeln('```');
+  buf.writeln();
+  buf.writeln('### Example — nested gestures (tap to select, double-tap to open):');
+  buf.writeln('```json');
+  buf.writeln('{"type": "Action", "id": "tap-{{item.id}}",');
+  buf.writeln(' "props": {"gesture": "onTap", "channel": "system.selection.project", "payload": {"projectId": "{{item.id}}"}},');
+  buf.writeln(' "children": [');
+  buf.writeln('   {"type": "Action", "id": "dbl-{{item.id}}",');
+  buf.writeln('    "props": {"gesture": "onDoubleTap", "channel": "system.layout.op",');
+  buf.writeln('              "payload": {"op": "addWindow", "id": "win-{{item.id}}", "title": "{{item.name}}", "size": "medium", "align": "center",');
+  buf.writeln('                          "content": {"type": "Text", "id": "t-{{item.id}}", "props": {"text": "Details for {{item.name}}"}}}},');
+  buf.writeln('    "children": [{"type": "Card", "id": "card-{{item.id}}", ...}]}');
+  buf.writeln(' ]}');
+  buf.writeln('```');
+  buf.writeln();
+  buf.writeln('## ReactTo Widget');
+  buf.writeln('Wrap a widget in ReactTo to change its props when an EventBus event matches.');
+  buf.writeln('Props: channel, match (object — keys to compare), overrideProps (object — props to merge when matched)');
+  buf.writeln();
+  buf.writeln('### Example — highlight selected card:');
+  buf.writeln('```json');
+  buf.writeln('{"type": "ReactTo", "id": "rt-{{item.id}}",');
+  buf.writeln(' "props": {"channel": "system.selection.project",');
+  buf.writeln('           "match": {"projectId": "{{item.id}}"},');
+  buf.writeln('           "overrideProps": {"elevation": 4, "color": "#1565C0"}},');
+  buf.writeln(' "children": [{"type": "Card", "id": "card-{{item.id}}", "props": {"elevation": 2}, ...}]}');
+  buf.writeln('```');
+  buf.writeln();
+  buf.writeln('## Event Channels');
+  buf.writeln();
+  buf.writeln('### Selection Channels (system.selection.*)');
+  buf.writeln('| Channel | Payload | Effect |');
+  buf.writeln('|---------|---------|--------|');
+  buf.writeln('| system.selection.project | {projectId, projectName} | Sets selected project, clears workflow selection |');
+  buf.writeln('| system.selection.workflow | {workflowId, workflowName} | Sets selected workflow |');
+  buf.writeln('| system.selection.<custom> | {any keys} | All payload keys stored in user context |');
+  buf.writeln();
+  buf.writeln('### Layout Operation Channel');
+  buf.writeln('| Channel | Payload | Effect |');
+  buf.writeln('|---------|---------|--------|');
+  buf.writeln('| system.layout.op | Full layout operation JSON | Triggers addWindow/removeWindow/updateContent |');
+  buf.writeln();
+  buf.writeln('## Best Practices');
+  buf.writeln('- Wrap list items in Action for selection');
+  buf.writeln('- Nest Action > ReactTo > Card for select-and-highlight patterns');
+  buf.writeln('- Use onDoubleTap Action with system.layout.op to open detail windows');
+  buf.writeln('- Selection channels cascade: selecting a new project clears workflow selection');
+  buf.writeln('- Use get_ui_state to check current selections before responding');
+  return buf.toString();
+}
+
+// -- UI state --
+
+String _getUiState() {
+  final buf = StringBuffer();
+  buf.writeln('# Current UI State');
+  buf.writeln();
+
+  final userContext =
+      _uiState['userContext'] as Map<String, dynamic>? ?? {};
+  final windows =
+      _uiState['currentWindows'] as List<dynamic>? ?? [];
+
+  buf.writeln('## User Selections');
+  if (userContext.isEmpty) {
+    buf.writeln('No active selections.');
+  } else {
+    for (final entry in userContext.entries) {
+      buf.writeln('- ${entry.key}: ${entry.value}');
+    }
+  }
+  buf.writeln();
+
+  buf.writeln('## Active Windows');
+  if (windows.isEmpty) {
+    buf.writeln('No windows on screen.');
+  } else {
+    for (final w in windows) {
+      if (w is Map<String, dynamic>) {
+        buf.writeln('- id: ${w['id']}, title: ${w['title']}, size: ${w['size']}');
+        // Include content summary (type of root node) not the full tree
+        final content = w['content'];
+        if (content is Map<String, dynamic>) {
+          buf.writeln('  root widget: ${content['type']} (id: ${content['id']})');
+        }
+      }
+    }
+  }
+
+  return buf.toString();
+}
+
+// -- Widget catalog --
+
+String _discoverWidgets() {
+  final buf = StringBuffer();
+  buf.writeln('# Installed Template Widgets');
+  buf.writeln();
+  buf.writeln('These are higher-level widgets you can use by type name.');
+  buf.writeln('They compose Tier 1 primitives internally — just provide the type and props.');
+  buf.writeln();
+
+  if (_widgetCatalog.isEmpty) {
+    buf.writeln('No template widgets installed.');
+    return buf.toString();
+  }
+
+  for (final widget in _widgetCatalog) {
+    if (widget is! Map<String, dynamic>) continue;
+    final type = widget['type'] ?? 'unknown';
+    final description = widget['description'] ?? '';
+    final tier = widget['tier'] ?? 2;
+    buf.writeln('## $type (Tier $tier)');
+    buf.writeln(description);
+    buf.writeln();
+
+    final props = widget['props'] as Map<String, dynamic>?;
+    if (props != null && props.isNotEmpty) {
+      buf.writeln('Props:');
+      for (final entry in props.entries) {
+        final spec = entry.value;
+        if (spec is Map<String, dynamic>) {
+          final type = spec['type'] ?? 'any';
+          final required = spec['required'] == true ? ' (required)' : '';
+          final def = spec['default'] != null ? ', default: ${spec['default']}' : '';
+          final desc = spec['description'] != null ? ' — ${spec['description']}' : '';
+          buf.writeln('  - ${entry.key}: $type$required$def$desc');
+        }
+      }
+      buf.writeln();
+    }
+
+    final events = widget['emittedEvents'] as List<dynamic>?;
+    if (events != null && events.isNotEmpty) {
+      buf.writeln('Emits: ${events.join(', ')}');
+    }
+
+    final actions = widget['acceptedActions'] as List<dynamic>?;
+    if (actions != null && actions.isNotEmpty) {
+      buf.writeln('Gestures: ${actions.join(', ')}');
+    }
+
+    buf.writeln();
+    buf.writeln('Usage: `{"type": "$type", "id": "my-$type", "props": {...}}`');
+    buf.writeln();
   }
 
   return buf.toString();

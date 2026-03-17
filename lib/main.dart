@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:sci_http_client/http_auth_client.dart' as auth_http;
@@ -7,13 +8,13 @@ import 'package:sci_http_client/http_client.dart' as http_api;
 import 'package:sci_tercen_client/sci_client.dart' as sci;
 import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
-import 'package:tercen_ui_orchestrator/sdui/sdui_context.dart';
+import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
 const _serverUrl = String.fromEnvironment(
   'SERVER_URL',
-  defaultValue: 'ws://localhost:8080',
+  defaultValue: 'ws://127.0.0.1:8080',
 );
 
 const _tercenToken = String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
@@ -38,6 +39,30 @@ String _parseServiceUriFromToken(String token) {
 }
 
 void main() {
+  // 1. Flutter build/layout/paint errors → ErrorReporter + default red widget
+  FlutterError.onError = (details) {
+    ErrorReporter.instance.report(
+      details.exception,
+      stackTrace: details.stack,
+      source: 'flutter.${details.library ?? 'unknown'}',
+      context: details.context?.toString(),
+      severity: ErrorSeverity.fatal,
+    );
+    // Still show Flutter's default red error widget
+    FlutterError.presentError(details);
+  };
+
+  // 2. Uncaught async errors (Futures, microtasks, Zones) → ErrorReporter
+  PlatformDispatcher.instance.onError = (error, stack) {
+    ErrorReporter.instance.report(
+      error,
+      stackTrace: stack,
+      source: 'dart.async',
+      severity: ErrorSeverity.fatal,
+    );
+    return true; // handled — don't crash the app
+  };
+
   runApp(const OrchestratorApp());
 }
 
@@ -94,7 +119,11 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       _sduiContext.renderContext.serviceCaller = dispatcher.call;
       debugPrint('[auth] ServiceFactory ready — data widgets enabled');
     } catch (e, st) {
-      debugPrint('[auth] Failed to create ServiceFactory: $e\n$st');
+      ErrorReporter.instance.report(e,
+        stackTrace: st,
+        source: 'auth.bootstrap',
+        context: 'creating ServiceFactory for $serviceUri',
+      );
     }
   }
 

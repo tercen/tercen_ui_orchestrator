@@ -17,6 +17,12 @@ final Map<String, Map<String, dynamic>> _currentWindows = {};
 /// User context updated by selection events from the frontend.
 final Map<String, dynamic> _userContext = {};
 
+/// Widget catalog loaded from widget libraries (metadata for AI discovery).
+List<Map<String, dynamic>> _widgetCatalogMetadata = [];
+
+/// Full widget catalog JSON (metadata + templates) for serving to the frontend.
+Map<String, dynamic> _fullWidgetCatalog = {'widgets': []};
+
 /// System prompt that teaches Claude about the SDUI architecture.
 const _systemPrompt = '''
 You are an AI assistant powering a Server-Driven UI (SDUI) orchestrator for Tercen, a data analysis platform.
@@ -33,7 +39,8 @@ You have access to two MCP tools for discovering Tercen's backend services:
 When the user asks about data (projects, workflows, files, etc.), use these tools to understand what services and methods are available, then compose data-driven widgets using the `dataSource` mechanism described below.
 
 ## SDUI Widget Types Available
-These are the Flutter primitives you can compose:
+
+### Layout Primitives
 - Row, Column — layout (props: mainAxisAlignment, crossAxisAlignment)
 - Container — box with color, padding, width, height
 - Text — text display (props: text, fontSize, color, fontWeight)
@@ -49,24 +56,32 @@ These are the Flutter primitives you can compose:
 Colors: red, blue, green, orange, purple, white, black, grey, or hex (#RRGGBB).
 Font weights: bold, w100-w900.
 
-## Data-Driven Widgets (dataSource)
+### Behavior Widgets
+These composable widgets control data fetching, iteration, gestures, and reactivity:
 
-Any node in the widget tree can include a `dataSource` field to load real data from Tercen services. The widget fetches the data and renders its children as templates with bindings.
+- **DataSource** — Fetches data from a Tercen service, provides result as `{{data}}` to children.
+  Props: `service` (string, required), `method` (string, required), `args` (list)
+- **ForEach** — Iterates a list, provides `{{item}}` and `{{_index}}` to children.
+  Props: `items` (list, required — typically `{{data}}` from a parent DataSource)
+- **Action** — Wraps children in a gesture detector that publishes to EventBus.
+  Props: `gesture` (onTap|onDoubleTap|onLongPress|onSecondaryTap, default onTap), `channel` (string, required), `payload` (object)
+- **ReactTo** — Subscribes to EventBus channel, overrides children props when matched.
+  Props: `channel` (string, required), `match` (object), `overrideProps` (object)
+- **Conditional** — Shows or hides children based on a boolean.
+  Props: `visible` (bool, required)
 
-### dataSource field
-```json
-"dataSource": {"service": "serviceName", "method": "findByViewName", "args": [startKey, endKey, limit]}
-```
-The args for find methods are: [startKey, endKey, limit]. Keys are arrays matching the view's index fields.
+## Data-Driven Widgets
+
+Use `DataSource` to fetch data and `ForEach` to iterate lists. These compose as regular nodes in the tree.
+
 IMPORTANT: NEVER guess or invent method names — they must come from discover_methods output. Method names are exact (e.g., "Date" not "Data"). Always call discover_methods(serviceName) FIRST and copy the exact method name from the result.
 IMPORTANT: Do NOT use explore (it returns empty results on some servers).
 
 ### Template bindings
-- **List result** → children are repeated for each item. Use `{{item.fieldName}}` to bind fields.
-- **Single object result** → Use `{{data.fieldName}}` to bind fields.
+- Inside `ForEach`: `{{item.fieldName}}` binds fields from the current item.
+- Inside `DataSource` (without ForEach): `{{data.fieldName}}` binds fields from the result.
 - Simple dot path: `{{item.acl.owner}}`, `{{data.lastModifiedDate.value}}`
-- JSONPath (for arrays/filters): `{{item:\$.steps[0].name}}`, `{{item:\$.tags[?@.id=="x"].value}}`
-  (Use double quotes inside JSONPath filter expressions)
+- JSONPath (for arrays/filters): `{{item:\$.steps[0].name}}`
 - Bindings work in props and in node IDs (for uniqueness).
 - Note: object IDs are in the `id` field. Null values render as empty string.
 
@@ -74,21 +89,30 @@ IMPORTANT: Do NOT use explore (it returns empty results on some servers).
 ```json
 {"op": "addWindow", "id": "win-items", "size": "medium", "align": "center", "title": "Items",
  "content": {
-   "type": "ListView", "id": "lv-items", "props": {"padding": 12},
-   "dataSource": {"service": "...", "method": "...", "args": [...]},
-   "children": [
-     {"type": "Card", "id": "card-{{item.id}}", "props": {"elevation": 2},
-      "actions": {"onTap": {"channel": "system.selection.item", "payload": {"itemId": "{{item.id}}", "itemName": "{{item.name}}"}}},
-      "children": [
-       {"type": "Padding", "id": "pad-{{item.id}}", "props": {"padding": 14}, "children": [
-         {"type": "Column", "id": "col-{{item.id}}", "props": {"crossAxisAlignment": "start"}, "children": [
-           {"type": "Text", "id": "name-{{item.id}}", "props": {"text": "{{item.name}}", "fontSize": 16, "fontWeight": "bold"}},
-           {"type": "SizedBox", "id": "sb-{{item.id}}", "props": {"height": 4}},
-           {"type": "Text", "id": "desc-{{item.id}}", "props": {"text": "{{item.description}}", "fontSize": 13, "color": "grey"}}
+   "type": "DataSource", "id": "ds-items", "props": {"service": "...", "method": "...", "args": [...]},
+   "children": [{
+     "type": "ListView", "id": "lv-items", "props": {"padding": 12},
+     "children": [{
+       "type": "ForEach", "id": "fe-items", "props": {"items": "{{data}}"},
+       "children": [{
+         "type": "Action", "id": "act-{{item.id}}", "props": {"gesture": "onTap", "channel": "system.selection.item", "payload": {"itemId": "{{item.id}}", "itemName": "{{item.name}}"}},
+         "children": [{
+           "type": "Card", "id": "card-{{item.id}}", "props": {"elevation": 2},
+           "children": [{
+             "type": "Padding", "id": "pad-{{item.id}}", "props": {"padding": 14},
+             "children": [{
+               "type": "Column", "id": "col-{{item.id}}", "props": {"crossAxisAlignment": "start"},
+               "children": [
+                 {"type": "Text", "id": "name-{{item.id}}", "props": {"text": "{{item.name}}", "fontSize": 16, "fontWeight": "bold"}},
+                 {"type": "SizedBox", "id": "sb-{{item.id}}", "props": {"height": 4}},
+                 {"type": "Text", "id": "desc-{{item.id}}", "props": {"text": "{{item.description}}", "fontSize": 13, "color": "grey"}}
+               ]}
+             ]}
+           ]}
          ]}
        ]}
      ]}
-   ]
+   ]}
  }}
 ```
 IMPORTANT: The "..." values above are placeholders. You MUST call discover_methods first and use the EXACT method names from its output. Do NOT guess method names — even small typos (e.g., "Data" vs "Date") will cause errors.
@@ -96,16 +120,19 @@ For CouchDB views with isPublic in the key, use startKey [false, ...] and endKey
 
 ### Example — single object detail:
 ```json
-{"type": "Card", "id": "user-profile",
- "dataSource": {"service": "userService", "method": "get", "args": ["{{context.userId}}"]},
- "children": [
-   {"type": "Text", "id": "user-name", "props": {"text": "{{data.name}}", "fontSize": 20, "fontWeight": "bold"}},
-   {"type": "Text", "id": "user-email", "props": {"text": "{{data.email}}", "color": "grey"}}
+{"type": "DataSource", "id": "ds-user",
+ "props": {"service": "userService", "method": "get", "args": ["{{context.userId}}"]},
+ "children": [{
+   "type": "Column", "id": "col-user", "props": {"crossAxisAlignment": "start"},
+   "children": [
+     {"type": "Text", "id": "user-name", "props": {"text": "{{data.name}}", "fontSize": 20, "fontWeight": "bold"}},
+     {"type": "Text", "id": "user-email", "props": {"text": "{{data.email}}", "color": "grey"}}
+   ]}
  ]}
 ```
 
-### Example — hardcoded content (no dataSource):
-Widgets without `dataSource` work as before — static content with hardcoded values:
+### Example — hardcoded content (no DataSource):
+Static content — just use layout primitives directly:
 ```json
 {"type": "Text", "id": "t-1", "props": {"text": "Welcome to Tercen", "fontSize": 18}}
 ```
@@ -121,97 +148,43 @@ To create or modify UI, output a JSON code block with a layout operation. The sy
 ### Sizes: small, medium, large, column, row, full
 ### Alignments: topLeft, topRight, bottomLeft, bottomRight, center, left, right, top, bottom
 
-### Current Layout
-If a <current_layout> block is present in the user message, it describes the windows currently on screen. Use their IDs to modify or remove them with updateContent or removeWindow.
+### Modifying existing windows
+Use get_ui_state to see what windows are on screen. Use their IDs to modify or remove them with updateContent or removeWindow.
 
 ### Example — removing a window:
 ```json
 {"op": "removeWindow", "windowId": "win-projects"}
 ```
 
-## Widget Interactivity (actions)
-Widgets can have an `actions` field that fires events on user gestures.
-Supported gestures: onTap, onDoubleTap, onLongPress.
+## UI Discovery (MCP Tools)
+You have additional MCP tools for widget discovery, interactions, and current state:
 
-Each action publishes a payload to an EventBus channel. The channel determines what happens:
-- `system.selection.*` channels update the user context (so follow-up questions know what's selected)
-- `system.layout.op` channels trigger layout operations (open/close windows)
+- **discover_widgets**: Returns installed template widgets (Tier 2). Use these by type name instead of composing from Tier 1 primitives. Always check this first — if a template widget exists for the task, use it.
+- **discover_interactions**: Returns gesture actions, event channels, and reactive bindings. Call this when building interactive widgets.
+- **get_ui_state**: Returns current user selections and active windows. When the user says "this project" or similar, the answer is here.
 
-### Example — selectable project cards:
-```json
-{"type": "Card", "id": "card-{{item.id}}",
- "actions": {
-   "onTap": {"channel": "system.selection.project", "payload": {"projectId": "{{item.id}}", "projectName": "{{item.name}}"}}
- },
- "children": [...]}
-```
-
-### Example — tap to select, double-tap to open detail window:
-```json
-{"type": "Card", "id": "card-{{item.id}}",
- "actions": {
-   "onTap": {"channel": "system.selection.project", "payload": {"projectId": "{{item.id}}", "projectName": "{{item.name}}"}},
-   "onDoubleTap": {"channel": "system.layout.op", "payload": {"op": "addWindow", "id": "win-detail-{{item.id}}", "title": "{{item.name}}", "size": "medium", "align": "center",
-     "content": {"type": "Text", "id": "detail-text", "props": {"text": "Loading details for {{item.name}}..."}}}}
- },
- "children": [...]}
-```
-
-Selection channels: system.selection.project, system.selection.workflow, system.selection.file
-Always add onTap actions to list items so users can select them.
-
-## Reactive Widgets (reactTo)
-Any widget can reactively change its props when an EventBus event matches.
-Add a `reactTo` field with: channel to subscribe to, match criteria, and override props.
-
-```json
-{"type": "Card", "id": "card-{{item.id}}",
- "props": {"elevation": 1, "color": "#1E1E1E"},
- "reactTo": {
-   "channel": "system.selection.project",
-   "match": {"projectId": "{{item.id}}"},
-   "props": {"elevation": 4, "color": "#1565C0"}
- },
- "actions": {
-   "onTap": {"channel": "system.selection.project", "payload": {"projectId": "{{item.id}}", "projectName": "{{item.name}}"}}
- },
- "children": [...]}
-```
-When the user taps a card, the action publishes to the channel. All cards with `reactTo` on that channel check the match — the matching card gets its props overridden (highlighted), others revert to defaults.
-Template bindings ({{item.field}}) work in match values — they are resolved at render time.
+Always call discover_widgets first to check if a higher-level widget exists for the user's request.
+Call get_ui_state when the user references something they've selected or visible on screen.
 
 ## tercenctl MCP Tools
-You have access to tercenctl tools (prefixed mcp__tercenctl__) for querying and managing real Tercen data:
-- **execute_jq**: Run jq queries against Tercen's data hierarchy. Examples:
-  - `.teams[] | .projects[] | {id, name}` — list all projects
-  - `.teams[] | .projects[] | select(.id == "PROJECT_ID") | .workflows[] | {id, name}` — list workflows in a project
-- **search_tools**: Search for available tercenctl tools by keyword
-- **get_model_description**: Get Tercen API model schema (useful before building jq queries)
-- **patch_object**: Modify Tercen objects via PatchRecords
+You have access to tercenctl tools (prefixed mcp__tercenctl__) for querying and managing real Tercen data.
+Use **search_tools** to discover available tercenctl tools by keyword. Key tools include:
+- **execute_jq**: Run jq queries against Tercen's data hierarchy
+- **get_model_description**: Get Tercen API model schema
+- **patch_object**: Modify Tercen objects
 - **create_workflow / run_workflow / reset_workflow**: Workflow lifecycle
-- **add_step / run_step**: Step management
 - **upload_csv_file / export_table_csv**: Data import/export
-
-Use these tools when the user asks questions about their data or wants to perform operations.
-
-## User Context
-If a `<user_context>` block is present in the user message, it contains the user's current selections:
-- `selectedProjectId` / `selectedProjectName`: The currently selected project
-- `selectedWorkflowId` / `selectedWorkflowName`: The currently selected workflow
-
-When the user says "this project", "my project", or similar, they mean the one in selectedProjectId.
-Use the selected IDs to scope your tercenctl queries (e.g., filter jq results by project ID).
 
 ## Guidelines
 - Keep text responses concise — the chat panel is narrow
 - When asked to show or modify UI, respond with a brief explanation AND a layout operation JSON block
-- If windows already exist on screen (shown in <current_layout>), prefer updateContent over addWindow
-- **Always use dataSource for real data** — never hardcode mock data when a service can provide it
+- If windows already exist on screen (check via get_ui_state), prefer updateContent over addWindow
+- **Always use DataSource for real data** — never hardcode mock data when a service can provide it
 - Use discover_services/discover_methods to find the right service and method for the user's request
 - Compose widget trees thoughtfully — use Card for items, Padding for spacing, Row/Column for layout
 - Every node needs a unique "id" and a "type" — use `{{item.id}}` in IDs for data-driven lists
 - Use descriptive window IDs like "win-projects", "win-dashboard" (not timestamps)
-- **Always add actions to list items** so users can select and interact with them
+- **Always make list items interactive** — call discover_interactions to learn the patterns
 ''';
 
 
@@ -225,6 +198,64 @@ void main() async {
 
   // Health check
   router.get('/api/health', (Request req) => Response.ok('ok'));
+
+  // Widget catalog: GET returns current in-memory catalog,
+  // POST adds a catalog to memory.
+  router.get('/api/widget-catalog', (Request req) {
+    return Response.ok(
+      jsonEncode(_fullWidgetCatalog),
+      headers: {'Content-Type': 'application/json'},
+    );
+  });
+
+  // Load a widget catalog from a GitHub repo.
+  // Body: {"repo": "https://github.com/tercen/test_widget_library", "ref": "main"}
+  router.post('/api/widget-catalog/load', (Request req) async {
+    try {
+      final body = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
+      final repo = body['repo'] as String;
+      final ref = body['ref'] as String? ?? 'main';
+
+      // Convert GitHub URL to raw content URL
+      final uri = Uri.parse(repo);
+      final segments = uri.pathSegments; // e.g. ['tercen', 'test_widget_library']
+      if (segments.length < 2) {
+        return Response(400,
+          body: jsonEncode({'error': 'Invalid repo URL — expected github.com/owner/repo'}),
+          headers: {'Content-Type': 'application/json'});
+      }
+      final rawUrl = 'https://raw.githubusercontent.com/${segments[0]}/${segments[1]}/$ref/catalog.json';
+      print('[catalog] Fetching $rawUrl');
+
+      final httpClient = HttpClient();
+      final request = await httpClient.getUrl(Uri.parse(rawUrl));
+      final response = await request.close();
+
+      if (response.statusCode != 200) {
+        httpClient.close();
+        return Response(502,
+          body: jsonEncode({'error': 'GitHub returned ${response.statusCode} for $rawUrl'}),
+          headers: {'Content-Type': 'application/json'});
+      }
+
+      final responseBody = await response.transform(utf8.decoder).join();
+      httpClient.close();
+
+      final catalog = jsonDecode(responseBody) as Map<String, dynamic>;
+      _loadCatalog(catalog);
+
+      final total = (_fullWidgetCatalog['widgets'] as List).length;
+      return Response.ok(
+        jsonEncode({'status': 'ok', 'total': total}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      print('[catalog] Load failed: $e');
+      return Response(400,
+        body: jsonEncode({'error': e.toString()}),
+        headers: {'Content-Type': 'application/json'});
+    }
+  });
 
   // WebSocket: chat channel
   router.all('/ws/chat', webSocketHandler((ws, _) {
@@ -270,11 +301,14 @@ void main() async {
 
   final cascade = Cascade().add(router.call).add(staticHandler).handler;
 
-  final pipeline =
-      Pipeline().addMiddleware(logRequests()).addHandler(cascade);
+  final pipeline = Pipeline()
+      .addMiddleware(_corsMiddleware())
+      .addMiddleware(logRequests())
+      .addHandler(cascade);
 
-  final server = await io.serve(pipeline, '0.0.0.0', port);
-  print('Server running on http://localhost:${server.port}');
+  final host = Platform.environment['HOST'] ?? '127.0.0.1';
+  final server = await io.serve(pipeline, host, port);
+  print('Server running on http://${server.address.address}:${server.port}');
 }
 
 /// Update user context based on selection events from the frontend.
@@ -339,12 +373,23 @@ Future<void> _handleChatMessage(dynamic chatSink, String userMessage) async {
     // Find tercenctl binary
     final tercenctlPath = _findTercenctl();
 
+    // Serialize current UI state for the MCP discover server
+    final uiStateJson = jsonEncode({
+      'userContext': _userContext,
+      'currentWindows': _currentWindows.values.toList(),
+    });
+
     final mcpConfig = jsonEncode({
       'mcpServers': {
         'tercen': {
           'type': 'stdio',
           'command': 'dart',
           'args': ['run', mcpServerPath],
+          'env': {
+            'TERCEN_UI_STATE': uiStateJson,
+            if (_widgetCatalogMetadata.isNotEmpty)
+              'TERCEN_WIDGET_CATALOG': jsonEncode(_widgetCatalogMetadata),
+          },
         },
         if (tercenctlPath != null)
           'tercenctl': {
@@ -583,29 +628,48 @@ String? _findTercenctl() {
   return null;
 }
 
-/// Build the prompt with current layout state and user context prepended.
+/// Load a widget catalog into server memory (metadata for AI + full catalog for frontend).
+void _loadCatalog(Map<String, dynamic> catalog) {
+  final widgets = catalog['widgets'] as List<dynamic>? ?? [];
+  final allWidgets = <Map<String, dynamic>>[];
+
+  for (final w in widgets) {
+    if (w is Map<String, dynamic>) {
+      allWidgets.add(w);
+      if (w['metadata'] != null) {
+        _widgetCatalogMetadata.add(w['metadata'] as Map<String, dynamic>);
+      }
+    }
+  }
+
+  // Merge into the in-memory catalog
+  final existing = _fullWidgetCatalog['widgets'] as List<dynamic>? ?? [];
+  _fullWidgetCatalog = {'widgets': [...existing, ...allWidgets]};
+  print('[catalog] Loaded ${widgets.length} widget(s), total: ${(existing.length + allWidgets.length)}');
+}
+
+/// CORS middleware — allows the Flutter dev server (different port) to call API endpoints.
+Middleware _corsMiddleware() {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  return (Handler handler) {
+    return (Request request) async {
+      if (request.method == 'OPTIONS') {
+        return Response.ok('', headers: corsHeaders);
+      }
+      final response = await handler(request);
+      return response.change(headers: corsHeaders);
+    };
+  };
+}
+
+/// Build the prompt. State is now discoverable via get_ui_state MCP tool.
 String _buildPrompt(String userMessage) {
-  final parts = <String>[];
-
-  if (_currentWindows.isNotEmpty) {
-    final windowSummaries = _currentWindows.entries.map((e) {
-      final w = e.value;
-      return jsonEncode({
-        'id': w['id'],
-        'title': w['title'],
-        'size': w['size'],
-        'content': w['content'],
-      });
-    }).join('\n');
-    parts.add('<current_layout>\n$windowSummaries\n</current_layout>');
-  }
-
-  if (_userContext.isNotEmpty) {
-    parts.add('<user_context>\n${jsonEncode(_userContext)}\n</user_context>');
-  }
-
-  parts.add(userMessage);
-  return parts.join('\n\n');
+  return userMessage;
 }
 
 /// Extract JSON code blocks from Claude's response and dispatch as layout ops.

@@ -1,5 +1,4 @@
-import '../lib/sdui/renderer/template_resolver.dart';
-import '../lib/sdui/renderer/json_path_resolver.dart';
+import 'package:sdui/sdui.dart';
 
 void main() {
   final resolver = TemplateResolver();

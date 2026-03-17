@@ -215,6 +215,13 @@ packages:
       url: "https://github.com/tercen/sci_tercen_client"
     source: git
     version: "1.16.1"
+  sdui:
+    dependency: "direct main"
+    description:
+      path: "../sdui"
+      relative: true
+    source: path
+    version: "0.1.0"
   sky_engine:
     dependency: transitive
     description: flutter

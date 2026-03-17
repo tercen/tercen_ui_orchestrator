@@ -1,1 +1,1 @@
-{"version":2,"entries":[{"package":"tercen_ui_orchestrator","rootUri":"../","packageUri":"lib/"}]}
+{"version":2,"entries":[{"package":"sdui","rootUri":"../../sdui/","packageUri":"lib/"},{"package":"tercen_ui_orchestrator","rootUri":"../","packageUri":"lib/"}]}

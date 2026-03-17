@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:tercen_ui_orchestrator/sdui/sdui_context.dart';
+import 'package:sdui/sdui.dart';
 
 class WorkspacePanel extends StatelessWidget {
   const WorkspacePanel({super.key});

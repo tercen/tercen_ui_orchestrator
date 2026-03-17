@@ -5,8 +5,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../sdui/event_bus/event_bus.dart';
-import '../sdui/event_bus/event_payload.dart';
+import 'package:sdui/sdui.dart';
 
 /// Connection state for the orchestrator client.
 enum WsConnectionState { disconnected, connecting, connected }
@@ -66,7 +65,13 @@ class OrchestratorClient extends ChangeNotifier {
           final json = jsonDecode(data as String) as Map<String, dynamic>;
           _chatMessages.add(json);
         },
-        onError: (_) => _onDisconnect(),
+        onError: (e, st) {
+          ErrorReporter.instance.report(e,
+            stackTrace: st is StackTrace ? st : null,
+            source: 'ws.chat',
+          );
+          _onDisconnect();
+        },
         onDone: _onDisconnect,
       );
 
@@ -79,7 +84,13 @@ class OrchestratorClient extends ChangeNotifier {
             EventPayload(type: 'layout.op', data: json),
           );
         },
-        onError: (_) => _onDisconnect(),
+        onError: (e, st) {
+          ErrorReporter.instance.report(e,
+            stackTrace: st is StackTrace ? st : null,
+            source: 'ws.ui',
+          );
+          _onDisconnect();
+        },
         onDone: _onDisconnect,
       );
 
@@ -93,8 +104,12 @@ class OrchestratorClient extends ChangeNotifier {
           'data': payload.data,
         });
       });
-    } catch (e) {
-      debugPrint('WebSocket connection failed: $e');
+    } catch (e, st) {
+      ErrorReporter.instance.report(e,
+        stackTrace: st,
+        source: 'ws.connect',
+        context: 'baseUrl: $baseUrl',
+      );
       _closeChannels();
       _state = WsConnectionState.disconnected;
       notifyListeners();

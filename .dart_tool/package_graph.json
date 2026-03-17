@@ -11,6 +11,7 @@
         "sci_base",
         "sci_http_client",
         "sci_tercen_client",
+        "sdui",
         "web_socket_channel"
       ],
       "devDependencies": [
@@ -66,6 +67,13 @@
       "version": "1.16.1",
       "dependencies": [
         "sci_tercen_model"
+      ]
+    },
+    {
+      "name": "sdui",
+      "version": "0.1.0",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
@@ -180,12 +188,9 @@
       ]
     },
     {
-      "name": "uuid",
-      "version": "4.5.3",
-      "dependencies": [
-        "crypto",
-        "fixnum"
-      ]
+      "name": "logging",
+      "version": "1.3.0",
+      "dependencies": []
     },
     {
       "name": "tson",
@@ -196,11 +201,6 @@
       ]
     },
     {
-      "name": "logging",
-      "version": "1.3.0",
-      "dependencies": []
-    },
-    {
       "name": "http",
       "version": "1.6.0",
       "dependencies": [
@@ -208,6 +208,14 @@
         "http_parser",
         "meta",
         "web"
+      ]
+    },
+    {
+      "name": "uuid",
+      "version": "4.5.3",
+      "dependencies": [
+        "crypto",
+        "fixnum"
       ]
     },
     {
@@ -306,11 +314,6 @@
       ]
     },
     {
-      "name": "fixnum",
-      "version": "1.1.1",
-      "dependencies": []
-    },
-    {
       "name": "chunked_stream",
       "version": "1.4.2",
       "dependencies": [
@@ -333,6 +336,11 @@
         "string_scanner",
         "typed_data"
       ]
+    },
+    {
+      "name": "fixnum",
+      "version": "1.1.1",
+      "dependencies": []
     },
     {
       "name": "vm_service",
