@@ -1,2 +1,4 @@
 _local
 .dart_tool/
+**/.dart_tool/
+**/.server.pid
