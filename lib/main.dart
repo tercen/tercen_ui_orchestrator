@@ -76,17 +76,28 @@ class OrchestratorApp extends StatefulWidget {
 class _OrchestratorAppState extends State<OrchestratorApp> {
   late final SduiContext _sduiContext;
   late final OrchestratorClient _client;
+  bool _isDark = true;
+
+  SduiTheme get _currentTheme =>
+      _isDark ? const SduiTheme.dark() : const SduiTheme.light();
 
   @override
   void initState() {
     super.initState();
-    _sduiContext = SduiContext.create();
+    _sduiContext = SduiContext.create(theme: const SduiTheme.dark());
     _client = OrchestratorClient(
       baseUrl: _serverUrl,
       eventBus: _sduiContext.eventBus,
     );
     _client.connect();
     _bootstrapAuth();
+  }
+
+  void _toggleTheme() {
+    setState(() {
+      _isDark = !_isDark;
+      _sduiContext.renderContext.theme = _currentTheme;
+    });
   }
 
   Future<void> _bootstrapAuth() async {
@@ -140,22 +151,43 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       sduiContext: _sduiContext,
       child: OrchestratorClientScope(
         client: _client,
-        child: MaterialApp(
-          title: 'Tercen',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            colorScheme: const ColorScheme.dark(
-              surface: Color(0xFF1E1E1E),
-              primary: Colors.blue,
-            ),
-            scaffoldBackgroundColor: const Color(0xFF1E1E1E),
-            useMaterial3: true,
+        child: ThemeController(
+          isDark: _isDark,
+          onToggle: _toggleTheme,
+          child: MaterialApp(
+            title: 'Tercen',
+            debugShowCheckedModeBanner: false,
+            theme: _currentTheme.toMaterialTheme(),
+            home: const ShellScreen(),
           ),
-          home: const ShellScreen(),
         ),
       ),
     );
   }
+}
+
+/// Provides theme toggle state down the widget tree.
+class ThemeController extends InheritedWidget {
+  final bool isDark;
+  final VoidCallback onToggle;
+
+  const ThemeController({
+    super.key,
+    required this.isDark,
+    required this.onToggle,
+    required super.child,
+  });
+
+  static ThemeController of(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<ThemeController>();
+    assert(scope != null, 'ThemeController not found');
+    return scope!;
+  }
+
+  @override
+  bool updateShouldNotify(ThemeController oldWidget) =>
+      isDark != oldWidget.isDark;
 }
 
 /// Makes the OrchestratorClient available down the widget tree.

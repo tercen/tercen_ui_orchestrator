@@ -34,7 +34,7 @@ class _ToolbarState extends State<Toolbar> {
 
         return Container(
           height: 42,
-          color: const Color(0xFF2D2D2D),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Row(
             children: [
@@ -59,17 +59,35 @@ class _ToolbarState extends State<Toolbar> {
                     },
                   ),
                 ),
+              // Theme toggle
+              Builder(
+                builder: (context) {
+                  final themeCtrl = ThemeController.of(context);
+                  return IconButton(
+                    icon: Icon(
+                      themeCtrl.isDark ? Icons.light_mode : Icons.dark_mode,
+                      size: 18,
+                    ),
+                    color: Theme.of(context).colorScheme.onSurface,
+                    tooltip: themeCtrl.isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    onPressed: themeCtrl.onToggle,
+                  );
+                },
+              ),
+              const SizedBox(width: 4),
               // Load Library icon button
               if (_loading)
-                const SizedBox(
+                SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 )
               else
                 IconButton(
                   icon: const Icon(Icons.library_add_outlined, size: 18),
-                  color: Colors.white70,
+                  color: Theme.of(context).colorScheme.onSurface,
                   tooltip: 'Load Library',
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -218,7 +236,7 @@ class _ToolbarButton extends StatelessWidget {
     return TextButton.icon(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        foregroundColor: Colors.white70,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
@@ -286,7 +304,7 @@ class _FadingStatusState extends State<_FadingStatus>
       opacity: _opacity,
       child: Text(
         widget.message,
-        style: const TextStyle(color: Colors.white54, fontSize: 12),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
       ),
     );
   }

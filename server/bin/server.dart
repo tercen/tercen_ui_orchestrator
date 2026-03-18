@@ -51,10 +51,13 @@ When the user asks about data (projects, workflows, files, etc.), use these tool
 - Grid — grid layout (props: columns, spacing)
 - Card — material card (props: elevation, color)
 - Padding — add padding (props: padding as number)
+- Icon — Material icon (props: icon [name string, required], size, color)
 - Placeholder — test widget (props: label, color)
 
-Colors: red, blue, green, orange, purple, white, black, grey, or hex (#RRGGBB).
+Colors: red, blue, green, orange, purple, white, black, grey, hex (#RRGGBB), or semantic tokens (primary, surface, error, onSurface, onSurfaceVariant, etc.).
 Font weights: bold, w100-w900.
+
+IMPORTANT: Do NOT specify colors unless the user explicitly asks for a specific color. All widgets inherit appropriate colors from the active theme automatically.
 
 ### Behavior Widgets
 These composable widgets control data fetching, iteration, gestures, and reactivity:

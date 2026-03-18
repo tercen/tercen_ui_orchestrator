@@ -10,17 +10,20 @@ class WorkspacePanel extends StatelessWidget {
     final sdui = SduiScope.of(context);
 
     return Container(
-      color: const Color(0xFF1E1E1E),
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: ListenableBuilder(
         listenable: sdui.windowManager,
         builder: (context, _) {
           return LayoutBuilder(
             builder: (context, constraints) {
               if (sdui.windowManager.windows.isEmpty) {
-                return const Center(
+                return Center(
                   child: Text(
                     'Workspace',
-                    style: TextStyle(color: Colors.white38, fontSize: 24),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 24,
+                    ),
                   ),
                 );
               }

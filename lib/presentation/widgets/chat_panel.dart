@@ -171,7 +171,7 @@ class _ChatPanelState extends State<ChatPanel> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF252525),
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
           _buildHeader(),
@@ -190,12 +190,12 @@ class _ChatPanelState extends State<ChatPanel> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          const Icon(Icons.terminal, color: Colors.white54, size: 20),
+          Icon(Icons.terminal, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
           const SizedBox(width: 8),
-          const Text(
+          Text(
             'Claude Code',
             style: TextStyle(
-              color: Colors.white70,
+              color: Theme.of(context).colorScheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
@@ -209,7 +209,9 @@ class _ChatPanelState extends State<ChatPanel> {
               return Icon(
                 Icons.circle,
                 size: 8,
-                color: connected ? Colors.green : Colors.red,
+                color: connected
+                    ? Theme.of(context).colorScheme.tertiary
+                    : Theme.of(context).colorScheme.error,
               );
             },
           ),
@@ -221,10 +223,10 @@ class _ChatPanelState extends State<ChatPanel> {
 
   Widget _buildMessageList() {
     if (_messages.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Ask Claude to do something...',
-          style: TextStyle(color: Colors.white24, fontSize: 14),
+          style: TextStyle(color: Theme.of(context).hintColor, fontSize: 14),
         ),
       );
     }
@@ -248,15 +250,16 @@ class _ChatPanelState extends State<ChatPanel> {
     final IconData icon;
     final Color iconColor;
 
+    final colorScheme = Theme.of(context).colorScheme;
     if (isUser) {
       icon = Icons.person;
-      iconColor = Colors.blue;
+      iconColor = colorScheme.primary;
     } else if (isTool) {
       icon = Icons.build;
       iconColor = Colors.amber;
     } else if (isError) {
       icon = Icons.error_outline;
-      iconColor = Colors.red;
+      iconColor = colorScheme.error;
     } else {
       icon = Icons.smart_toy;
       iconColor = Colors.orange;
@@ -276,7 +279,7 @@ class _ChatPanelState extends State<ChatPanel> {
                 Text(
                   msg.displayText,
                   style: TextStyle(
-                    color: isError ? Colors.red.shade300 : (isTool ? Colors.amber.shade200 : Colors.white70),
+                    color: isError ? colorScheme.error : (isTool ? Colors.amber.shade200 : colorScheme.onSurface),
                     fontSize: 14,
                     fontFamily: isTool ? 'monospace' : null,
                   ),
@@ -309,12 +312,12 @@ class _ChatPanelState extends State<ChatPanel> {
           Expanded(
             child: TextField(
               controller: _controller,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
               decoration: InputDecoration(
                 hintText: _isStreaming ? 'Claude is thinking...' : 'Message Claude...',
-                hintStyle: const TextStyle(color: Colors.white24),
+                hintStyle: TextStyle(color: Theme.of(context).hintColor),
                 filled: true,
-                fillColor: const Color(0xFF1E1E1E),
+                fillColor: Theme.of(context).scaffoldBackgroundColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
@@ -333,7 +336,9 @@ class _ChatPanelState extends State<ChatPanel> {
             onPressed: _isStreaming ? null : _sendMessage,
             icon: Icon(
               Icons.send,
-              color: _isStreaming ? Colors.white24 : Colors.blue,
+              color: _isStreaming
+                  ? Theme.of(context).hintColor
+                  : Theme.of(context).colorScheme.primary,
             ),
           ),
         ],

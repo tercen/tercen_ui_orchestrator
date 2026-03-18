@@ -47,7 +47,7 @@ class _ErrorBarState extends State<ErrorBar> {
     final errors = ErrorReporter.instance.errors;
 
     return Container(
-      color: const Color(0xFF2D1010),
+      color: Theme.of(context).colorScheme.errorContainer,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,18 +82,18 @@ class _ErrorBarState extends State<ErrorBar> {
                     const SizedBox(width: 8),
                     Text(
                       '${errors.length} errors',
-                      style: const TextStyle(color: Colors.white38, fontSize: 11),
+                      style: TextStyle(color: Theme.of(context).hintColor, fontSize: 11),
                     ),
                     Icon(
                       _expanded ? Icons.expand_less : Icons.expand_more,
-                      color: Colors.white38,
+                      color: Theme.of(context).hintColor,
                       size: 16,
                     ),
                   ],
                   const SizedBox(width: 4),
                   IconButton(
                     icon: const Icon(Icons.close, size: 14),
-                    color: Colors.white38,
+                    color: Theme.of(context).hintColor,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
                     onPressed: () => setState(() => _dismissed = true),
@@ -134,11 +134,12 @@ class _ErrorBarState extends State<ErrorBar> {
   }
 
   Color _severityColor(ErrorSeverity severity) {
+    final colorScheme = Theme.of(context).colorScheme;
     return switch (severity) {
-      ErrorSeverity.info => Colors.blue.shade300,
+      ErrorSeverity.info => colorScheme.primary,
       ErrorSeverity.warning => Colors.orange.shade300,
-      ErrorSeverity.error => Colors.red.shade300,
-      ErrorSeverity.fatal => Colors.red.shade200,
+      ErrorSeverity.error => colorScheme.error,
+      ErrorSeverity.fatal => colorScheme.error,
     };
   }
 

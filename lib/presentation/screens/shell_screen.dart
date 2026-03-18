@@ -9,12 +9,12 @@ class ShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Column(
         children: [
-          Toolbar(),
-          Divider(height: 1, thickness: 1, color: Colors.white12),
-          Expanded(
+          const Toolbar(),
+          Divider(height: 1, thickness: 1, color: Theme.of(context).dividerColor),
+          const Expanded(
             child: Row(
               children: [
                 Expanded(
@@ -29,7 +29,7 @@ class ShellScreen extends StatelessWidget {
               ],
             ),
           ),
-          ErrorBar(),
+          const ErrorBar(),
         ],
       ),
     );
