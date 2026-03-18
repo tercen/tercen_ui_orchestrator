@@ -325,9 +325,23 @@ void _handleSelectionEvent(Map<String, dynamic> event) {
     // Clear dependent selections when project changes
     _userContext.remove('selectedWorkflowId');
     _userContext.remove('selectedWorkflowName');
+    _userContext.remove('selectedTableId');
+    _userContext.remove('selectedTableName');
+    _userContext.remove('selectedTableKind');
+    _userContext.remove('selectedDocumentId');
+    _userContext.remove('selectedDocumentName');
+    _userContext.remove('selectedDocumentType');
   } else if (channel == 'system.selection.workflow') {
     _userContext['selectedWorkflowId'] = data['workflowId'];
     _userContext['selectedWorkflowName'] = data['workflowName'];
+  } else if (channel == 'system.selection.table') {
+    _userContext['selectedTableId'] = data['tableId'];
+    _userContext['selectedTableName'] = data['tableName'];
+    _userContext['selectedTableKind'] = data['tableKind'];
+  } else if (channel == 'system.selection.document') {
+    _userContext['selectedDocumentId'] = data['documentId'];
+    _userContext['selectedDocumentName'] = data['documentName'];
+    _userContext['selectedDocumentType'] = data['documentType'];
   } else {
     // Generic: store all data keys prefixed with channel leaf name
     // e.g., system.selection.file → data keys stored as-is
