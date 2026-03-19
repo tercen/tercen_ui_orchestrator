@@ -78,13 +78,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   late final OrchestratorClient _client;
   bool _isDark = true;
 
-  SduiTheme get _currentTheme =>
-      _isDark ? const SduiTheme.dark() : const SduiTheme.light();
-
   @override
   void initState() {
     super.initState();
-    _sduiContext = SduiContext.create(theme: const SduiTheme.dark());
+    _sduiContext = SduiContext.create();
     _client = OrchestratorClient(
       baseUrl: _serverUrl,
       eventBus: _sduiContext.eventBus,
@@ -96,7 +93,6 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void _toggleTheme() {
     setState(() {
       _isDark = !_isDark;
-      _sduiContext.renderContext.theme = _currentTheme;
     });
   }
 
@@ -157,7 +153,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           child: MaterialApp(
             title: 'Tercen',
             debugShowCheckedModeBanner: false,
-            theme: _currentTheme.toMaterialTheme(),
+            theme: _isDark ? ThemeData.dark() : ThemeData.light(),
             home: const ShellScreen(),
           ),
         ),

@@ -9,7 +9,10 @@ cd "$SCRIPT_DIR"
 
 # Check prerequisites
 command -v dart >/dev/null 2>&1 || { echo "Error: dart not found on PATH"; exit 1; }
-command -v claude >/dev/null 2>&1 || { echo "Error: claude CLI not found. Install: https://claude.ai/code"; exit 1; }
+# On Windows, claude.exe may not be on PATH — the Dart server finds it via _findClaude()
+if [[ "$(uname -s)" != MINGW* && "$(uname -s)" != MSYS* && "$(uname -s)" != CYGWIN* ]]; then
+  command -v claude >/dev/null 2>&1 || { echo "Error: claude CLI not found. Install: https://claude.ai/code"; exit 1; }
+fi
 
 # Install/update Dart dependencies
 echo "Installing dependencies..."

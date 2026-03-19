@@ -601,8 +601,15 @@ void _processStreamEvent(
 
 /// Find the claude binary.
 String? _findClaude() {
+  final isWindows = Platform.isWindows;
+  final home = Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'] ?? '';
+
   // Check common locations
   final candidates = [
+    if (isWindows) ...[
+      '$home\\AppData\\Local\\AnthropicClaude\\claude.exe',
+      '$home\\.claude\\local\\claude.exe',
+    ],
     '/home/${Platform.environment['USER']}/.local/bin/claude',
     '/usr/local/bin/claude',
     '/usr/bin/claude',
@@ -612,11 +619,12 @@ String? _findClaude() {
     if (File(path).existsSync()) return path;
   }
 
-  // Try PATH via `which`
+  // Try PATH via `which` (Unix) or `where` (Windows)
   try {
-    final result = Process.runSync('which', ['claude']);
+    final cmd = isWindows ? 'where' : 'which';
+    final result = Process.runSync(cmd, ['claude']);
     if (result.exitCode == 0) {
-      return (result.stdout as String).trim();
+      return (result.stdout as String).trim().split('\n').first.trim();
     }
   } catch (_) {}
 

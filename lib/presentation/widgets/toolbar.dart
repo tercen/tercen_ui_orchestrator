@@ -192,8 +192,27 @@ class _ToolbarState extends State<Toolbar> {
     }
   }
 
-  void _openWidget(BuildContext context, String widgetType) {
+  Future<void> _openWidget(BuildContext context, String widgetType) async {
     final sdui = SduiScope.of(context);
+    final meta = sdui.registry.getMetadata(widgetType);
+
+    // Collect required props from the user
+    final requiredProps = <String, PropSpec>{};
+    if (meta != null) {
+      for (final entry in meta.props.entries) {
+        if (entry.value.required) {
+          requiredProps[entry.key] = entry.value;
+        }
+      }
+    }
+
+    Map<String, dynamic> props = {};
+    if (requiredProps.isNotEmpty && mounted) {
+      final result = await _promptForProps(context, widgetType, requiredProps);
+      if (result == null) return; // user cancelled
+      props = result;
+    }
+
     final windowId = 'win-${widgetType.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}';
 
     // Dispatch an addWindow layout op through the EventBus — same path Claude uses.
@@ -206,7 +225,7 @@ class _ToolbarState extends State<Toolbar> {
       'content': {
         'type': widgetType,
         'id': '$windowId-root',
-        'props': {},
+        'props': props,
         'children': [],
       },
     };
@@ -216,7 +235,66 @@ class _ToolbarState extends State<Toolbar> {
       EventPayload(type: 'layout.op', data: layoutOp),
     );
 
-    setState(() => _statusMessage = 'Opened $widgetType');
+    if (mounted) setState(() => _statusMessage = 'Opened $widgetType');
+  }
+
+  Future<Map<String, dynamic>?> _promptForProps(
+    BuildContext context,
+    String widgetType,
+    Map<String, PropSpec> requiredProps,
+  ) async {
+    final controllers = <String, TextEditingController>{};
+    for (final key in requiredProps.keys) {
+      controllers[key] = TextEditingController();
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$widgetType — required props'),
+        content: SizedBox(
+          width: 350,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: controllers.entries.map((e) {
+              final spec = requiredProps[e.key]!;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextField(
+                  controller: e.value,
+                  decoration: InputDecoration(
+                    labelText: e.key,
+                    hintText: spec.description ?? spec.type,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final props = <String, dynamic>{};
+              for (final e in controllers.entries) {
+                final val = e.value.text.trim();
+                if (val.isNotEmpty) props[e.key] = val;
+              }
+              Navigator.of(ctx).pop(props);
+            },
+            child: const Text('Open'),
+          ),
+        ],
+      ),
+    );
+
+    for (final c in controllers.values) {
+      c.dispose();
+    }
+    return result;
   }
 }
 
