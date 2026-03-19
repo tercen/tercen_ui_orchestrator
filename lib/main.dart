@@ -76,24 +76,61 @@ class OrchestratorApp extends StatefulWidget {
 class _OrchestratorAppState extends State<OrchestratorApp> {
   late final SduiContext _sduiContext;
   late final OrchestratorClient _client;
-  bool _isDark = true;
+  bool _isDark = false; // Light mode is the default
+  Map<String, dynamic>? _themeTokens;
+
+  SduiTheme get _currentTheme {
+    final tokens = _themeTokens;
+    if (tokens != null) {
+      return SduiTheme.fromJson(tokens, themeName: _isDark ? 'dark' : 'light');
+    }
+    return _isDark ? const SduiTheme.dark() : const SduiTheme.light();
+  }
 
   @override
   void initState() {
     super.initState();
-    _sduiContext = SduiContext.create();
+    _sduiContext = SduiContext.create(theme: const SduiTheme.light());
     _client = OrchestratorClient(
       baseUrl: _serverUrl,
       eventBus: _sduiContext.eventBus,
     );
     _client.connect();
     _bootstrapAuth();
+    _fetchThemeTokens();
   }
 
   void _toggleTheme() {
     setState(() {
       _isDark = !_isDark;
+      _sduiContext.renderContext.theme = _currentTheme;
     });
+  }
+
+  /// Fetch theme tokens from the server API.
+  Future<void> _fetchThemeTokens() async {
+    try {
+      final httpUrl = _serverUrl
+          .replaceFirst('ws://', 'http://')
+          .replaceFirst('wss://', 'https://');
+      final url = '$httpUrl/api/theme-tokens';
+
+      final httpClient = io_http.HttpBrowserClient();
+      final response = await httpClient.get(url);
+
+      if (response.statusCode == 200) {
+        final tokens = jsonDecode(response.body as String) as Map<String, dynamic>;
+        if (tokens.isNotEmpty) {
+          setState(() {
+            _themeTokens = tokens;
+            _sduiContext.renderContext.theme = _currentTheme;
+          });
+          debugPrint('[theme] Loaded ${tokens.keys.length} token groups from server');
+        }
+      }
+    } catch (e) {
+      debugPrint('[theme] Failed to fetch tokens from server: $e — using defaults');
+    }
   }
 
   Future<void> _bootstrapAuth() async {
@@ -153,7 +190,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           child: MaterialApp(
             title: 'Tercen',
             debugShowCheckedModeBanner: false,
-            theme: _isDark ? ThemeData.dark() : ThemeData.light(),
+            theme: _currentTheme.toMaterialTheme(),
             home: const ShellScreen(),
           ),
         ),

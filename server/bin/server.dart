@@ -23,6 +23,9 @@ List<Map<String, dynamic>> _widgetCatalogMetadata = [];
 /// Full widget catalog JSON (metadata + templates) for serving to the frontend.
 Map<String, dynamic> _fullWidgetCatalog = {'widgets': []};
 
+/// Theme tokens JSON loaded from tokens.json at startup.
+Map<String, dynamic> _themeTokens = {};
+
 /// System prompt that teaches Claude about the SDUI architecture.
 const _systemPrompt = '''
 You are an AI assistant powering a Server-Driven UI (SDUI) orchestrator for Tercen, a data analysis platform.
@@ -43,7 +46,7 @@ When the user asks about data (projects, workflows, files, etc.), use these tool
 ### Layout Primitives
 - Row, Column — layout (props: mainAxisAlignment, crossAxisAlignment)
 - Container — box with color, padding, width, height
-- Text — text display (props: text, fontSize, color, fontWeight)
+- Text — text display (props: text, textStyle [M3 slot name like bodyMedium/titleLarge/headlineSmall], color; legacy: fontSize, fontWeight)
 - Expanded — fill available space (props: flex)
 - SizedBox — fixed size or spacer (props: width, height)
 - Center — center child
@@ -52,10 +55,25 @@ When the user asks about data (projects, workflows, files, etc.), use these tool
 - Card — material card (props: elevation, color)
 - Padding — add padding (props: padding as number)
 - Icon — Material icon (props: icon [name string, required], size, color)
+- Divider — horizontal divider (props: height, thickness, color, indent)
+- Chip — material chip label (props: label, color, avatar [icon name])
+- CircleAvatar — circular avatar (props: text, icon, radius, color)
 - Placeholder — test widget (props: label, color)
 
-Colors: red, blue, green, orange, purple, white, black, grey, hex (#RRGGBB), or semantic tokens (primary, surface, error, onSurface, onSurfaceVariant, etc.).
-Font weights: bold, w100-w900.
+### Interactive Widgets
+- TextField — text input. Publishes "input.<id>.changed" and "input.<id>.submitted" on EventBus.
+  Props: hint, value, maxLines, obscureText, enabled, autofocus, color
+- ElevatedButton — primary action button (props: text, channel [required], payload, color, enabled)
+- TextButton — text-style button (props: text, channel [required], payload, color, enabled)
+- IconButton — icon button (props: icon [required], channel [required], payload, size, color, tooltip, enabled)
+- Switch — toggle switch. Publishes "input.<id>.changed" with {value: bool}. Props: value, enabled, color
+- Checkbox — checkbox with optional label. Publishes "input.<id>.changed". Props: value, label, enabled, color
+- DropdownButton — dropdown selector. Publishes "input.<id>.changed". Props: value, items [list of strings or {value,label}], hint, enabled
+
+Buttons publish to EventBus on tap: use "channel" prop to specify where. Interactive inputs (TextField, Switch, Checkbox, DropdownButton) auto-publish to "input.<nodeId>.changed".
+
+Colors: Use semantic tokens (primary, surface, error, onSurface, onSurfaceVariant, onSurfaceMuted, primaryContainer, etc.). Hex (#RRGGBB) and named colors (red, blue, etc.) are supported but discouraged — prefer semantic tokens so widgets adapt to the active theme.
+Text styling: Prefer the `textStyle` prop with M3 slot names (bodyMedium, titleLarge, headlineSmall, labelSmall, etc.) over raw fontSize/fontWeight.
 
 IMPORTANT: Do NOT specify colors unless the user explicitly asks for a specific color. All widgets inherit appropriate colors from the active theme automatically.
 
@@ -106,9 +124,9 @@ IMPORTANT: Do NOT use explore (it returns empty results on some servers).
              "children": [{
                "type": "Column", "id": "col-{{item.id}}", "props": {"crossAxisAlignment": "start"},
                "children": [
-                 {"type": "Text", "id": "name-{{item.id}}", "props": {"text": "{{item.name}}", "fontSize": 16, "fontWeight": "bold"}},
+                 {"type": "Text", "id": "name-{{item.id}}", "props": {"text": "{{item.name}}", "textStyle": "titleMedium"}},
                  {"type": "SizedBox", "id": "sb-{{item.id}}", "props": {"height": 4}},
-                 {"type": "Text", "id": "desc-{{item.id}}", "props": {"text": "{{item.description}}", "fontSize": 13, "color": "grey"}}
+                 {"type": "Text", "id": "desc-{{item.id}}", "props": {"text": "{{item.description}}", "textStyle": "bodySmall", "color": "onSurfaceVariant"}}
                ]}
              ]}
            ]}
@@ -128,8 +146,8 @@ For CouchDB views with isPublic in the key, use startKey [false, ...] and endKey
  "children": [{
    "type": "Column", "id": "col-user", "props": {"crossAxisAlignment": "start"},
    "children": [
-     {"type": "Text", "id": "user-name", "props": {"text": "{{data.name}}", "fontSize": 20, "fontWeight": "bold"}},
-     {"type": "Text", "id": "user-email", "props": {"text": "{{data.email}}", "color": "grey"}}
+     {"type": "Text", "id": "user-name", "props": {"text": "{{data.name}}", "textStyle": "headlineMedium"}},
+     {"type": "Text", "id": "user-email", "props": {"text": "{{data.email}}", "color": "onSurfaceVariant"}}
    ]}
  ]}
 ```
@@ -137,7 +155,7 @@ For CouchDB views with isPublic in the key, use startKey [false, ...] and endKey
 ### Example — hardcoded content (no DataSource):
 Static content — just use layout primitives directly:
 ```json
-{"type": "Text", "id": "t-1", "props": {"text": "Welcome to Tercen", "fontSize": 18}}
+{"type": "Text", "id": "t-1", "props": {"text": "Welcome to Tercen", "textStyle": "headlineSmall"}}
 ```
 
 ## Layout Operations
@@ -196,6 +214,9 @@ Process? _claudeProcess;
 
 void main() async {
   final port = int.parse(Platform.environment['PORT'] ?? '8080');
+
+  // Load theme tokens from tokens.json
+  _loadThemeTokens();
 
   final router = Router();
 
@@ -258,6 +279,14 @@ void main() async {
         body: jsonEncode({'error': e.toString()}),
         headers: {'Content-Type': 'application/json'});
     }
+  });
+
+  // Theme tokens: GET returns loaded tokens.json
+  router.get('/api/theme-tokens', (Request req) {
+    return Response.ok(
+      jsonEncode(_themeTokens),
+      headers: {'Content-Type': 'application/json'},
+    );
   });
 
   // WebSocket: chat channel
@@ -651,6 +680,34 @@ String? _findTercenctl() {
   } catch (_) {}
 
   return null;
+}
+
+/// Load theme tokens from tokens.json.
+/// Looks for TERCEN_THEME_TOKENS env var first, then falls back to ../tercen-style/tokens.json.
+void _loadThemeTokens() {
+  final envPath = Platform.environment['TERCEN_THEME_TOKENS'];
+  final candidates = [
+    if (envPath != null) envPath,
+    // Relative to server/bin/ → repo root → sibling tercen-style
+    '../../tercen-style/tokens.json',
+    // Relative to repo root
+    '../tercen-style/tokens.json',
+  ];
+
+  for (final path in candidates) {
+    final file = File(path);
+    if (file.existsSync()) {
+      try {
+        _themeTokens = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+        print('[theme] Loaded tokens from ${file.absolute.path}');
+        return;
+      } catch (e) {
+        print('[theme] Failed to parse $path: $e');
+      }
+    }
+  }
+
+  print('[theme] No tokens.json found — using built-in defaults');
 }
 
 /// Load a widget catalog into server memory (metadata for AI + full catalog for frontend).
