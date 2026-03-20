@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sci_base/sci_client_base.dart';
 import 'package:sci_base/sci_service.dart';
 import 'package:sci_tercen_client/sci_client_service_factory.dart';
@@ -124,6 +126,8 @@ class ServiceCallDispatcher {
         return _documentServiceCall(method, args);
       case 'projectDocumentService':
         return _projectDocumentServiceCall(method, args);
+      case 'fileService':
+        return _fileServiceCall(method, args);
       case 'workflowService':
         return _workflowServiceCall(method, args);
       case 'taskService':
@@ -230,6 +234,21 @@ class ServiceCallDispatcher {
       default:
         throw ArgumentError(
             'Method "$method" not found on projectDocumentService');
+    }
+  }
+
+  Future<dynamic> _fileServiceCall(String method, List<dynamic> args) async {
+    final svc = factory.fileService;
+    switch (method) {
+      case 'download':
+        // Download file content as UTF-8 text.
+        // Args: [fileDocumentId]
+        // Returns: {"content": "...", "fileId": "..."}
+        final fileId = args[0] as String;
+        final content = await utf8.decodeStream(svc.download(fileId));
+        return {'content': content, 'fileId': fileId};
+      default:
+        throw ArgumentError('Method "$method" not found on fileService');
     }
   }
 
