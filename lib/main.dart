@@ -174,7 +174,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           Uri(scheme: uri.scheme, host: uri.host, port: uri.port), authClient);
       tercen.ServiceFactory.CURRENT = factory;
 
-      final dispatcher = ServiceCallDispatcher(factory);
+      final dispatcher = ServiceCallDispatcher(factory, authToken: _tercenToken);
       _sduiContext.renderContext.serviceCaller = dispatcher.call;
 
       // Set user context from JWT
@@ -215,6 +215,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _sduiContext.renderContext.setUserContext({
       'username': username,
       'userId': username,
+      'token': _tercenToken,
     });
     debugPrint('[auth] User context: username=$username');
   }
