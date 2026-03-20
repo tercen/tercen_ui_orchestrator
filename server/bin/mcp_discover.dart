@@ -278,8 +278,18 @@ String? _discoverMethods(String service) {
   buf.writeln('  findKeys(String viewName, {List keys}) → List<${info['entity']}>');
   buf.writeln();
   buf.writeln('## Named find methods (CouchDB views)');
-  buf.writeln('Any findBy* method can be called directly with args: [startKey, endKey, limit?, skip?, descending?]');
-  buf.writeln('Keys are arrays matching the view index fields in order.');
+  buf.writeln('There are TWO call patterns — check the view definition below:');
+  buf.writeln();
+  buf.writeln('**findStartKeys pattern** (range query, views with "startKey/endKey"):');
+  buf.writeln('  args: [startKey, endKey, limit?, skip?, descending?]');
+  buf.writeln('  Keys are arrays matching the view index fields.');
+  buf.writeln('  Example: args: [[false, ""], [true, "\\uf000"], 20]');
+  buf.writeln();
+  buf.writeln('**findKeys pattern** (key lookup, views with "keys"):');
+  buf.writeln('  args: [[key1, key2, ...]]  — a SINGLE list wrapping the lookup keys');
+  buf.writeln('  Example: args: [["owner-username"]]');
+  buf.writeln();
+  buf.writeln('Each view below is marked (startKeys) or (keys) to indicate which pattern.');
   buf.writeln('Object IDs are in the "id" field.');
   buf.writeln();
 
@@ -301,7 +311,8 @@ String? _discoverMethods(String service) {
     buf.writeln('## Named views (for findStartKeys/findKeys)');
     for (final view in views) {
       if (view is Map) {
-        buf.writeln('  - ${view['name']}');
+        final type = view['type'] ?? 'startKeys';
+        buf.writeln('  - ${view['name']} ($type)');
         if (view['keys'] != null) buf.writeln('    Keys: ${view['keys']}');
         if (view['example'] != null) buf.writeln('    Example: ${view['example']}');
       } else {
@@ -511,12 +522,12 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
     ],
     'views': [
       {
-        'name': 'findByIsPublicAndLastModifiedDate',
+        'name': 'findByIsPublicAndLastModifiedDate', 'type': 'startKeys',
         'keys': '[isPublic: bool, lastModifiedDate: string]',
         'example': 'args: [[false, ""], [true, "\\uf000"], 20] — gets all projects (public + private)',
       },
       {
-        'name': 'findByTeamAndIsPublicAndLastModifiedDate',
+        'name': 'findByTeamAndIsPublicAndLastModifiedDate', 'type': 'startKeys',
         'keys': '[owner: string, isPublic: bool, lastModifiedDate: string]',
         'example': 'args: [["teamName", false, ""], ["teamName", true, "\\uf000"], 20]',
       },
@@ -572,8 +583,11 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findUserByCreatedDateAndName', 'keys': '[createdDate: string, name: string]'},
-      {'name': 'findUserByEmail', 'keys': '[email: string]'},
+      {'name': 'findUserByCreatedDateAndName', 'type': 'startKeys', 'keys': '[createdDate: string, name: string]'},
+      {'name': 'findUserByEmail', 'type': 'keys', 'keys': '[email: string]',
+       'example': 'args: [["user@example.com"]]'},
+      {'name': 'findTeamMembers', 'type': 'keys', 'keys': '[teamId: string]',
+       'example': 'args: [["team-id"]]'},
     ],
   },
 
@@ -592,7 +606,8 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findTeamByOwner', 'keys': '[owner: string]'},
+      {'name': 'findTeamByOwner', 'type': 'keys', 'keys': '[owner: userId]',
+       'example': 'args: [["{{context.userId}}"]] — owner is a userId, not username'},
     ],
   },
 
@@ -622,8 +637,8 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findFileByWorkflowIdAndStepId', 'keys': '[workflowId: string, stepId: string]'},
-      {'name': 'findByDataUri', 'keys': '[dataUri: string]'},
+      {'name': 'findFileByWorkflowIdAndStepId', 'type': 'startKeys', 'keys': '[workflowId: string, stepId: string]'},
+      {'name': 'findByDataUri', 'type': 'startKeys', 'keys': '[dataUri: string]'},
     ],
   },
 
@@ -656,8 +671,8 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findByHash', 'keys': '[taskHash: string]'},
-      {'name': 'findGCTaskByLastModifiedDate', 'keys': '[removeOnGC: bool, lastModifiedDate: string]'},
+      {'name': 'findByHash', 'type': 'startKeys', 'keys': '[taskHash: string]'},
+      {'name': 'findGCTaskByLastModifiedDate', 'type': 'startKeys', 'keys': '[removeOnGC: bool, lastModifiedDate: string]'},
     ],
   },
 
@@ -681,7 +696,7 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findSchemaByDataDirectory', 'keys': '[dataDirectory: string]'},
+      {'name': 'findSchemaByDataDirectory', 'type': 'startKeys', 'keys': '[dataDirectory: string]'},
     ],
   },
 
@@ -711,7 +726,7 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findByChannelAndDate', 'keys': '[channel: string, date: string]'},
+      {'name': 'findByChannelAndDate', 'type': 'startKeys', 'keys': '[channel: string, date: string]'},
     ],
   },
 
@@ -735,11 +750,11 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findWorkflowByTagOwnerCreatedDate', 'keys': '[tag: string, owner: string, createdDate: string]'},
-      {'name': 'findProjectByOwnersAndName', 'keys': '[owners: string, name: string]'},
-      {'name': 'findProjectByOwnersAndCreatedDate', 'keys': '[owners: string, createdDate: string]'},
-      {'name': 'findOperatorByOwnerLastModifiedDate', 'keys': '[owner: string, lastModifiedDate: string]'},
-      {'name': 'findOperatorByUrlAndVersion', 'keys': '[url: string, version: string]'},
+      {'name': 'findWorkflowByTagOwnerCreatedDate', 'type': 'startKeys', 'keys': '[tag: string, owner: string, createdDate: string]'},
+      {'name': 'findProjectByOwnersAndName', 'type': 'startKeys', 'keys': '[owners: string, name: string]'},
+      {'name': 'findProjectByOwnersAndCreatedDate', 'type': 'startKeys', 'keys': '[owners: string, createdDate: string]'},
+      {'name': 'findOperatorByOwnerLastModifiedDate', 'type': 'startKeys', 'keys': '[owner: string, lastModifiedDate: string]'},
+      {'name': 'findOperatorByUrlAndVersion', 'type': 'startKeys', 'keys': '[url: string, version: string]'},
     ],
   },
 
@@ -761,10 +776,10 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findProjectObjectsByLastModifiedDate', 'keys': '[projectId: string, lastModifiedDate: string]'},
-      {'name': 'findProjectObjectsByFolderAndName', 'keys': '[projectId: string, folderId: string, name: string]'},
-      {'name': 'findFileByLastModifiedDate', 'keys': '[projectId: string, lastModifiedDate: string]'},
-      {'name': 'findSchemaByLastModifiedDate', 'keys': '[projectId: string, lastModifiedDate: string]'},
+      {'name': 'findProjectObjectsByLastModifiedDate', 'type': 'startKeys', 'keys': '[projectId: string, lastModifiedDate: string]'},
+      {'name': 'findProjectObjectsByFolderAndName', 'type': 'startKeys', 'keys': '[projectId: string, folderId: string, name: string]'},
+      {'name': 'findFileByLastModifiedDate', 'type': 'startKeys', 'keys': '[projectId: string, lastModifiedDate: string]'},
+      {'name': 'findSchemaByLastModifiedDate', 'type': 'startKeys', 'keys': '[projectId: string, lastModifiedDate: string]'},
     ],
   },
 
@@ -779,7 +794,7 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findFolderByParentFolderAndName', 'keys': '[projectId: string, parentFolderId: string, name: string]'},
+      {'name': 'findFolderByParentFolderAndName', 'type': 'startKeys', 'keys': '[projectId: string, parentFolderId: string, name: string]'},
     ],
   },
 
@@ -794,11 +809,11 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
       },
     ],
     'views': [
-      {'name': 'findByOwnerAndKindAndDate', 'keys': '[owner: string, kind: string, date: string]'},
-      {'name': 'findByOwnerAndProjectAndKindAndDate', 'keys': '[owner: string, projectId: string, kind: string, date: string]'},
-      {'name': 'findByOwnerAndKind', 'keys': '[owner: string, kind: string]'},
-      {'name': 'findPublicByKind', 'keys': '[isPublic: bool, kind: string]'},
-      {'name': 'findByProjectAndKindAndDate', 'keys': '[projectId: string, kind: string, date: string]'},
+      {'name': 'findByOwnerAndKindAndDate', 'type': 'startKeys', 'keys': '[owner: string, kind: string, date: string]'},
+      {'name': 'findByOwnerAndProjectAndKindAndDate', 'type': 'startKeys', 'keys': '[owner: string, projectId: string, kind: string, date: string]'},
+      {'name': 'findByOwnerAndKind', 'type': 'startKeys', 'keys': '[owner: string, kind: string]'},
+      {'name': 'findPublicByKind', 'type': 'startKeys', 'keys': '[isPublic: bool, kind: string]'},
+      {'name': 'findByProjectAndKindAndDate', 'type': 'startKeys', 'keys': '[projectId: string, kind: string, date: string]'},
     ],
   },
 
@@ -807,9 +822,9 @@ final _serviceCatalog = <String, Map<String, dynamic>>{
     'entity': 'Activity',
     'extras': [],
     'views': [
-      {'name': 'findByUserAndDate', 'keys': '[userId: string, date: string]'},
-      {'name': 'findByTeamAndDate', 'keys': '[teamId: string, date: string]'},
-      {'name': 'findByProjectAndDate', 'keys': '[projectId: string, date: string]'},
+      {'name': 'findByUserAndDate', 'type': 'startKeys', 'keys': '[userId: string, date: string]'},
+      {'name': 'findByTeamAndDate', 'type': 'startKeys', 'keys': '[teamId: string, date: string]'},
+      {'name': 'findByProjectAndDate', 'type': 'startKeys', 'keys': '[projectId: string, date: string]'},
     ],
   },
 

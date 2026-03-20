@@ -90,13 +90,45 @@ These composable widgets control data fetching, iteration, gestures, and reactiv
   Props: `channel` (string, required), `match` (object), `overrideProps` (object)
 - **Conditional** — Shows or hides children based on a boolean.
   Props: `visible` (bool, required)
+- **PromptRequired** — Prompts user for missing required values before rendering children.
+  Props: `fields` (list of {name, label, default} objects, required).
+  If values already exist in context/scope, renders immediately (no prompt).
+  Resolved values are exposed in child scope by field name.
 
 ## Data-Driven Widgets
 
 Use `DataSource` to fetch data and `ForEach` to iterate lists. These compose as regular nodes in the tree.
 
-IMPORTANT: NEVER guess or invent method names — they must come from discover_methods output. Method names are exact (e.g., "Date" not "Data"). Always call discover_methods(serviceName) FIRST and copy the exact method name from the result.
+IMPORTANT: NEVER guess or invent method names — they must come from discover_methods output. Method names are exact (e.g., "findTeamByOwner" not "findByOwner"). Always call discover_methods(serviceName) FIRST and copy the exact method name from the result.
 IMPORTANT: Do NOT use explore (it returns empty results on some servers).
+
+### Service call patterns — args format
+
+The `args` list format depends on the method type. There are THREE patterns:
+
+**1. get(id)** — single object by ID:
+```json
+"args": ["the-object-id"]
+```
+
+**2. findStartKeys (CouchDB view with range)** — methods named `findXxxByYyyAndZzz`:
+Args: [startKey, endKey, limit?, skip?, descending?]
+Keys are arrays matching the view's index fields.
+```json
+"args": [[false, ""], [true, "\uf000"], 20]
+```
+Use startKey [false, ...] and endKey [true, "\uf000"] to include BOTH public and private items.
+
+**3. findKeys (key lookup)** — methods named `findXxxByYyy` with a `keys` parameter:
+Args: [keysList] — a SINGLE list containing the lookup keys.
+```json
+"args": [["owner-username"]]
+```
+
+**How to tell the difference:** Check discover_methods output.
+- If the method signature has `startKey, endKey` → pattern 2 (findStartKeys)
+- If the method signature has `keys` → pattern 3 (findKeys) — args is `[[key1, key2, ...]]`
+- If the method takes a single ID string → pattern 1 (get)
 
 ### Template bindings
 - Inside `ForEach`: `{{item.fieldName}}` binds fields from the current item.
@@ -136,8 +168,7 @@ IMPORTANT: Do NOT use explore (it returns empty results on some servers).
    ]}
  }}
 ```
-IMPORTANT: The "..." values above are placeholders. You MUST call discover_methods first and use the EXACT method names from its output. Do NOT guess method names — even small typos (e.g., "Data" vs "Date") will cause errors.
-For CouchDB views with isPublic in the key, use startKey [false, ...] and endKey [true, ...] to include BOTH public and private items.
+IMPORTANT: The "..." values above are placeholders. You MUST call discover_methods first and use the EXACT method names from its output. Do NOT guess method names — even small typos will cause errors.
 
 ### Example — single object detail:
 ```json
@@ -233,7 +264,7 @@ void main() async {
   });
 
   // Load a widget catalog from a GitHub repo.
-  // Body: {"repo": "https://github.com/tercen/test_widget_library", "ref": "main"}
+  // Body: {"repo": "https://github.com/tercen/tercen_ui_widgets", "ref": "main"}
   router.post('/api/widget-catalog/load', (Request req) async {
     try {
       final body = jsonDecode(await req.readAsString()) as Map<String, dynamic>;

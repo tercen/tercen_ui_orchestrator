@@ -104,7 +104,7 @@ class _ToolbarState extends State<Toolbar> {
     final sdui = SduiScope.of(context);
     final client = OrchestratorClientScope.of(context);
     final controller = TextEditingController(
-      text: 'https://github.com/tercen/test_widget_library',
+      text: 'https://github.com/tercen/tercen_ui_widgets',
     );
 
     final repo = await showDialog<String>(

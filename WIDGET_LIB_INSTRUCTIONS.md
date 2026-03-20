@@ -543,11 +543,9 @@ Mode B is what you're building. The AI picks the widget and its top-level props;
 
 ## 8. Known Gaps and Workarounds
 
-### 8.1 SDUI core types not yet a shared package
+### 8.1 SDUI core types — extracted to `sdui` package
 
-Currently, the EventBus, SduiNode, WidgetRegistry, etc. live inside the orchestrator app. Your widget library imports them via a path dependency on the orchestrator. This works but creates a tight coupling.
-
-**Future**: These types will be extracted into a `tercen_sdui_core` package that both the orchestrator and widget libraries depend on. For now, use the path dependency.
+The EventBus, SduiNode, WidgetRegistry, behavior widgets, and renderer live in the `../sdui` package. Both the orchestrator and widget libraries depend on it. Import from `package:sdui/sdui.dart`.
 
 ### 8.2 Widget metadata → AI discovery pipeline (not yet automated)
 
@@ -555,17 +553,44 @@ The `WidgetMetadata.emittedEvents` and `acceptedActions` fields exist but are no
 
 **Future**: The MCP server will dynamically generate its interaction catalog from registered widget metadata. For now, when you add a new widget with events, also update the static catalog in `server/bin/mcp_discover.dart` (`_discoverInteractions` function).
 
-### 8.3 sci_tercen_client `toJson()` returns untyped Map
+### 8.3 Type safety — ALWAYS use PropConverter and Map.from()
 
-When working with service call results, always convert:
+Two rules that apply **everywhere** in the SDUI codebase:
+
+**Rule 1: Never cast `as int`, `as double`, `as String` on values from JSON, templates, or Tercen API responses.**
+Use `PropConverter.to<T>()` from `package:sdui/sdui.dart`. It handles `int`, `num`, `String`, `null`, and cross-type coercion safely.
+
 ```dart
-final typed = Map<String, dynamic>.from(untypedMap);
+// WRONG — will throw on num, String, or null
+final limit = args[2] as int;
+
+// CORRECT
+final limit = PropConverter.to<int>(args[2]) ?? 20;
 ```
-The `item is Map<String, dynamic>` check returns **false** for maps from `toJson()`.
 
-### 8.4 CouchDB view keys are ordered arrays
+**Rule 2: Never cast `as Map<String, dynamic>` on maps from `toJson()` or JSON deserialization.**
+Tercen's `toJson()` returns `LinkedMap<dynamic, dynamic>`. JSON deserialization on web returns `_InternalLinkedHashMap<String, dynamic>` which also fails `as` casts in some contexts.
 
-`findBy*` methods expect `[startKey, endKey, limit]` where keys are arrays matching the view's index fields. Example:
+```dart
+// WRONG — throws on LinkedMap<dynamic, dynamic>
+final user = result as Map<String, dynamic>;
+
+// CORRECT
+final user = Map<String, dynamic>.from(result as Map);
+```
+
+These two rules prevent the most common runtime errors in the SDUI system. They apply to:
+- `ServiceCallDispatcher` (service call args and results)
+- `behavior_widgets.dart` (DataSource props, ForEach items)
+- `builtin_widgets.dart` (widget props)
+- Any new code that touches dynamic data
+
+### 8.4 Service call patterns — two `find*` styles
+
+Tercen services have two kinds of `find*` methods. The dispatcher auto-detects which to use based on the args:
+
+**Pattern A: findStartKeys (range query)** — methods with `startKey, endKey` parameters.
+Args: `[startKey, endKey, limit?, skip?, descending?]` where keys are arrays matching the view's index fields.
 ```dart
 // findByIsPublicAndLastModifiedDate expects [isPublic: bool, lastModifiedDate: string]
 serviceCaller('projectService', 'findByIsPublicAndLastModifiedDate',
@@ -573,13 +598,115 @@ serviceCaller('projectService', 'findByIsPublicAndLastModifiedDate',
 );
 ```
 
-### 8.5 Date fields are wrapped objects
+**Pattern B: findKeys (key lookup)** — methods with `keys` parameter (a List).
+Args: `[keysList]` — a single list element containing the keys to look up.
+```dart
+// findTeamByOwner expects keys: List (list of owner usernames)
+serviceCaller('teamService', 'findTeamByOwner',
+  [["owner-username"]]  // note: single list wrapping the keys
+);
+```
+
+**How the dispatcher distinguishes:** The dispatcher uses a strict 3-step order: (1) `_tryBaseMethod` for `get`/`list`/direct `findStartKeys`/`findKeys`, (2) `_callSpecificMethod` for service-specific handlers, (3) `_tryGenericFind` as a last resort. The generic fallback uses `_findKeysViewName()` mapping for `findKeys` methods. See Section 9.1 for full details.
+
+**Critical:** Always use the EXACT method name from the service factory (e.g., `findTeamByOwner`, NOT `findByOwner`). Use `discover_methods` to verify.
+
+### 8.5 Using the MCP discovery server for catalog authoring
+
+When an AI generates `catalog.json` templates, it MUST use exact Tercen API method names and correct argument patterns. The MCP discovery server provides this information.
+
+The discovery server is **fully static** — method names and signatures come from the `sci_tercen_client` package source, not from a live Tercen instance. No token, no network, no running server needed.
+
+**Option A: Via the orchestrator (automatic)**
+
+When the orchestrator server is running, it spawns the MCP server for Claude Code automatically. Just ask Claude to `discover_methods("teamService")` etc. before writing DataSource nodes.
+
+**Option B: Standalone (for catalog authoring without the orchestrator)**
+
+```bash
+# Run the MCP server directly — no token or Tercen instance required
+cd tercen_ui_orchestrator/server
+claude --mcp-config '{"mcpServers":{"tercen":{"type":"stdio","command":"dart","args":["run","bin/mcp_discover.dart"]}}}'
+```
+
+**What the AI MUST do when authoring catalog templates:**
+1. Call `discover_methods(serviceName)` for every service used in a DataSource
+2. Check the view type: `(startKeys)` vs `(keys)` — this determines the args format
+3. Copy the EXACT method name (e.g., `findTeamByOwner`, not `findByOwner`)
+4. Use `{{context.username}}` / `{{context.userId}}` for user-specific queries
+
+### 8.6 Date fields are wrapped objects
 
 Tercen dates look like `{"kind": "Date", "value": "2026-01-09T19:00:02.248Z"}`. Access the actual string via `.value`.
 
-### 8.6 Object IDs are in the `id` field (not `_id`)
+### 8.7 Object IDs are in the `id` field (not `_id`)
+
+### 8.8 Theming — semantic tokens only
+
+All styling must use semantic tokens from `tokens.json`. Never use raw hex colors, pixel font sizes, or numeric spacing in templates or widget code.
+
+- **Colors**: Use M3 ColorScheme token names (`primary`, `onSurface`, `surfaceContainerHigh`, etc.)
+- **Text styles**: Use M3 TextTheme slot names via `textStyle` prop (`bodySmall`, `labelMedium`, `titleLarge`, etc.)
+- **Spacing**: Use token names (`xs`, `sm`, `md`, `lg`, `xl`, `xxl`) in padding/spacing props
+
+See `SDUI_CATALOG_AUTHORING_GUIDE.md` Section 7 for the full token reference.
+
+### 8.9 Catalog authoring for Tier 2 JSON template widgets
+
+For Tier 2 widgets authored as JSON templates (not compiled Dart), see `SDUI_CATALOG_AUTHORING_GUIDE.md` for the complete reference including:
+- All available primitive and interactive widgets
+- Behavior widget composition patterns
+- Data connection patterns (3 args formats)
+- Theming tokens
+- Working examples
 
 ---
+
+## 9.1 Service call dispatcher architecture
+
+The `ServiceCallDispatcher` routes DataSource calls to the correct Tercen API method. Understanding its dispatch order is critical when debugging data connection issues.
+
+**Dispatch order (first match wins):**
+
+1. **`_tryBaseMethod`** — handles `get`, `list`, `findStartKeys` (direct), `findKeys` (direct). These are universal CouchDB-style methods present on every service.
+
+2. **`_callSpecificMethod`** — service-specific handlers with correct named parameters. For example, `findProjectObjectsByLastModifiedDate` is called with `startKey:`, `endKey:`, `limit:` named params. These handlers know the exact Dart method signature.
+
+3. **`_tryGenericFind`** — fallback for `find*` methods not explicitly handled in step 2. Uses `_findKeysViewName()` mapping for `findKeys` methods (the view name may differ from the method name). For `findStartKeys` methods, the method name IS the view name.
+
+**Why the order matters:** The generic fallback uses a heuristic (`args[0] is List` → `findKeys`) that is ambiguous — `findStartKeys` methods also take List args (the start key array). If the generic fallback ran first, it would misroute `findStartKeys` calls as `findKeys` calls. Specific handlers MUST run before the generic fallback.
+
+**Debugging tip:** If a DataSource returns unexpected results or errors, check:
+1. Is the method name exact? (Use `discover_methods` to verify.)
+2. Is it a `findKeys` or `findStartKeys` method? (Check the view type in `discover_methods` output.)
+3. Does `_findKeysViewName()` have a mapping for this method? (findKeys view names sometimes differ from method names.)
+
+## 9.2 PromptRequired behavior widget
+
+`PromptRequired` is a behavior widget for templates that need runtime configuration values the user must provide (or that may already exist in context).
+
+**How it works:**
+- Wrap a template subtree in a `PromptRequired` node with a `fields` prop
+- Each field: `{name, label, default}` — name is the scope key, label is shown in the dialog, default is pre-filled
+- If the value already exists in context or parent scope, the widget renders immediately (no prompt)
+- If missing, a "Configure" button is shown; clicking it opens a dialog with defaults pre-filled
+- Once submitted, resolved values are exposed in child scope under the field names
+
+**Example from FileNavigator:**
+```json
+{
+  "type": "PromptRequired",
+  "id": "{{widgetId}}-prompt",
+  "props": {
+    "fields": [
+      {"name": "projectId", "label": "Project ID", "default": "2076952ae523bb4d472e283b9e000121"}
+    ]
+  },
+  "children": [...]
+}
+```
+
+**When to use:** Any template widget that requires IDs or configuration that cannot be inferred from the current selection context. The pattern avoids hardcoding IDs in templates while still allowing seamless rendering when values are already available (e.g., from a previous selection event).
 
 ## 9. Checklist for Each New Widget
 

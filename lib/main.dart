@@ -19,23 +19,27 @@ const _serverUrl = String.fromEnvironment(
 
 const _tercenToken = String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
 
-/// Extracts the service URI from the JWT token's `iss` (issuer) field.
-String _parseServiceUriFromToken(String token) {
-  if (token.isEmpty) return '';
+/// Decodes the JWT payload.
+Map<String, dynamic> _decodeJwtPayload(String token) {
+  if (token.isEmpty) return {};
   try {
     final parts = token.split('.');
-    if (parts.length != 3) return '';
+    if (parts.length != 3) return {};
     var payload = parts[1];
     switch (payload.length % 4) {
       case 2: payload += '=='; break;
       case 3: payload += '='; break;
     }
     final decoded = utf8.decode(base64Url.decode(payload));
-    final json = jsonDecode(decoded) as Map<String, dynamic>;
-    return json['iss'] as String? ?? '';
+    return jsonDecode(decoded) as Map<String, dynamic>;
   } catch (_) {
-    return '';
+    return {};
   }
+}
+
+/// Extracts the service URI from the JWT token's `iss` (issuer) field.
+String _parseServiceUriFromToken(String token) {
+  return _decodeJwtPayload(token)['iss'] as String? ?? '';
 }
 
 void main() {
@@ -78,6 +82,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   late final OrchestratorClient _client;
   bool _isDark = false; // Light mode is the default
   Map<String, dynamic>? _themeTokens;
+  bool _authReady = false;
+  String? _authError;
 
   SduiTheme get _currentTheme {
     final tokens = _themeTokens;
@@ -96,8 +102,12 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       eventBus: _sduiContext.eventBus,
     );
     _client.connect();
-    _bootstrapAuth();
-    _fetchThemeTokens();
+    _startup();
+  }
+
+  Future<void> _startup() async {
+    await _bootstrapAuth();
+    _fetchThemeTokens(); // non-blocking — theme can load after UI
   }
 
   void _toggleTheme() {
@@ -135,13 +145,18 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   Future<void> _bootstrapAuth() async {
     if (_tercenToken.isEmpty) {
+      setState(() {
+        _authReady = true; // No token — run in unauthenticated mode
+      });
       debugPrint('[auth] No TERCEN_TOKEN — running without auth');
       return;
     }
 
     final serviceUri = _parseServiceUriFromToken(_tercenToken);
     if (serviceUri.isEmpty) {
-      debugPrint('[auth] Could not extract service URI from token');
+      setState(() {
+        _authError = 'Could not extract service URI from token. Check TERCEN_TOKEN.';
+      });
       return;
     }
 
@@ -161,14 +176,47 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
       final dispatcher = ServiceCallDispatcher(factory);
       _sduiContext.renderContext.serviceCaller = dispatcher.call;
+
+      // Set user context from JWT
+      _setUserContext();
       debugPrint('[auth] ServiceFactory ready — data widgets enabled');
+
+      setState(() {
+        _authReady = true;
+      });
     } catch (e, st) {
       ErrorReporter.instance.report(e,
         stackTrace: st,
         source: 'auth.bootstrap',
         context: 'creating ServiceFactory for $serviceUri',
       );
+      setState(() {
+        _authError = e.toString();
+      });
     }
+  }
+
+  /// Extract user identity from the JWT, expose to templates.
+  /// This MUST succeed — if it fails, the app cannot function.
+  void _setUserContext() {
+    final jwtPayload = _decodeJwtPayload(_tercenToken);
+    final jwtData = jwtPayload['data'] as Map<String, dynamic>? ?? {};
+    // Tercen JWT: data.u = username, data.d = domain
+    final username = jwtData['u'] as String? ?? '';
+    debugPrint('[auth] JWT data.u=$username');
+
+    if (username.isEmpty) {
+      throw StateError('JWT token has no username (data.u). '
+          'Payload keys: ${jwtPayload.keys.toList()}, '
+          'data keys: ${jwtData.keys.toList()}');
+    }
+
+    // In Tercen, the username IS the userId for CouchDB views
+    _sduiContext.renderContext.setUserContext({
+      'username': username,
+      'userId': username,
+    });
+    debugPrint('[auth] User context: username=$username');
   }
 
   @override
@@ -180,6 +228,49 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Auth error — fatal, show full-screen error
+    if (_authError != null) {
+      return MaterialApp(
+        title: 'Tercen',
+        debugShowCheckedModeBanner: false,
+        theme: _currentTheme.toMaterialTheme(),
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, size: 48,
+                      color: _currentTheme.colors.error),
+                  const SizedBox(height: 16),
+                  Text('Authentication Failed',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold,
+                          color: _currentTheme.colors.onSurface)),
+                  const SizedBox(height: 8),
+                  Text(_authError!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: _currentTheme.colors.onSurfaceVariant)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Auth still in progress — show loading
+    if (!_authReady) {
+      return MaterialApp(
+        title: 'Tercen',
+        debugShowCheckedModeBanner: false,
+        theme: _currentTheme.toMaterialTheme(),
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
     return SduiScope(
       sduiContext: _sduiContext,
       child: OrchestratorClientScope(

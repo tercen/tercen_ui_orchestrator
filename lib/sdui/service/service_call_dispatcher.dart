@@ -1,6 +1,7 @@
 import 'package:sci_base/sci_client_base.dart';
 import 'package:sci_base/sci_service.dart';
 import 'package:sci_tercen_client/sci_client_service_factory.dart';
+import 'package:sdui/sdui.dart' show PropConverter;
 
 /// Dispatches service calls by name and returns JSON-serializable results.
 ///
@@ -21,12 +22,19 @@ class ServiceCallDispatcher {
       throw ArgumentError('Unknown service: $serviceName');
     }
 
-    // Try base CRUD methods first (available on all services)
+    // Try base CRUD methods first (get, list, findStartKeys, findKeys)
     final baseResult = await _tryBaseMethod(service, method, args);
     if (baseResult != null) return baseResult;
 
-    // Try service-specific methods
-    return _callSpecificMethod(serviceName, method, args);
+    // Try service-specific methods (these have correct named-param calling)
+    try {
+      return await _callSpecificMethod(serviceName, method, args);
+    } on ArgumentError {
+      // Not a known specific method — fall through to generic find handler
+    }
+
+    // Generic find handler — last resort for find* methods not explicitly handled
+    return _tryGenericFind(service, method, args);
   }
 
   Service? _getService(String name) {
@@ -85,9 +93,9 @@ class ServiceCallDispatcher {
         final result = await service.findStartKeys(viewName,
             startKey: args.length > 1 ? args[1] : null,
             endKey: args.length > 2 ? args[2] : null,
-            limit: args.length > 3 ? args[3] as int : 20,
-            skip: args.length > 4 ? args[4] as int : 0,
-            descending: args.length > 5 ? args[5] as bool : true);
+            limit: args.length > 3 ? PropConverter.to<int>(args[3]) ?? 20 : 20,
+            skip: args.length > 4 ? PropConverter.to<int>(args[4]) ?? 0 : 0,
+            descending: args.length > 5 ? args[5] == true : true);
         return result.map((obj) => service.toJson(obj)).toList();
 
       case 'findKeys':
@@ -98,17 +106,6 @@ class ServiceCallDispatcher {
         return result.map((obj) => service.toJson(obj)).toList();
 
       default:
-        // Any findBy* method name is a CouchDB view — route to findStartKeys.
-        // Args: [startKey, endKey, limit?, skip?, descending?]
-        if (method.startsWith('findBy') && service is HttpClientService) {
-          final result = await service.findStartKeys(method,
-              startKey: args.isNotEmpty ? args[0] : null,
-              endKey: args.length > 1 ? args[1] : null,
-              limit: args.length > 2 ? args[2] as int : 20,
-              skip: args.length > 3 ? args[3] as int : 0,
-              descending: args.length > 4 ? args[4] as bool : true);
-          return result.map((obj) => service.toJson(obj)).toList();
-        }
         return null; // Not a base method — try specific
     }
   }
@@ -142,7 +139,7 @@ class ServiceCallDispatcher {
     switch (method) {
       case 'explore':
         final result = await svc.explore(
-            args[0] as String, args[1] as int, args[2] as int);
+            args[0] as String, PropConverter.to<int>(args[1]) ?? 0, PropConverter.to<int>(args[2]) ?? 20);
         return result.map((obj) => svc.toJson(obj)).toList();
       case 'recentProjects':
         final result = await svc.recentProjects(args[0] as String);
@@ -191,7 +188,7 @@ class ServiceCallDispatcher {
       case 'search':
         final result = await svc.search(
           args[0] as String,
-          args.length > 1 ? args[1] as int : 20,
+          args.length > 1 ? PropConverter.to<int>(args[1]) ?? 20 : 20,
           args.length > 2 ? args[2] as bool : false,
           args.length > 3 ? args[3] as String : '',
         );
@@ -202,8 +199,8 @@ class ServiceCallDispatcher {
           (args[1] as List).cast<String>(),
           (args[2] as List).cast<String>(),
           (args[3] as List).cast<String>(),
-          args[4] as int,
-          args[5] as int,
+          PropConverter.to<int>(args[4]) ?? 0,
+          PropConverter.to<int>(args[5]) ?? 20,
         );
         return result.map((obj) => svc.toJson(obj)).toList();
       default:
@@ -220,14 +217,14 @@ class ServiceCallDispatcher {
         final result = await svc.findProjectObjectsByLastModifiedDate(
           startKey: args.isNotEmpty ? args[0] : null,
           endKey: args.length > 1 ? args[1] : null,
-          limit: args.length > 2 ? args[2] as int : 20,
+          limit: args.length > 2 ? PropConverter.to<int>(args[2]) ?? 20 : 20,
         );
         return result.map((obj) => svc.toJson(obj)).toList();
       case 'findProjectObjectsByFolderAndName':
         final result = await svc.findProjectObjectsByFolderAndName(
           startKey: args.isNotEmpty ? args[0] : null,
           endKey: args.length > 1 ? args[1] : null,
-          limit: args.length > 2 ? args[2] as int : 20,
+          limit: args.length > 2 ? PropConverter.to<int>(args[2]) ?? 20 : 20,
         );
         return result.map((obj) => svc.toJson(obj)).toList();
       default:
@@ -263,4 +260,52 @@ class ServiceCallDispatcher {
         throw ArgumentError('Method "$method" not found on taskService');
     }
   }
+
+  /// Generic find handler — uses the known findKeys view name mapping
+  /// to determine whether to call findKeys or findStartKeys.
+  Future<dynamic> _tryGenericFind(
+      Service service, String method, List<dynamic> args) async {
+    if (!method.startsWith('find') || service is! HttpClientService) {
+      throw ArgumentError('Method "$method" not found');
+    }
+
+    // Check if this is a known findKeys method (view name differs from method name)
+    final viewName = _findKeysViewName(method);
+    final isKnownFindKeys = viewName != method;
+
+    if (isKnownFindKeys) {
+      // findKeys: args[0] is the keys list
+      final result = await service.findKeys(viewName,
+          keys: args.isNotEmpty ? (args[0] is List ? args[0] as List : [args[0]]) : []);
+      return result.map((obj) => service.toJson(obj)).toList();
+    } else {
+      // findStartKeys: method name IS the view name
+      final result = await service.findStartKeys(method,
+          startKey: args.isNotEmpty ? args[0] : null,
+          endKey: args.length > 1 ? args[1] : null,
+          limit: args.length > 2 ? PropConverter.to<int>(args[2]) ?? 20 : 20,
+          skip: args.length > 3 ? PropConverter.to<int>(args[3]) ?? 0 : 0,
+          descending: args.length > 4 ? args[4] == true : true);
+      return result.map((obj) => service.toJson(obj)).toList();
+    }
+  }
+
+  /// Maps findKeys method names to their actual CouchDB view names.
+  ///
+  /// For findStartKeys methods, the method name IS the view name.
+  /// For findKeys methods, the view name may differ (e.g., findTeamByOwner → teamByOwner).
+  /// This mapping is derived from sci_tercen_client service base classes.
+  static String _findKeysViewName(String method) => switch (method) {
+    'findTeamByOwner' => 'teamByOwner',
+    'findTeamMembers' => 'teamMembers',
+    'findUserByEmail' => 'userByEmail',
+    'findSecretByUserId' => 'secret',
+    'findSubscriptionPlanByCheckoutSessionId' => 'checkoutSessionId',
+    // These findKeys methods happen to match their view name
+    'findDeleted' => 'findDeleted',
+    'findByKind' => 'findByKind',
+    'findByOwner' => 'findByOwner',
+    // Default: assume method name = view name
+    _ => method,
+  };
 }
