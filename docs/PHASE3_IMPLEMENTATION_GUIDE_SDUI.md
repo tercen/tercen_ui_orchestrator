@@ -157,6 +157,46 @@ Use `discover_methods('<serviceName>')` via the MCP server to get exact method s
 
 ---
 
+## Home Configuration
+
+The `catalog.json` can include a `"home"` key that defines which windows open automatically when the orchestrator starts. This is how the default layout is created — no hardcoded panels.
+
+```json
+{
+  "widgets": [ ... ],
+  "home": {
+    "windows": [
+      {
+        "type": "ChatPanel",
+        "id": "chat-1",
+        "size": "column",
+        "align": "right",
+        "title": "Claude Code"
+      },
+      {
+        "type": "WorkflowViewer",
+        "id": "wv-1",
+        "size": "medium",
+        "align": "center",
+        "props": {"workflowId": "default-id"}
+      }
+    ]
+  }
+}
+```
+
+Each window entry supports:
+- `type` (required) — widget type name (must be registered: Tier 1 or Tier 2 template)
+- `id` — unique window ID (auto-generated if omitted)
+- `size` — `small` (30%x40%), `medium` (40%x50%), `large` (60%x70%), `column` (30%x100%), `row` (100%x40%), `full` (100%x100%)
+- `align` — initial position: `center`, `left`, `right`, `top`, `bottom`, `top-left`, etc.
+- `title` — window title bar text (defaults to widget type)
+- `props` — props passed to the widget template
+
+Home windows open after the catalog loads. The orchestrator verifies each widget type is registered before opening.
+
+---
+
 ## Catalog Template Authoring
 
 ### Data flow pattern

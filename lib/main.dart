@@ -132,6 +132,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         if (widgets.isNotEmpty) {
           _sduiContext.registry.loadCatalog(catalog);
           debugPrint('[catalog] Auto-loaded ${widgets.length} widget(s)');
+
+          // Open home windows if defined in catalog
+          _openHomeWindows(catalog);
         } else {
           debugPrint('[catalog] Server returned empty catalog');
         }
@@ -140,6 +143,65 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       }
     } catch (e) {
       debugPrint('[catalog] Auto-load failed: $e');
+    }
+  }
+
+  /// Open home windows defined in the catalog's "home" key.
+  /// Each window becomes a floating window via the standard addWindow layout op.
+  void _openHomeWindows(Map<String, dynamic> catalog) {
+    final home = catalog['home'] as Map<String, dynamic>?;
+    if (home == null) {
+      debugPrint('[home] No home config in catalog');
+      return;
+    }
+
+    final windows = home['windows'] as List?;
+    if (windows == null || windows.isEmpty) {
+      debugPrint('[home] Home config has no windows');
+      return;
+    }
+
+    debugPrint('[home] Opening ${windows.length} home window(s)');
+    for (final w in windows) {
+      final win = Map<String, dynamic>.from(w as Map);
+      final type = win['type'] as String?;
+      final id = win['id'] as String? ??
+          'home-${type?.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}';
+      final size = win['size'] as String? ?? 'medium';
+      final align = win['align'] as String? ?? 'center';
+      final title = win['title'] as String? ?? type ?? 'Window';
+      final props = win['props'] as Map<String, dynamic>? ?? {};
+
+      if (type == null) {
+        debugPrint('[home] Skipping window with no type: $win');
+        continue;
+      }
+
+      // Verify the widget type is registered
+      if (!_sduiContext.registry.has(type)) {
+        debugPrint('[home] Widget type "$type" not found in registry — skipping');
+        continue;
+      }
+
+      final layoutOp = {
+        'op': 'addWindow',
+        'id': id,
+        'size': size,
+        'align': align,
+        'title': title,
+        'content': {
+          'type': type,
+          'id': '$id-root',
+          'props': props,
+          'children': [],
+        },
+      };
+
+      _sduiContext.eventBus.publish(
+        'system.layout.op',
+        EventPayload(type: 'layout.op', data: layoutOp),
+      );
+      debugPrint('[home] Opened $type as "$id" (size=$size, align=$align)');
     }
   }
 
