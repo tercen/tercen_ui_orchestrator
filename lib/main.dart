@@ -285,6 +285,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     setState(() {
       _isDark = !_isDark;
       _sduiContext.renderContext.theme = _currentTheme;
+      _sduiContext.renderContext.templateResolver.set('isDark', _isDark);
     });
   }
 
@@ -387,8 +388,29 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       'username': username,
       'userId': username,
       'token': _tercenToken,
+      'isDark': _isDark,
     });
     debugPrint('[auth] User context: username=$username');
+
+    // Fetch user object for admin status (JWT doesn't contain roles)
+    _fetchUserRoles(username);
+  }
+
+  /// Fetch user roles from the Tercen API and update template context.
+  /// Non-blocking — header renders without admin menu until this completes.
+  Future<void> _fetchUserRoles(String username) async {
+    try {
+      final factory = tercen.ServiceFactory.CURRENT;
+      if (factory == null) return;
+      final user = await factory.userService.get(username);
+      final isAdmin = user.id == 'admin' ||
+          (user.roles as List).contains('admin');
+      _sduiContext.renderContext.templateResolver.set('isAdmin', isAdmin);
+      debugPrint('[auth] User roles fetched: isAdmin=$isAdmin');
+    } catch (e) {
+      debugPrint('[auth] Failed to fetch user roles: $e');
+      _sduiContext.renderContext.templateResolver.set('isAdmin', false);
+    }
   }
 
   @override
