@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -10,12 +11,14 @@ import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
+import 'package:tercen_ui_orchestrator/services/agent_client.dart';
+import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
+import 'package:tercen_ui_orchestrator/presentation/widgets/chat_panel.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
-const _serverUrl = String.fromEnvironment(
-  'SERVER_URL',
-  defaultValue: 'ws://127.0.0.1:8080',
-);
+const _serverUrl = String.fromEnvironment('SERVER_URL', defaultValue: '');
+const _agentOperatorId = String.fromEnvironment('AGENT_OPERATOR_ID', defaultValue: '');
+const _anthropicApiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 
 const _tercenToken = String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
 
@@ -79,7 +82,8 @@ class OrchestratorApp extends StatefulWidget {
 
 class _OrchestratorAppState extends State<OrchestratorApp> {
   late final SduiContext _sduiContext;
-  late final OrchestratorClient _client;
+  late ChatBackend _chatBackend;
+  OrchestratorClient? _wsClient; // Only set in WebSocket mode
   bool _isDark = false; // Light mode is the default
   Map<String, dynamic>? _themeTokens;
   bool _authReady = false;
@@ -97,15 +101,35 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void initState() {
     super.initState();
     _sduiContext = SduiContext.create(theme: const SduiTheme.light());
-    _client = OrchestratorClient(
-      baseUrl: _serverUrl,
-      eventBus: _sduiContext.eventBus,
+
+    // Register ChatPanel as a compiled Tier 1 SDUI widget
+    _sduiContext.registry.register(
+      'ChatPanel',
+      (node, children, resolvedProps) => const ChatPanel(),
     );
-    _client.connect();
+
+    if (_serverUrl.isNotEmpty) {
+      // Dev mode: WebSocket to local Dart server
+      final wsClient = OrchestratorClient(
+        baseUrl: _serverUrl,
+        eventBus: _sduiContext.eventBus,
+      );
+      wsClient.connect();
+      _wsClient = wsClient;
+      _chatBackend = wsClient;
+      debugPrint('[init] Using WebSocket backend: $_serverUrl');
+    } else {
+      // Placeholder — AgentClient is created after auth bootstrap
+      // when ServiceFactory is available
+      _chatBackend = _PlaceholderBackend();
+      debugPrint('[init] Will use Agent backend after auth');
+    }
+
     _startup();
   }
 
   Future<void> _startup() async {
+    _startTrackingSelections();
     await _bootstrapAuth();
     _fetchThemeTokens(); // non-blocking — theme can load after UI
   }
@@ -181,6 +205,28 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       _setUserContext();
       debugPrint('[auth] ServiceFactory ready — data widgets enabled');
 
+      // Create AgentClient if no WebSocket backend
+      if (_wsClient == null && _agentOperatorId.isNotEmpty) {
+        final jwtData = _decodeJwtPayload(_tercenToken)['data']
+            as Map<String, dynamic>? ?? {};
+        final username = jwtData['u'] as String? ?? '';
+
+        // Get or create a hidden project for agent task execution
+        final projectId = await _getOrCreateAgentProject(factory, username);
+        debugPrint('[init] Agent project: $projectId');
+
+        _chatBackend = AgentClient(
+          factory: factory,
+          eventBus: _sduiContext.eventBus,
+          agentOperatorId: _agentOperatorId,
+          anthropicApiKey: _anthropicApiKey,
+          projectId: projectId,
+          userId: username,
+          uiStateCollector: _collectUiState,
+        );
+        debugPrint('[init] Agent backend ready: operator=$_agentOperatorId');
+      }
+
       setState(() {
         _authReady = true;
       });
@@ -220,9 +266,63 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     debugPrint('[auth] User context: username=$username');
   }
 
+  // Track selections from SDUI EventBus for UI state snapshots.
+  final Map<String, dynamic> _selections = {};
+  StreamSubscription? _selectionSub;
+
+  void _startTrackingSelections() {
+    _selectionSub = _sduiContext.eventBus
+        .subscribePrefix('system.selection.')
+        .listen((payload) {
+      payload.data.forEach((key, value) {
+        if (!key.startsWith('_')) {
+          _selections[key] = value;
+        }
+      });
+    });
+  }
+
+  /// Collect a minimal UI state snapshot for the agent.
+  Map<String, dynamic> _collectUiState() {
+    final wm = _sduiContext.windowManager;
+    final windows = wm.windows.map((ws) => {
+      'id': ws.id,
+      'title': ws.title ?? '',
+      'type': ws.content.type,
+    }).toList();
+
+    return {
+      'selections': Map<String, dynamic>.from(_selections),
+      'windows': windows,
+    };
+  }
+
+  /// Find or create the hidden `agent_internal` project for the user.
+  Future<String> _getOrCreateAgentProject(
+      sci.ServiceFactory factory, String username) async {
+    const projectName = 'agent_internal';
+    // Look up by [owner, name]
+    final docs = await factory.documentService.findProjectByOwnersAndName(
+      startKey: [username, projectName],
+      endKey: [username, projectName],
+      limit: 1,
+      useFactory: true,
+    );
+    if (docs.isNotEmpty) return docs.first.id;
+
+    // Not found — create it
+    final project = sci.Project()
+      ..name = projectName
+      ..isHidden = true
+      ..acl.owner = username;
+    final created = await factory.projectService.create(project);
+    return created.id;
+  }
+
   @override
   void dispose() {
-    _client.dispose();
+    _selectionSub?.cancel();
+    _chatBackend.dispose();
     _sduiContext.dispose();
     super.dispose();
   }
@@ -274,8 +374,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
     return SduiScope(
       sduiContext: _sduiContext,
-      child: OrchestratorClientScope(
-        client: _client,
+      child: ChatBackendScope(
+        backend: _chatBackend,
+        wsClient: _wsClient,
         child: ThemeController(
           isDark: _isDark,
           onToggle: _toggleTheme,
@@ -315,24 +416,56 @@ class ThemeController extends InheritedWidget {
       isDark != oldWidget.isDark;
 }
 
-/// Makes the OrchestratorClient available down the widget tree.
-class OrchestratorClientScope extends InheritedWidget {
-  final OrchestratorClient client;
+/// Makes the chat backend available down the widget tree.
+///
+/// [backend] is the active ChatBackend (either OrchestratorClient or AgentClient).
+/// [wsClient] is optionally set when using WebSocket mode, for features that
+/// need direct WebSocket access (e.g. toolbar widget catalog loading).
+class ChatBackendScope extends InheritedWidget {
+  final ChatBackend backend;
+  final OrchestratorClient? wsClient;
 
-  const OrchestratorClientScope({
+  const ChatBackendScope({
     super.key,
-    required this.client,
+    required this.backend,
+    this.wsClient,
     required super.child,
   });
 
-  static OrchestratorClient of(BuildContext context) {
+  static ChatBackend of(BuildContext context) {
     final scope =
-        context.dependOnInheritedWidgetOfExactType<OrchestratorClientScope>();
-    assert(scope != null, 'OrchestratorClientScope not found');
-    return scope!.client;
+        context.dependOnInheritedWidgetOfExactType<ChatBackendScope>();
+    assert(scope != null, 'ChatBackendScope not found');
+    return scope!.backend;
+  }
+
+  /// Returns the WebSocket client if available (dev mode only).
+  static OrchestratorClient? wsClientOf(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<ChatBackendScope>();
+    return scope?.wsClient;
   }
 
   @override
-  bool updateShouldNotify(OrchestratorClientScope oldWidget) =>
-      client != oldWidget.client;
+  bool updateShouldNotify(ChatBackendScope oldWidget) =>
+      backend != oldWidget.backend || wsClient != oldWidget.wsClient;
+}
+
+/// Placeholder backend used before auth completes.
+class _PlaceholderBackend extends ChatBackend {
+  final _controller = StreamController<Map<String, dynamic>>.broadcast();
+
+  @override
+  Stream<Map<String, dynamic>> get chatMessages => _controller.stream;
+  @override
+  void sendChat(String message) {}
+  @override
+  bool get isConnected => false;
+  @override
+  bool get isProcessing => false;
+  @override
+  void dispose() {
+    _controller.close();
+    super.dispose();
+  }
 }

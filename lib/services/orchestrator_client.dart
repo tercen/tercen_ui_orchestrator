@@ -7,15 +7,19 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'package:sdui/sdui.dart';
 
+import 'chat_backend.dart';
+
 /// Connection state for the orchestrator client.
 enum WsConnectionState { disconnected, connecting, connected }
 
+/// WebSocket-based chat backend for development (Claude Code CLI).
+///
 /// Connects to the orchestrator backend via two WebSocket channels:
 /// - /ws/chat: send user messages, receive assistant responses
 /// - /ws/ui: receive layout operations from the server
 ///
 /// Handles connection failures gracefully with automatic reconnection.
-class OrchestratorClient extends ChangeNotifier {
+class OrchestratorClient extends ChatBackend {
   final String baseUrl;
   final EventBus eventBus;
   WebSocketChannel? _chatChannel;
@@ -32,8 +36,14 @@ class OrchestratorClient extends ChangeNotifier {
   StreamSubscription? _selectionSub;
   final _chatMessages = StreamController<Map<String, dynamic>>.broadcast();
 
-  /// Stream of chat messages from the server (assistant responses).
+  @override
   Stream<Map<String, dynamic>> get chatMessages => _chatMessages.stream;
+
+  @override
+  bool get isConnected => _state == WsConnectionState.connected;
+
+  @override
+  bool get isProcessing => false; // WebSocket backend doesn't track this
 
   OrchestratorClient({
     required this.baseUrl,
@@ -136,6 +146,7 @@ class OrchestratorClient extends ChangeNotifier {
     _reconnectTimer = Timer(delay, connect);
   }
 
+  @override
   void sendChat(String message) {
     _chatChannel?.sink.add(message);
   }
