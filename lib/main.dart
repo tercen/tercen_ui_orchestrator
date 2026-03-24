@@ -108,6 +108,37 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   Future<void> _startup() async {
     await _bootstrapAuth();
     _fetchThemeTokens(); // non-blocking — theme can load after UI
+    _autoLoadCatalog(); // non-blocking — catalog loads after auth
+  }
+
+  /// Auto-load the widget catalog from the server.
+  /// The server fetches it from the configured widgetLibraryUrl on startup.
+  Future<void> _autoLoadCatalog() async {
+    try {
+      final httpUrl = _serverUrl
+          .replaceFirst('ws://', 'http://')
+          .replaceFirst('wss://', 'https://');
+      final url = '$httpUrl/api/widget-catalog';
+
+      final httpClient = io_http.HttpBrowserClient();
+      final response = await httpClient.get(url);
+
+      if (response.statusCode == 200) {
+        final catalog =
+            jsonDecode(response.body as String) as Map<String, dynamic>;
+        final widgets = catalog['widgets'] as List? ?? [];
+        if (widgets.isNotEmpty) {
+          _sduiContext.registry.loadCatalog(catalog);
+          debugPrint('[catalog] Auto-loaded ${widgets.length} widget(s)');
+        } else {
+          debugPrint('[catalog] Server returned empty catalog');
+        }
+      } else {
+        debugPrint('[catalog] Server returned ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('[catalog] Auto-load failed: $e');
+    }
   }
 
   void _toggleTheme() {

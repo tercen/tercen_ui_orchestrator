@@ -68,7 +68,19 @@ tercenctl context to-token --validity 30d
 
 The JWT contains the API endpoint in its `iss` claim. The orchestrator extracts this automatically.
 
-### 2. Repos cloned side by side
+### 2. Orchestrator config
+
+The orchestrator reads `orchestrator.config.json` at the repo root for the widget library URL:
+
+```json
+{
+  "widgetLibraryUrl": "https://github.com/tercen/tercen_ui_widgets"
+}
+```
+
+On server startup, the catalog is auto-fetched from this URL. The client auto-loads it after auth. No manual "Load Library" step is needed.
+
+### 3. Repos cloned side by side
 
 ```
 Documents/GitHub/

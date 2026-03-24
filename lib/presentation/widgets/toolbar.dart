@@ -1,11 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:sci_http_client/http_browser_client.dart' as io_http;
-import 'package:sci_http_client/http_client.dart' as http_api;
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/main.dart';
-import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
 /// Fixed toolbar at the top of the orchestrator layout.
 ///
@@ -19,7 +14,6 @@ class Toolbar extends StatefulWidget {
 }
 
 class _ToolbarState extends State<Toolbar> {
-  bool _loading = false;
   String? _statusMessage;
 
   @override
@@ -76,120 +70,13 @@ class _ToolbarState extends State<Toolbar> {
                   );
                 },
               ),
-              const SizedBox(width: 4),
-              // Load Library icon button
-              if (_loading)
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.library_add_outlined, size: 18),
-                  color: Theme.of(context).colorScheme.onSurface,
-                  tooltip: 'Load Library',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onPressed: () => _showLoadDialog(context),
-                ),
+              // Load Library button removed — catalog auto-loads on startup
+              // from orchestrator.config.json widgetLibraryUrl
             ],
           ),
         );
       },
     );
-  }
-
-  Future<void> _showLoadDialog(BuildContext context) async {
-    final sdui = SduiScope.of(context);
-    final client = OrchestratorClientScope.of(context);
-    final controller = TextEditingController(
-      text: 'https://github.com/tercen/tercen_ui_widgets',
-    );
-
-    final repo = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Load Widget Library'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'GitHub repository URL',
-            hintText: 'https://github.com/owner/repo',
-          ),
-          autofocus: true,
-          onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: const Text('Load'),
-          ),
-        ],
-      ),
-    );
-
-    controller.dispose();
-    if (!mounted || repo == null || repo.isEmpty) return;
-    _loadFromGitHub(sdui, client, repo);
-  }
-
-  Future<void> _loadFromGitHub(SduiContext sdui, OrchestratorClient client, String repoUrl) async {
-
-    setState(() {
-      _loading = true;
-      _statusMessage = 'Fetching catalog from GitHub...';
-    });
-
-    try {
-      final httpUrl = client.baseUrl
-          .replaceFirst('ws://', 'http://')
-          .replaceFirst('wss://', 'https://');
-      final url = '$httpUrl/api/widget-catalog/load';
-
-      final httpClient = io_http.HttpBrowserClient();
-      final response = await httpClient.post(
-        url,
-        headers: http_api.ContentTypeHeaderValue.getJsonHeader(),
-        body: jsonEncode({'repo': repoUrl}),
-      );
-
-      final body = jsonDecode(response.body as String) as Map<String, dynamic>;
-
-      if (response.statusCode != 200) {
-        throw Exception(body['error'] ?? 'Server error ${response.statusCode}');
-      }
-
-      // Now fetch the full catalog to load into the registry
-      final catalogResponse = await httpClient.get('$httpUrl/api/widget-catalog');
-      final catalog = jsonDecode(catalogResponse.body as String) as Map<String, dynamic>;
-      final widgets = catalog['widgets'] as List<dynamic>? ?? [];
-
-      sdui.registry.loadCatalog(catalog);
-
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _statusMessage = 'Loaded ${widgets.length} widget(s)';
-        });
-      }
-    } catch (e, st) {
-      ErrorReporter.instance.report(e,
-        stackTrace: st,
-        source: 'toolbar.loadCatalog',
-        context: 'repo: $repoUrl',
-      );
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _statusMessage = 'Failed: $e';
-        });
-      }
-    }
   }
 
   Future<void> _openWidget(BuildContext context, String widgetType) async {
