@@ -286,6 +286,27 @@ class ServiceCallDispatcher {
         final limit = PropConverter.to<int>(args[3]) ?? 100;
         final table = await svc.select(schemaId, cnames, offset, limit);
         return _serializeTable(table);
+      case 'selectCSV':
+        // Export table data as CSV text.
+        // Args: [schemaId, columnNames, offset, limit, separator?, quote?, encoding?]
+        // Returns: {"csv": "...", "schemaId": "..."}
+        final schemaId = args[0] as String;
+        final cnames = (args[1] as List).cast<String>();
+        final offset = PropConverter.to<int>(args[2]) ?? 0;
+        final limit = PropConverter.to<int>(args[3]) ?? 100;
+        final separator = args.length > 4
+            ? PropConverter.to<String>(args[4]) ?? ','
+            : ',';
+        final quote = args.length > 5
+            ? PropConverter.to<bool>(args[5]) ?? true
+            : true;
+        final encoding = args.length > 6
+            ? PropConverter.to<String>(args[6]) ?? 'utf-8'
+            : 'utf-8';
+        final csvStream =
+            svc.selectCSV(schemaId, cnames, offset, limit, separator, quote, encoding);
+        final csv = await utf8.decodeStream(csvStream);
+        return {'csv': csv, 'schemaId': schemaId};
       default:
         throw ArgumentError(
             'Method "$method" not found on tableSchemaService');

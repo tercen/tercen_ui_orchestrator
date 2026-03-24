@@ -89,6 +89,7 @@ These are the **exact methods currently implemented** that `DataSource` nodes in
 | Method | Args | Returns |
 |--------|------|---------|
 | `select` | `[schemaId, columnNames: List<String>, offset: int, limit: int]` | `{nRows: int, columns: [{name, type, values}]}` — **column-major** |
+| `selectCSV` | `[schemaId, columnNames, offset, limit, separator?, quote?, encoding?]` | `{csv: String, schemaId: String}` — defaults: `,`, `true`, `utf-8` |
 | `getStepImages` | `[workflowId, stepId]` | `{stepName, images: [{schemaId, filename, mimetype, url}]}` |
 
 > **Column-major data:** `select()` returns columns where each has a `values` array. The Tier 1 `DataTable` and `TabbedDataTable` primitives must handle this format internally. If they expect row-major, a transpose is needed inside the primitive — not in the template.
@@ -182,15 +183,9 @@ Every data-connected template follows this pattern:
 
 `fileService.downloadUrl` now returns an authenticated URL that works for any file type. `ImageViewer` and `Image` primitives already accept URL strings. No base64 encoding needed.
 
-### GAP 2: CSV export via ServiceCaller (Blocks: data-table export)
+### ~~GAP 2: CSV export via ServiceCaller~~ — RESOLVED
 
-**Problem:** `tableSchemaService.selectCSV()` exists in `sci_tercen_client` but is not wired in `ServiceCallDispatcher`.
-
-**What's needed:** Add a `selectCSV` case to `_tableSchemaServiceCall` in the dispatcher.
-
-**Workaround:** Build CSV client-side from the column-major data returned by `select()`. This works but may be slow for large tables.
-
-**Owner:** Orchestrator dev
+`tableSchemaService.selectCSV` is now wired in the dispatcher. Returns `{csv: String, schemaId: String}`. Defaults: separator `,`, quote `true`, encoding `utf-8`.
 
 ### GAP 3: Annotation save API (Blocks: data-table cell editing)
 
