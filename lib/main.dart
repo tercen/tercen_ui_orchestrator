@@ -8,6 +8,7 @@ import 'package:sci_http_client/http_client.dart' as http_api;
 import 'package:sci_tercen_client/sci_client.dart' as sci;
 import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
+import 'package:tercen_ui_orchestrator/presentation/widgets/chat_panel.dart';
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
@@ -97,6 +98,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void initState() {
     super.initState();
     _sduiContext = SduiContext.create(theme: const SduiTheme.light());
+    _registerOrchestratorWidgets();
     _client = OrchestratorClient(
       baseUrl: _serverUrl,
       eventBus: _sduiContext.eventBus,
@@ -139,6 +141,15 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     } catch (e) {
       debugPrint('[catalog] Auto-load failed: $e');
     }
+  }
+
+  /// Register orchestrator-specific widgets as Tier 1 builders.
+  /// These are compiled Dart widgets that need access to orchestrator internals
+  /// (e.g., OrchestratorClient for chat streaming) and can't be JSON templates.
+  void _registerOrchestratorWidgets() {
+    _sduiContext.registry.register('ChatPanel', buildChatPanel,
+        metadata: chatPanelMetadata);
+    debugPrint('[widgets] Registered ChatPanel Tier 1 primitive');
   }
 
   void _toggleTheme() {

@@ -27,7 +27,7 @@ Phase 3 work is:
 
 | Layer | What | Where |
 |-------|------|-------|
-| **Tier 1 primitives** | 41 compiled Dart widgets (layout, display, interactive, behavior, domain-specific) | `sdui` package — already registered |
+| **Tier 1 primitives** | 41+ compiled Dart widgets (layout, display, interactive, behavior, domain-specific) | `sdui` package + orchestrator-registered (e.g., `ChatPanel`) |
 | **Tier 2 templates** | JSON compositions of Tier 1 primitives | `tercen_ui_widgets/catalog.json` — loaded via `loadCatalog()` |
 | **ServiceCallDispatcher** | Routes `DataSource` service calls to real Tercen API | `tercen_ui_orchestrator/lib/sdui/service/service_call_dispatcher.dart` |
 | **Standalone apps** | Full Flutter apps for dev/testing outside orchestrator | `tercen_ui_widgets/widgets/<name>/` |
@@ -41,8 +41,11 @@ Phase 3 work is:
 | Interactive | `TextField`, `ElevatedButton`, `TextButton`, `IconButton`, `Switch`, `Checkbox`, `DropdownButton` |
 | Behavior | `DataSource`, `ForEach`, `Action`, `ReactTo`, `Conditional`, `PromptRequired`, `StateHolder`, `Sort`, `Filter` |
 | Domain-specific | `DataTable`, `DirectedGraph`, `ImageViewer`, `TabbedImageViewer`, `TabbedDataTable` |
+| Orchestrator-specific | `ChatPanel` — registered by the orchestrator at startup, not in the `sdui` package |
 
-The domain-specific primitives handle complex rendering (scroll-synced grids, graph layouts, tabbed image viewers). Templates compose these — the hard UI work is already done in compiled Dart.
+The domain-specific primitives handle complex rendering (scroll-synced grids, graph layouts, tabbed image viewers). `ChatPanel` is registered by the orchestrator because it needs access to `OrchestratorClient` for WebSocket streaming. Templates compose all of these — the hard UI work is already done in compiled Dart.
+
+The orchestrator shell is now minimal — just a full-screen SDUI workspace + error bar. All panels (header, chat, navigator, etc.) are opened as floating windows by the home configuration in `catalog.json`.
 
 ### How catalog loading works
 
