@@ -146,8 +146,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     }
   }
 
-  /// Open home windows defined in the catalog's "home" key.
-  /// Each window becomes a floating window via the standard addWindow layout op.
+  /// Open home regions and windows defined in the catalog's "home" key.
+  /// Regions are fixed UI areas (e.g., header at top); windows are floating.
   void _openHomeWindows(Map<String, dynamic> catalog) {
     final home = catalog['home'] as Map<String, dynamic>?;
     if (home == null) {
@@ -155,9 +155,51 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       return;
     }
 
+    // Process regions (fixed layout areas like header)
+    final regions = home['regions'] as List?;
+    if (regions != null && regions.isNotEmpty) {
+      debugPrint('[home] Processing ${regions.length} region(s)');
+      for (final r in regions) {
+        final reg = Map<String, dynamic>.from(r as Map);
+        final type = reg['type'] as String?;
+        final id = reg['id'] as String? ?? 'region-${type?.toLowerCase()}';
+        final region = reg['region'] as String? ?? 'top';
+        final props =
+            reg['props'] != null ? Map<String, dynamic>.from(reg['props'] as Map) : <String, dynamic>{};
+
+        if (type == null) {
+          debugPrint('[home] Skipping region with no type: $reg');
+          continue;
+        }
+
+        if (!_sduiContext.registry.has(type)) {
+          debugPrint('[home] Widget type "$type" not found in registry — skipping region');
+          continue;
+        }
+
+        _sduiContext.eventBus.publish(
+          'system.layout.region',
+          EventPayload(
+            type: 'layout.region',
+            data: {
+              'region': region,
+              'content': {
+                'type': type,
+                'id': id,
+                'props': props,
+                'children': [],
+              },
+            },
+          ),
+        );
+        debugPrint('[home] Set $region region → $type ("$id")');
+      }
+    }
+
+    // Process floating windows
     final windows = home['windows'] as List?;
     if (windows == null || windows.isEmpty) {
-      debugPrint('[home] Home config has no windows');
+      debugPrint('[home] No floating windows to open');
       return;
     }
 
