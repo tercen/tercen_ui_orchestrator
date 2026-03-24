@@ -101,6 +101,30 @@ These are the **exact methods currently implemented** that `DataSource` nodes in
 | `download` | `[fileDocumentId]` | `{content: String, fileId: String}` — **UTF-8 text only** |
 | `downloadUrl` | `[fileDocumentId]` | `{url: String, fileId: String}` — authenticated URL for any file type (images, ZIPs, etc.). Pass to `ImageViewer`'s `url` prop or `Image`'s `src` prop. |
 
+### operatorContext (write-back)
+
+Not a standard Tercen service — provides save capability via `OperatorContext` from `sci_tercen_context`. Requires a `taskId` (CubeQueryTask or RunWebAppTask).
+
+| Method | Args | Returns |
+|--------|------|---------|
+| `saveTable` | `[taskId, columns]` | `{success: bool, taskId: String}` |
+| `saveTables` | `[taskId, tablesList]` | `{success: bool, taskId: String}` |
+
+**Column format** for `saveTable`:
+```json
+[taskId, [
+  {"name": ".ri", "type": "int32", "values": [0, 1, 2]},
+  {"name": ".ci", "type": "int32", "values": [0, 0, 0]},
+  {"name": "corrected", "type": "double", "values": [1.5, 2.3, 0.8]}
+]]
+```
+
+**Column types:** `int32`, `double` (or `float64`), `string`
+
+**For `saveTables`:** `tablesList` is a list of column arrays — each inner list defines one table.
+
+OperatorContext instances are cached by `taskId` to avoid repeated task metadata fetches.
+
 ### Generic methods (all services)
 
 | Method | Args | Notes |
@@ -187,16 +211,9 @@ Every data-connected template follows this pattern:
 
 `tableSchemaService.selectCSV` is now wired in the dispatcher. Returns `{csv: String, schemaId: String}`. Defaults: separator `,`, quote `true`, encoding `utf-8`.
 
-### GAP 3: Annotation save API (Blocks: data-table cell editing)
+### ~~GAP 3: Annotation save API~~ — RESOLVED
 
-**Problem:** The data-table mock has `saveAnnotations(sourceTableId, projectId, edits)`. No corresponding method was found in `tableSchemaService` or elsewhere in `sci_tercen_client`.
-
-**Needs investigation:**
-- Does Tercen have a table annotation/edit API?
-- Is this handled through a different service?
-- Does this feature need to be deferred?
-
-**Owner:** Both (needs API investigation first)
+`operatorContext.saveTable` and `operatorContext.saveTables` are now available in the dispatcher. Uses `OperatorContext` from `sci_tercen_context` (same pattern as `dascombat_flutter_fit_operator`). Requires a `taskId`. Column types: `int32`, `double`, `string`. See the operatorContext section above for args format.
 
 ---
 

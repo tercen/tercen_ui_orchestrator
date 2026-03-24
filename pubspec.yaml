@@ -27,6 +27,11 @@ dependencies:
       ref: 1.16.1
       url: https://github.com/tercen/sci_tercen_client
       path: sci_http_client
+  sci_tercen_context:
+    git:
+      ref: 1.16.1
+      url: https://github.com/tercen/sci_tercen_client
+      path: sci_tercen_context
 
 dev_dependencies:
   flutter_test:

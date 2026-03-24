@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:sci_base/sci_client_base.dart';
 import 'package:sci_base/sci_service.dart';
 import 'package:sci_tercen_client/sci_client_service_factory.dart';
+import 'package:sci_tercen_context/sci_tercen_context.dart' show OperatorContext, AbstractOperatorContext, Table;
 import 'package:sdui/sdui.dart' show PropConverter;
 
 /// Dispatches service calls by name and returns JSON-serializable results.
@@ -17,9 +18,17 @@ class ServiceCallDispatcher {
 
   ServiceCallDispatcher(this.factory, {this.authToken});
 
+  /// Cache of OperatorContext instances by taskId to avoid repeated task fetches.
+  final Map<String, OperatorContext> _operatorContextCache = {};
+
   /// Main entry point. Returns a List<Map> for list methods, or a Map for single-object methods.
   Future<dynamic> call(
       String serviceName, String method, List<dynamic> args) async {
+    // operatorContext is not a standard Tercen service — handle it separately.
+    if (serviceName == 'operatorContext') {
+      return _operatorContextCall(method, args);
+    }
+
     final service = _getService(serviceName);
     if (service == null) {
       throw ArgumentError('Unknown service: $serviceName');
@@ -695,6 +704,91 @@ class ServiceCallDispatcher {
       default:
         throw ArgumentError('Method "$method" not found on taskService');
     }
+  }
+
+  /// Get or create a cached OperatorContext for the given taskId.
+  Future<OperatorContext> _getOperatorContext(String taskId) async {
+    if (_operatorContextCache.containsKey(taskId)) {
+      return _operatorContextCache[taskId]!;
+    }
+    final ctx = await OperatorContext.create(
+      serviceFactory: factory,
+      taskId: taskId,
+    );
+    _operatorContextCache[taskId] = ctx;
+    return ctx;
+  }
+
+  /// Handles operatorContext calls — save tables back to Tercen.
+  Future<dynamic> _operatorContextCall(
+      String method, List<dynamic> args) async {
+    switch (method) {
+      case 'saveTable':
+        // Save a single table to Tercen via OperatorContext.
+        // Args: [taskId, columns]
+        //   taskId: String — the CubeQueryTask or RunWebAppTask ID
+        //   columns: List<Map> — [{name: String, type: String, values: List}, ...]
+        //     type must be one of: 'int32', 'double', 'string'
+        // Returns: {"success": true, "taskId": "..."}
+        final taskId = args[0] as String;
+        final columnsRaw = args[1] as List;
+        final ctx = await _getOperatorContext(taskId);
+        final table = _buildTable(columnsRaw);
+        await ctx.saveTable(table);
+        return {'success': true, 'taskId': taskId};
+      case 'saveTables':
+        // Save multiple tables to Tercen via OperatorContext.
+        // Args: [taskId, tablesList]
+        //   taskId: String
+        //   tablesList: List<List<Map>> — each inner list is columns for one table
+        // Returns: {"success": true, "taskId": "..."}
+        final taskId = args[0] as String;
+        final tablesRaw = args[1] as List;
+        final ctx = await _getOperatorContext(taskId);
+        final tables = tablesRaw
+            .map((t) => _buildTable(t as List))
+            .toList();
+        await ctx.saveTables(tables);
+        return {'success': true, 'taskId': taskId};
+      default:
+        throw ArgumentError(
+            'Method "$method" not found on operatorContext');
+    }
+  }
+
+  /// Builds a Table from a list of column descriptors.
+  /// Each column: {name: String, type: 'int32'|'double'|'string', values: List}
+  Table _buildTable(List columnsRaw) {
+    final table = Table();
+    int nRows = 0;
+    for (final colRaw in columnsRaw) {
+      final col = Map<String, dynamic>.from(colRaw as Map);
+      final name = col['name'] as String;
+      final type = col['type'] as String;
+      final values = col['values'] as List;
+      if (nRows == 0) nRows = values.length;
+
+      switch (type) {
+        case 'int32':
+          table.columns.add(AbstractOperatorContext.makeInt32Column(
+              name, values.map((v) => PropConverter.to<int>(v) ?? 0).toList()));
+          break;
+        case 'double':
+        case 'float64':
+          table.columns.add(AbstractOperatorContext.makeFloat64Column(
+              name, values.map((v) => PropConverter.to<double>(v) ?? 0.0).toList()));
+          break;
+        case 'string':
+          table.columns.add(AbstractOperatorContext.makeStringColumn(
+              name, values.map((v) => v?.toString() ?? '').toList()));
+          break;
+        default:
+          throw ArgumentError('Unknown column type "$type" for column "$name". '
+              'Must be int32, double, or string.');
+      }
+    }
+    table.nRows = nRows;
+    return table;
   }
 
   /// Generic find handler — uses the known findKeys view name mapping
