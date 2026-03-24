@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../main.dart';
-import '../../services/orchestrator_client.dart';
 
 class ChatPanel extends StatefulWidget {
   const ChatPanel({super.key});
@@ -23,7 +22,7 @@ class _ChatPanelState extends State<ChatPanel> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _chatSub ??=
-        OrchestratorClientScope.of(context).chatMessages.listen(_onEvent);
+        ChatBackendScope.of(context).chatMessages.listen(_onEvent);
   }
 
   void _onEvent(Map<String, dynamic> msg) {
@@ -157,7 +156,7 @@ class _ChatPanelState extends State<ChatPanel> {
     _controller.clear();
     _scrollToBottom();
 
-    OrchestratorClientScope.of(context).sendChat(text);
+    ChatBackendScope.of(context).sendChat(text);
   }
 
   @override
@@ -185,7 +184,7 @@ class _ChatPanelState extends State<ChatPanel> {
   }
 
   Widget _buildHeader() {
-    final client = OrchestratorClientScope.of(context);
+    final client = ChatBackendScope.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -204,12 +203,10 @@ class _ChatPanelState extends State<ChatPanel> {
           ListenableBuilder(
             listenable: client,
             builder: (context, _) {
-              final connected =
-                  client.state == WsConnectionState.connected;
               return Icon(
                 Icons.circle,
                 size: 8,
-                color: connected
+                color: client.isConnected
                     ? Theme.of(context).colorScheme.tertiary
                     : Theme.of(context).colorScheme.error,
               );

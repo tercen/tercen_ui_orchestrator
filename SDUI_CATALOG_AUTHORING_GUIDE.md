@@ -296,6 +296,28 @@ These add data fetching, iteration, interaction, and state management to your te
 - Without children, shows a built-in spinner/error display
 - Re-fetches if service/method/args change
 
+#### Reactive refetch with `refreshOn`
+
+Use `refreshOn` to refetch when an event arrives on an EventBus channel. The event payload fields are merged into scope, so `{{...}}` bindings in `args` resolve to the new values.
+
+```json
+{
+  "type": "DataSource",
+  "id": "{{widgetId}}-ds",
+  "props": {
+    "service": "fileService",
+    "method": "download",
+    "args": ["{{fileId}}"],
+    "refreshOn": "navigator.focusChanged"
+  }
+}
+```
+
+- When `refreshOn` is set, DataSource **waits for the first event** before fetching (no wasted initial fetch)
+- When an event arrives: payload fields (e.g., `{fileId: "abc"}`) are merged into scope → `{{fileId}}` resolves to `"abc"` → refetch
+- Event payload fields are also available to children as `{{fieldName}}`
+- This enables master-detail patterns: Widget A publishes selection → Widget B refetches with the selected ID
+
 **CRITICAL:** Method names must be exact. Always call `discover_methods(serviceName)` first and copy the exact method name. Even small typos (e.g., `findByOwner` vs `findTeamByOwner`) will cause errors.
 
 #### Service call args — three patterns
@@ -496,6 +518,7 @@ Use startKey `[false, ...]` and endKey `[true, "\uf000"]` for views with `isPubl
 ```
 system.selection.<entity>    — User selected something (project, workflow, step, file)
 system.layout.op             — Layout operations (addWindow, removeWindow, etc.)
+system.intent                — Intent routing (widget opens another widget)
 system.data.<entity>         — Data changed
 system.task.<taskId>         — Task progress/completion
 navigator.focusChanged       — File navigator selection
@@ -507,7 +530,96 @@ input.<nodeId>.submitted     — TextField submitted
 
 ---
 
-## 10. Composition patterns
+## 10. Intent system — widgets opening other widgets
+
+Widgets can request opening other widgets through a declarative **intent system**. Widgets don't know about each other — they publish intents, and the orchestrator routes them to the right handler.
+
+### 10.1 Emitting an intent (widget side)
+
+Use an `Action` widget to publish an intent on `system.intent`. The `type` in the EventPayload is the intent name:
+
+```json
+{
+  "type": "Action",
+  "id": "open-{{item.id}}",
+  "props": {
+    "gesture": "onDoubleTap",
+    "channel": "system.intent",
+    "payload": {
+      "intent": "openFile",
+      "fileId": "{{item.id}}",
+      "fileName": "{{item.name}}"
+    }
+  },
+  "children": [ ... ]
+}
+```
+
+The widget doesn't know which viewer will open — it just expresses intent.
+
+### 10.2 Handling an intent (metadata side)
+
+Widget metadata declares what intents it handles via `handlesIntent`:
+
+```json
+{
+  "type": "DocumentViewer",
+  "handlesIntent": {
+    "intent": "openFile",
+    "propsMap": {"fileId": "fileId"},
+    "windowTitle": "{{fileName}}",
+    "windowSize": "medium"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `intent` | string | Intent name to match (must match the `intent` field in the Action payload) |
+| `propsMap` | object | Maps intent param names → widget prop names. If empty, all params pass through directly. |
+| `windowTitle` | string | Window title. Supports `{{paramName}}` interpolation from intent data. |
+| `windowSize` | string | Window size preset (`small`, `medium`, `large`). Default: `medium`. |
+| `windowAlign` | string | Window alignment (`center`, `left`, `right`). Default: `center`. |
+
+A widget can handle multiple intents (use a list):
+```json
+"handlesIntent": [
+  {"intent": "openFile", "propsMap": {"fileId": "fileId"}, "windowTitle": "{{fileName}}"},
+  {"intent": "viewDocument", "propsMap": {"docId": "fileId"}, "windowTitle": "{{docName}}"}
+]
+```
+
+### 10.3 How routing works
+
+1. On catalog load, the **IntentRouter** builds a routing table from all `handlesIntent` declarations
+2. When an event arrives on `system.intent`, the router looks up the intent name
+3. It maps intent params to widget props via `propsMap`
+4. It creates a window (`addWindow`) with the matched widget type and mapped props
+5. Window ID is deterministic — opening the same intent with the same params reuses the ID
+
+### 10.4 AI integration
+
+The AI can also emit intents — it publishes the same events to `system.intent`. This means the AI doesn't need to compose full widget trees; it just expresses intent:
+
+```json
+{"channel": "system.intent", "payload": {"intent": "openFile", "fileId": "abc", "fileName": "report.md"}}
+```
+
+The router handles widget selection and window creation. The AI can also bypass the intent system entirely and use `system.layout.op` with `addWindow` for full control when needed.
+
+### 10.5 Available intents (from catalog)
+
+| Intent | Handler | Key params |
+|--------|---------|------------|
+| `openWorkflow` | WorkflowViewer | `workflowId` |
+| `openFile` | DocumentViewer | `fileId`, `fileName` |
+| `openFileNavigator` | FileNavigator | `projectId`, `projectName` |
+| `openStepTables` | DataTableViewer | `workflowId`, `stepId`, `stepName` |
+| `openStepImages` | PngViewer | `workflowId`, `stepId`, `stepName` |
+
+---
+
+## 11. Composition patterns
 
 ### 10.1 Data list with selection highlighting
 
@@ -591,7 +703,7 @@ Use the `system.layout.op` channel with `addWindow` operation:
 
 ---
 
-## 11. Tercen data connection reference
+## 12. Tercen data connection reference
 
 ### 11.1 Available services
 
@@ -627,7 +739,7 @@ Common pattern for user-specific queries:
 
 ---
 
-## 12. Complete example
+## 13. Complete example
 
 Here is a full widget definition for a file navigator with PromptRequired, semantic theming, and proper data connection:
 
@@ -741,7 +853,7 @@ Here is a full widget definition for a file navigator with PromptRequired, seman
 
 ---
 
-## 13. Checklist for a new catalog widget
+## 14. Checklist for a new catalog widget
 
 1. **Choose a unique `type` name** — PascalCase, descriptive (e.g., `WorkflowViewer`, `DataTableExplorer`)
 2. **Write the metadata** — accurate `description`, all `props` with types/defaults, `emittedEvents`, `acceptedActions`
@@ -755,11 +867,26 @@ Here is a full widget definition for a file navigator with PromptRequired, seman
 10. **Wrap with PromptRequired** if the widget needs IDs that may not be in context
 11. **Verify service methods** — call `discover_methods(serviceName)` and use EXACT method names
 12. **Use correct args pattern** — check if the method uses `startKeys` (range) or `keys` (lookup) format
-13. **Validate the JSON** — must parse cleanly; every node needs `type` and `id`
+13. **Declare `handlesIntent`** if the widget should be openable from other widgets via the intent system (Section 10)
+14. **Use `refreshOn`** on DataSource if the widget should react to events from other widgets (Section 8.1)
+15. **Validate the JSON** — must parse cleanly; every node needs `type` and `id`
 
 ---
 
-## 14. Common mistakes
+## 15. AI-generated widgets
+
+The AI is not limited to catalog widgets. It can compose widget trees directly from Tier 1 primitives and behavior widgets, publishing them via `system.layout.op` with `addWindow`. This is useful for:
+- One-off layouts that don't need to be reusable
+- Custom combinations of existing widgets
+- Quick prototyping before promoting to catalog
+
+The AI can also use the intent system — publishing to `system.intent` with the intent name and params, letting the router open the appropriate catalog widget. This is preferred over composing full widget trees when a matching catalog widget exists.
+
+When the AI creates a new reusable widget, it should be added to the catalog with proper metadata, `handlesIntent` declarations, and semantic theming.
+
+---
+
+## 16. Common mistakes
 
 | Mistake | Fix |
 |---------|-----|
@@ -777,3 +904,6 @@ Here is a full widget definition for a file navigator with PromptRequired, seman
 | Wrong args format for findKeys | `findKeys` methods: `args: [["key1"]]` (list inside list). `findStartKeys`: `args: [[start], [end], limit]` |
 | Using `{{context.username}}` for key lookups | Some views index by userId, not username. Check `discover_methods` output. |
 | Hardcoding object IDs in templates | Use `PromptRequired` with a default, or bind from context/scope |
+| Embedding full widget trees in Action payloads to open windows | Use the intent system — publish to `system.intent` with intent name + params |
+| DataSource not reacting to selection events | Add `refreshOn: "channel.name"` to refetch when events arrive |
+| Missing `handlesIntent` on a viewer widget | Add it to metadata so other widgets and the AI can open it via intents |

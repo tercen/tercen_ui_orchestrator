@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:sci_http_client/http_browser_client.dart' as io_http;
 import 'package:sci_http_client/http_client.dart' as http_api;
 import 'package:sdui/sdui.dart';
-import 'package:tercen_ui_orchestrator/main.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
+import '../../main.dart';
 
 /// Fixed toolbar at the top of the orchestrator layout.
 ///
@@ -102,7 +102,7 @@ class _ToolbarState extends State<Toolbar> {
 
   Future<void> _showLoadDialog(BuildContext context) async {
     final sdui = SduiScope.of(context);
-    final client = OrchestratorClientScope.of(context);
+    final client = ChatBackendScope.wsClientOf(context);
     final controller = TextEditingController(
       text: 'https://github.com/tercen/tercen_ui_widgets',
     );
@@ -134,7 +134,7 @@ class _ToolbarState extends State<Toolbar> {
     );
 
     controller.dispose();
-    if (!mounted || repo == null || repo.isEmpty) return;
+    if (!mounted || repo == null || repo.isEmpty || client == null) return;
     _loadFromGitHub(sdui, client, repo);
   }
 
