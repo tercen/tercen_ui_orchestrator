@@ -98,6 +98,7 @@ These are the **exact methods currently implemented** that `DataSource` nodes in
 | Method | Args | Returns |
 |--------|------|---------|
 | `download` | `[fileDocumentId]` | `{content: String, fileId: String}` — **UTF-8 text only** |
+| `downloadUrl` | `[fileDocumentId]` | `{url: String, fileId: String}` — authenticated URL for any file type (images, ZIPs, etc.). Pass to `ImageViewer`'s `url` prop or `Image`'s `src` prop. |
 
 ### Generic methods (all services)
 
@@ -165,7 +166,7 @@ Every data-connected template follows this pattern:
 
 **home-panel** — compose with multiple `DataSource` nodes for projects, user info, activity. Use `Grid`/`Card` layout.
 
-**png-viewer** — blocked by **binary download gap** (see below).
+**png-viewer** — use `DataSource(fileService.downloadUrl)` to get an authenticated URL, pass to `ImageViewer`'s `url` prop.
 
 **chat-box** — talks to orchestrator WebSocket, not Tercen API. Read `orchestrator_client.dart` and `chat_panel.dart` for protocol. May be redundant with the built-in chat panel.
 
@@ -177,25 +178,9 @@ Every data-connected template follows this pattern:
 
 ## Gaps — Features That Need Development
 
-### GAP 1: Binary file download (Blocks: png-viewer, document-editor for binary files)
+### ~~GAP 1: Binary file download~~ — RESOLVED
 
-**Problem:** `ServiceCallDispatcher`'s `fileService.download` handler converts the binary stream to UTF-8 text via `utf8.decodeStream()`. This corrupts binary files (PNG, ZIP, etc.).
-
-**What exists in sci_tercen_client:** `fileService.download(fileDocumentId)` returns `Stream<List<int>>` (raw bytes).
-
-**What's needed:** A new dispatcher method that returns base64-encoded content:
-
-```dart
-// Proposed addition to ServiceCallDispatcher._fileServiceCall:
-case 'downloadBase64':
-  final fileId = args[0] as String;
-  final bytes = await _collectStream(svc.download(fileId));
-  return {'content': base64Encode(bytes), 'fileId': fileId, 'encoding': 'base64'};
-```
-
-Then the `ImageViewer` Tier 1 primitive would need to handle base64 data, or a new prop on `Image` for base64 sources.
-
-**Owner:** Orchestrator dev
+`fileService.downloadUrl` now returns an authenticated URL that works for any file type. `ImageViewer` and `Image` primitives already accept URL strings. No base64 encoding needed.
 
 ### GAP 2: CSV export via ServiceCaller (Blocks: data-table export)
 
@@ -430,7 +415,7 @@ Then ask:
 | 2 | **data-table** | Template exists in catalog.json | Verify `TabbedDataTable` handles column-major data. CSV export needs GAP 2. |
 | 3 | **file-navigator** | Template needed | Author template using `projectDocumentService` |
 | 4 | **home-panel** | Template needed | Author template using `projectService`, `userService` |
-| 5 | **png-viewer** | Blocked | Needs GAP 1 (binary download) resolved |
+| 5 | **png-viewer** | Template needed | Use `fileService.downloadUrl` → `ImageViewer` |
 | 6 | **audit-trail** | Template needed | Need `discover_methods` for activity/task services first |
 | 7 | **document-editor** | Template needed | Text files work now; binary files need GAP 1 |
 | 8 | **chat-box** | N/A | Uses orchestrator WebSocket — may be redundant with built-in chat |

@@ -250,6 +250,21 @@ class ServiceCallDispatcher {
         final fileId = args[0] as String;
         final content = await utf8.decodeStream(svc.download(fileId));
         return {'content': content, 'fileId': fileId};
+      case 'downloadUrl':
+        // Build an authenticated download URL for a file.
+        // Works for any file type (images, documents, ZIPs).
+        // Args: [fileDocumentId]
+        // Returns: {"url": "https://...", "fileId": "..."}
+        final fileId = args[0] as String;
+        final baseUri = (svc as dynamic)
+            .getServiceUri(Uri.parse('api/v1/file/download'));
+        final params = json.encode({'fileDocumentId': fileId});
+        final queryParams = <String, String>{'params': params};
+        if (authToken != null && authToken!.isNotEmpty) {
+          queryParams['authorization'] = authToken!;
+        }
+        final url = baseUri.replace(queryParameters: queryParams).toString();
+        return {'url': url, 'fileId': fileId};
       default:
         throw ArgumentError('Method "$method" not found on fileService');
     }
