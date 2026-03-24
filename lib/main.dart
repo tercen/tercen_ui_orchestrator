@@ -104,7 +104,32 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       eventBus: _sduiContext.eventBus,
     );
     _client.connect();
+    _listenHeaderIntents();
     _startup();
+  }
+
+  /// Listen for header menu actions (theme toggle, etc.)
+  void _listenHeaderIntents() {
+    _sduiContext.eventBus.subscribe('header.intent').listen((event) {
+      final value = event.data['value'] as String? ??
+          event.data['intent'] as String? ??
+          '';
+      debugPrint('[header] intent: $value');
+      switch (value) {
+        case 'toggleTheme':
+          _toggleTheme();
+        case 'navigateHome':
+          debugPrint('[header] navigateHome — not yet implemented');
+        case 'saveLayout':
+          debugPrint('[header] saveLayout — not yet implemented');
+        case 'connectLlm':
+          debugPrint('[header] connectLlm — not yet implemented');
+        case 'taskManager':
+          debugPrint('[header] taskManager — not yet implemented');
+        case 'signOut':
+          debugPrint('[header] signOut — not yet implemented');
+      }
+    });
   }
 
   Future<void> _startup() async {

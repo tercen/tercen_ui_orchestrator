@@ -51,6 +51,9 @@ class _ShellScreenState extends State<ShellScreen> {
   @override
   Widget build(BuildContext context) {
     final sdui = SduiScope.of(context);
+    // Subscribe to MaterialApp theme changes so SDUI widgets re-render
+    // with updated colors when the user toggles light/dark mode.
+    Theme.of(context);
 
     return Scaffold(
       body: Column(
