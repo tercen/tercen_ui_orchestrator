@@ -1,8 +1,27 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:sdui/sdui.dart';
 
 import '../../main.dart';
+
+/// SDUI builder function for the ChatPanel Tier 1 primitive.
+/// Registered in main.dart after SduiContext creation.
+Widget buildChatPanel(
+    SduiNode node, List<Widget> children, SduiRenderContext ctx) {
+  return const ChatPanel();
+}
+
+/// Metadata for the ChatPanel primitive — used by AI for discovery.
+const chatPanelMetadata = WidgetMetadata(
+  type: 'ChatPanel',
+  tier: 1,
+  description:
+      'Interactive chat panel for conversing with Claude Code. Connects to the orchestrator WebSocket for streaming responses.',
+  props: {},
+  emittedEvents: ['chat.message.sent'],
+  acceptedActions: [],
+);
 
 class ChatPanel extends StatefulWidget {
   const ChatPanel({super.key});
@@ -31,18 +50,15 @@ class _ChatPanelState extends State<ChatPanel> {
     setState(() {
       switch (type) {
         case 'thinking':
-          // Claude is thinking — show spinner if not already showing one
           _ensureStreamingBubble();
           break;
 
         case 'text_delta':
-          // Append to the current streaming message (or create one)
           final bubble = _ensureStreamingBubble();
           bubble.textBuffer.write(msg['text'] as String? ?? '');
           break;
 
         case 'assistant_message':
-          // Final complete message — replace streaming bubble
           _removeStreamingBubble();
           _messages.add(_ChatMessage(
             role: 'assistant',
@@ -52,11 +68,10 @@ class _ChatPanelState extends State<ChatPanel> {
           break;
 
         case 'tool_start':
-          // Remove the thinking spinner — tool info replaces it
           _removeStreamingBubble();
           _messages.add(_ChatMessage(
             role: 'tool',
-            text: '🔧 ${msg['toolName']}...',
+            text: '\u{1F527} ${msg['toolName']}...',
             isStreaming: true,
             toolName: msg['toolName'] as String?,
             toolId: msg['toolId'] as String?,
@@ -64,7 +79,6 @@ class _ChatPanelState extends State<ChatPanel> {
           break;
 
         case 'tool_end':
-          // Update the tool message with result — match by toolId
           final toolId = msg['toolId'] as String?;
           for (int i = _messages.length - 1; i >= 0; i--) {
             if (_messages[i].role == 'tool' && _messages[i].toolId == toolId) {
@@ -72,7 +86,7 @@ class _ChatPanelState extends State<ChatPanel> {
               final isError = msg['isError'] == true;
               _messages[i]
                 ..textBuffer.clear()
-                ..textBuffer.write(isError ? '✗ $name' : '✓ $name')
+                ..textBuffer.write(isError ? '\u2717 $name' : '\u2713 $name')
                 ..isStreaming = false;
               break;
             }
@@ -93,12 +107,10 @@ class _ChatPanelState extends State<ChatPanel> {
           _isStreaming = false;
           break;
 
-        // Ignore raw stream_event — we process the parsed types above
         case 'stream_event':
           return;
 
         default:
-          // Legacy format: {role, text}
           if (msg.containsKey('role') && msg.containsKey('text')) {
             _messages.add(_ChatMessage(
               role: msg['role'] as String? ?? 'assistant',
@@ -123,7 +135,6 @@ class _ChatPanelState extends State<ChatPanel> {
     });
   }
 
-  /// Returns the current streaming assistant bubble, creating one if needed.
   _ChatMessage _ensureStreamingBubble() {
     if (_messages.isNotEmpty &&
         _messages.last.role == 'assistant' &&
@@ -135,7 +146,6 @@ class _ChatPanelState extends State<ChatPanel> {
     return bubble;
   }
 
-  /// Removes the streaming assistant bubble (e.g. before adding the final message).
   void _removeStreamingBubble() {
     if (_messages.isNotEmpty &&
         _messages.last.role == 'assistant' &&
@@ -189,7 +199,8 @@ class _ChatPanelState extends State<ChatPanel> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(Icons.terminal, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
+          Icon(Icons.terminal,
+              color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
           const SizedBox(width: 8),
           Text(
             'Claude Code',
@@ -223,7 +234,8 @@ class _ChatPanelState extends State<ChatPanel> {
       return Center(
         child: Text(
           'Ask Claude to do something...',
-          style: TextStyle(color: Theme.of(context).hintColor, fontSize: 14),
+          style:
+              TextStyle(color: Theme.of(context).hintColor, fontSize: 14),
         ),
       );
     }
@@ -276,7 +288,11 @@ class _ChatPanelState extends State<ChatPanel> {
                 Text(
                   msg.displayText,
                   style: TextStyle(
-                    color: isError ? colorScheme.error : (isTool ? Colors.amber.shade200 : colorScheme.onSurface),
+                    color: isError
+                        ? colorScheme.error
+                        : (isTool
+                            ? Colors.amber.shade200
+                            : colorScheme.onSurface),
                     fontSize: 14,
                     fontFamily: isTool ? 'monospace' : null,
                   ),
@@ -309,9 +325,13 @@ class _ChatPanelState extends State<ChatPanel> {
           Expanded(
             child: TextField(
               controller: _controller,
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 14),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 14),
               decoration: InputDecoration(
-                hintText: _isStreaming ? 'Claude is thinking...' : 'Message Claude...',
+                hintText: _isStreaming
+                    ? 'Claude is thinking...'
+                    : 'Message Claude...',
                 hintStyle: TextStyle(color: Theme.of(context).hintColor),
                 filled: true,
                 fillColor: Theme.of(context).scaffoldBackgroundColor,

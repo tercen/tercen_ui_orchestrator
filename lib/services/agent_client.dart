@@ -184,7 +184,7 @@ class AgentClient extends ChatBackend {
           'text': 'Task failed: $reason',
         });
         _finish();
-      } else if (state == 'DoneState') {
+      } else if (state.kind == 'DoneState') {
         _finish();
       }
     } else if (event is sci.TaskLogEvent) {

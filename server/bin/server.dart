@@ -249,6 +249,9 @@ void main() async {
   // Load theme tokens from tokens.json
   _loadThemeTokens();
 
+  // Auto-load widget catalog from orchestrator.config.json
+  await _autoLoadCatalog();
+
   final router = Router();
 
   // Health check
@@ -758,7 +761,78 @@ void _loadCatalog(Map<String, dynamic> catalog) {
   // Merge into the in-memory catalog
   final existing = _fullWidgetCatalog['widgets'] as List<dynamic>? ?? [];
   _fullWidgetCatalog = {'widgets': [...existing, ...allWidgets]};
+
+  // Preserve the home config if present in the catalog
+  if (catalog.containsKey('home')) {
+    _fullWidgetCatalog['home'] = catalog['home'];
+  }
+
   print('[catalog] Loaded ${widgets.length} widget(s), total: ${(existing.length + allWidgets.length)}');
+}
+
+/// Auto-load widget catalog from orchestrator.config.json at server startup.
+Future<void> _autoLoadCatalog() async {
+  // Look for config file relative to server/bin/ → repo root
+  final candidates = [
+    '../../orchestrator.config.json',  // from server/bin/
+    '../orchestrator.config.json',     // from server/
+    'orchestrator.config.json',        // from repo root
+  ];
+
+  String? configPath;
+  for (final path in candidates) {
+    if (File(path).existsSync()) {
+      configPath = path;
+      break;
+    }
+  }
+
+  if (configPath == null) {
+    print('[catalog] No orchestrator.config.json found — skipping auto-load');
+    return;
+  }
+
+  try {
+    final configStr = File(configPath).readAsStringSync();
+    final config = jsonDecode(configStr) as Map<String, dynamic>;
+    final repoUrl = config['widgetLibraryUrl'] as String?;
+
+    if (repoUrl == null || repoUrl.isEmpty) {
+      print('[catalog] No widgetLibraryUrl in config — skipping auto-load');
+      return;
+    }
+
+    print('[catalog] Auto-loading from $repoUrl');
+
+    // Convert GitHub URL to raw content URL (same logic as POST endpoint)
+    final uri = Uri.parse(repoUrl);
+    final segments = uri.pathSegments;
+    if (segments.length < 2) {
+      print('[catalog] Invalid repo URL: $repoUrl');
+      return;
+    }
+    final ref = config['widgetLibraryRef'] as String? ?? 'main';
+    final rawUrl = 'https://raw.githubusercontent.com/${segments[0]}/${segments[1]}/$ref/catalog.json';
+    print('[catalog] Fetching $rawUrl');
+
+    final httpClient = HttpClient();
+    final request = await httpClient.getUrl(Uri.parse(rawUrl));
+    final response = await request.close();
+
+    if (response.statusCode != 200) {
+      httpClient.close();
+      print('[catalog] GitHub returned ${response.statusCode} for $rawUrl');
+      return;
+    }
+
+    final responseBody = await response.transform(utf8.decoder).join();
+    httpClient.close();
+
+    final catalog = jsonDecode(responseBody) as Map<String, dynamic>;
+    _loadCatalog(catalog);
+  } catch (e) {
+    print('[catalog] Auto-load failed: $e');
+  }
 }
 
 /// CORS middleware — allows the Flutter dev server (different port) to call API endpoints.

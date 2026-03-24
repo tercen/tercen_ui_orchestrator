@@ -9,11 +9,11 @@ import 'package:sci_http_client/http_client.dart' as http_api;
 import 'package:sci_tercen_client/sci_client.dart' as sci;
 import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
+import 'package:tercen_ui_orchestrator/presentation/widgets/chat_panel.dart';
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
 import 'package:tercen_ui_orchestrator/services/agent_client.dart';
 import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
-import 'package:tercen_ui_orchestrator/presentation/widgets/chat_panel.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
 const _serverUrl = String.fromEnvironment('SERVER_URL', defaultValue: '');
@@ -101,12 +101,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void initState() {
     super.initState();
     _sduiContext = SduiContext.create(theme: const SduiTheme.light());
-
-    // Register ChatPanel as a compiled Tier 1 SDUI widget
-    _sduiContext.registry.register(
-      'ChatPanel',
-      (node, children, resolvedProps) => const ChatPanel(),
-    );
+    _registerOrchestratorWidgets();
+    _listenHeaderIntents();
 
     if (_serverUrl.isNotEmpty) {
       // Dev mode: WebSocket to local Dart server
@@ -128,16 +124,185 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _startup();
   }
 
+  /// Listen for header menu actions (theme toggle, etc.)
+  void _listenHeaderIntents() {
+    _sduiContext.eventBus.subscribe('header.intent').listen((event) {
+      final value = event.data['value'] as String? ??
+          event.data['intent'] as String? ??
+          '';
+      debugPrint('[header] intent: $value');
+      switch (value) {
+        case 'toggleTheme':
+          _toggleTheme();
+        case 'navigateHome':
+          debugPrint('[header] navigateHome — not yet implemented');
+        case 'saveLayout':
+          debugPrint('[header] saveLayout — not yet implemented');
+        case 'connectLlm':
+          debugPrint('[header] connectLlm — not yet implemented');
+        case 'taskManager':
+          debugPrint('[header] taskManager — not yet implemented');
+        case 'signOut':
+          debugPrint('[header] signOut — not yet implemented');
+      }
+    });
+  }
+
   Future<void> _startup() async {
     _startTrackingSelections();
     await _bootstrapAuth();
     _fetchThemeTokens(); // non-blocking — theme can load after UI
+    _autoLoadCatalog(); // non-blocking — catalog loads after auth
+  }
+
+  /// Auto-load the widget catalog from the server.
+  /// The server fetches it from the configured widgetLibraryUrl on startup.
+  Future<void> _autoLoadCatalog() async {
+    try {
+      final httpUrl = _serverUrl
+          .replaceFirst('ws://', 'http://')
+          .replaceFirst('wss://', 'https://');
+      final url = '$httpUrl/api/widget-catalog';
+
+      final httpClient = io_http.HttpBrowserClient();
+      final response = await httpClient.get(url);
+
+      if (response.statusCode == 200) {
+        final catalog =
+            jsonDecode(response.body as String) as Map<String, dynamic>;
+        final widgets = catalog['widgets'] as List? ?? [];
+        if (widgets.isNotEmpty) {
+          _sduiContext.registry.loadCatalog(catalog);
+          debugPrint('[catalog] Auto-loaded ${widgets.length} widget(s)');
+
+          // Open home windows if defined in catalog
+          _openHomeWindows(catalog);
+        } else {
+          debugPrint('[catalog] Server returned empty catalog');
+        }
+      } else {
+        debugPrint('[catalog] Server returned ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('[catalog] Auto-load failed: $e');
+    }
+  }
+
+  /// Open home regions and windows defined in the catalog's "home" key.
+  /// Regions are fixed UI areas (e.g., header at top); windows are floating.
+  void _openHomeWindows(Map<String, dynamic> catalog) {
+    final home = catalog['home'] as Map<String, dynamic>?;
+    if (home == null) {
+      debugPrint('[home] No home config in catalog');
+      return;
+    }
+
+    // Process regions (fixed layout areas like header)
+    final regions = home['regions'] as List?;
+    if (regions != null && regions.isNotEmpty) {
+      debugPrint('[home] Processing ${regions.length} region(s)');
+      for (final r in regions) {
+        final reg = Map<String, dynamic>.from(r as Map);
+        final type = reg['type'] as String?;
+        final id = reg['id'] as String? ?? 'region-${type?.toLowerCase()}';
+        final region = reg['region'] as String? ?? 'top';
+        final props =
+            reg['props'] != null ? Map<String, dynamic>.from(reg['props'] as Map) : <String, dynamic>{};
+
+        if (type == null) {
+          debugPrint('[home] Skipping region with no type: $reg');
+          continue;
+        }
+
+        if (!_sduiContext.registry.has(type)) {
+          debugPrint('[home] Widget type "$type" not found in registry — skipping region');
+          continue;
+        }
+
+        _sduiContext.eventBus.publish(
+          'system.layout.region',
+          EventPayload(
+            type: 'layout.region',
+            data: {
+              'region': region,
+              'content': {
+                'type': type,
+                'id': id,
+                'props': props,
+                'children': [],
+              },
+            },
+          ),
+        );
+        debugPrint('[home] Set $region region → $type ("$id")');
+      }
+    }
+
+    // Process floating windows
+    final windows = home['windows'] as List?;
+    if (windows == null || windows.isEmpty) {
+      debugPrint('[home] No floating windows to open');
+      return;
+    }
+
+    debugPrint('[home] Opening ${windows.length} home window(s)');
+    for (final w in windows) {
+      final win = Map<String, dynamic>.from(w as Map);
+      final type = win['type'] as String?;
+      final id = win['id'] as String? ??
+          'home-${type?.toLowerCase()}-${DateTime.now().millisecondsSinceEpoch}';
+      final size = win['size'] as String? ?? 'medium';
+      final align = win['align'] as String? ?? 'center';
+      final title = win['title'] as String? ?? type ?? 'Window';
+      final props = win['props'] as Map<String, dynamic>? ?? {};
+
+      if (type == null) {
+        debugPrint('[home] Skipping window with no type: $win');
+        continue;
+      }
+
+      // Verify the widget type is registered
+      if (!_sduiContext.registry.has(type)) {
+        debugPrint('[home] Widget type "$type" not found in registry — skipping');
+        continue;
+      }
+
+      final layoutOp = {
+        'op': 'addWindow',
+        'id': id,
+        'size': size,
+        'align': align,
+        'title': title,
+        'content': {
+          'type': type,
+          'id': '$id-root',
+          'props': props,
+          'children': [],
+        },
+      };
+
+      _sduiContext.eventBus.publish(
+        'system.layout.op',
+        EventPayload(type: 'layout.op', data: layoutOp),
+      );
+      debugPrint('[home] Opened $type as "$id" (size=$size, align=$align)');
+    }
+  }
+
+  /// Register orchestrator-specific widgets as Tier 1 builders.
+  /// These are compiled Dart widgets that need access to orchestrator internals
+  /// (e.g., OrchestratorClient for chat streaming) and can't be JSON templates.
+  void _registerOrchestratorWidgets() {
+    _sduiContext.registry.register('ChatPanel', buildChatPanel,
+        metadata: chatPanelMetadata);
+    debugPrint('[widgets] Registered ChatPanel Tier 1 primitive');
   }
 
   void _toggleTheme() {
     setState(() {
       _isDark = !_isDark;
       _sduiContext.renderContext.theme = _currentTheme;
+      _sduiContext.renderContext.templateResolver.set('isDark', _isDark);
     });
   }
 
@@ -262,8 +427,29 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       'username': username,
       'userId': username,
       'token': _tercenToken,
+      'isDark': _isDark,
     });
     debugPrint('[auth] User context: username=$username');
+
+    // Fetch user object for admin status (JWT doesn't contain roles)
+    _fetchUserRoles(username);
+  }
+
+  /// Fetch user roles from the Tercen API and update template context.
+  /// Non-blocking — header renders without admin menu until this completes.
+  Future<void> _fetchUserRoles(String username) async {
+    try {
+      final factory = tercen.ServiceFactory.CURRENT;
+      if (factory == null) return;
+      final user = await factory.userService.get(username);
+      final isAdmin = user.id == 'admin' ||
+          (user.roles as List).contains('admin');
+      _sduiContext.renderContext.templateResolver.set('isAdmin', isAdmin);
+      debugPrint('[auth] User roles fetched: isAdmin=$isAdmin');
+    } catch (e) {
+      debugPrint('[auth] Failed to fetch user roles: $e');
+      _sduiContext.renderContext.templateResolver.set('isAdmin', false);
+    }
   }
 
   // Track selections from SDUI EventBus for UI state snapshots.

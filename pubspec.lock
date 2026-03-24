@@ -206,6 +206,15 @@ packages:
       url: "https://github.com/tercen/sci_tercen_client"
     source: git
     version: "1.16.1"
+  sci_tercen_context:
+    dependency: "direct main"
+    description:
+      path: sci_tercen_context
+      ref: "1.16.1"
+      resolved-ref: f179666ecb9a978e51ff94cbed7e37d118f554b7
+      url: "https://github.com/tercen/sci_tercen_client"
+    source: git
+    version: "1.16.1"
   sci_tercen_model:
     dependency: transitive
     description:
