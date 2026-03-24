@@ -3,5 +3,7 @@ _local
 **/.dart_tool/
 **/.server.pid
 
-# Flutter build artifacts
-build/
+# Debug build cache (flutter run artifacts — not needed for deployment)
+build/.last_build_id
+build/*.cache.dill.track.dill
+build/[0-9a-f][0-9a-f][0-9a-f]*/
