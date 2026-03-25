@@ -11,11 +11,11 @@ import 'package:sci_tercen_client/sci_client.dart' as sci;
 import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
 import 'package:tercen_ui_orchestrator/presentation/widgets/chat_panel.dart';
-import 'package:tercen_ui_orchestrator/sdui/widgets/chat_stream.dart';
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
 import 'package:tercen_ui_orchestrator/services/agent_client.dart';
 import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
+import 'package:tercen_ui_orchestrator/services/local_claude_backend.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
 // Compile-time defaults, overridable via URL query parameters:
@@ -23,7 +23,7 @@ import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 //   ?server=ws://... → SERVER_URL
 final String _serverUrl = Uri.base.queryParameters['server'] ??
     const String.fromEnvironment('SERVER_URL', defaultValue: '');
-final String _anthropicApiKey =
+final String _anthropicApiKey = Uri.base.queryParameters['apiKey'] ??
     const String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 final String _tercenToken = Uri.base.queryParameters['token'] ??
     const String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
@@ -413,9 +413,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void _registerOrchestratorWidgets() {
     _sduiContext.registry.register('ChatPanel', buildChatPanel,
         metadata: chatPanelMetadata);
-    _sduiContext.registry.registerScope('ChatStream', buildChatStream,
-        metadata: chatStreamMetadata);
-    debugPrint('[widgets] Registered ChatPanel + ChatStream');
+    // ChatStream is registered by the SDUI library itself (behavior_widgets.dart).
+    // The orchestrator injects chatStreamProvider into renderContext to bridge it.
+    debugPrint('[widgets] Registered ChatPanel (ChatStream provided by SDUI)');
   }
 
   void _toggleTheme() {
@@ -470,7 +470,14 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     }
 
     try {
-      debugPrint('[auth] Creating ServiceFactory for $serviceUri');
+      // When served from localhost (dev proxy mode), route API calls through
+      // the proxy at the current page origin instead of directly to the
+      // Tercen backend. This avoids CORS issues.
+      final pageOrigin = Uri.base.origin;
+      final isLocalDev = Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1';
+      final effectiveUri = isLocalDev ? pageOrigin : serviceUri;
+      debugPrint('[auth] Creating ServiceFactory for $effectiveUri'
+          '${isLocalDev ? " (proxying $serviceUri)" : ""}');
 
       // Use explicit browser HTTP client (matches webapp pattern)
       http_api.HttpClient.setCurrent(io_http.HttpBrowserClient());
@@ -478,7 +485,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           auth_http.HttpAuthClient(_tercenToken, io_http.HttpBrowserClient());
 
       final factory = sci.ServiceFactory();
-      final uri = Uri.parse(serviceUri);
+      final uri = Uri.parse(effectiveUri);
       await factory.initializeWith(
           Uri(scheme: uri.scheme, host: uri.host, port: uri.port), authClient);
       tercen.ServiceFactory.CURRENT = factory;
@@ -490,7 +497,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       _setUserContext();
       debugPrint('[auth] ServiceFactory ready — data widgets enabled');
 
-      // Create AgentClient if no WebSocket backend and API key is available
+      // Choose chat backend:
+      // 1. API key provided → AgentClient (Tercen agent operator + Anthropic API)
+      // 2. Local dev, no API key → LocalClaudeBackend (claude CLI via dev proxy)
       if (_wsClient == null && _anthropicApiKey.isNotEmpty) {
         final jwtData = _decodeJwtPayload(_tercenToken)['data']
             as Map<String, dynamic>? ?? {};
@@ -514,9 +523,13 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           userId: username,
           uiStateCollector: _collectUiState,
         );
-        // Re-pipe chat bridge to the real backend's stream.
         _pipeChatBackend();
-        debugPrint('[init] Agent backend ready');
+        debugPrint('[init] Agent backend ready (Anthropic API key)');
+      } else if (_wsClient == null && isLocalDev) {
+        // Local dev without API key — use claude CLI via dev proxy
+        _chatBackend = LocalClaudeBackend(baseUrl: pageOrigin);
+        _pipeChatBackend();
+        debugPrint('[init] Local Claude Code backend ready (no API key)');
       }
 
       setState(() {
