@@ -17,7 +17,6 @@ import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
 const _serverUrl = String.fromEnvironment('SERVER_URL', defaultValue: '');
-const _agentOperatorId = String.fromEnvironment('AGENT_OPERATOR_ID', defaultValue: '');
 const _anthropicApiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 
 const _tercenToken = String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
@@ -370,8 +369,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       _setUserContext();
       debugPrint('[auth] ServiceFactory ready — data widgets enabled');
 
-      // Create AgentClient if no WebSocket backend
-      if (_wsClient == null && _agentOperatorId.isNotEmpty) {
+      // Create AgentClient if no WebSocket backend and API key is available
+      if (_wsClient == null && _anthropicApiKey.isNotEmpty) {
         final jwtData = _decodeJwtPayload(_tercenToken)['data']
             as Map<String, dynamic>? ?? {};
         final username = jwtData['u'] as String? ?? '';
@@ -380,16 +379,20 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         final projectId = await _getOrCreateAgentProject(factory, username);
         debugPrint('[init] Agent project: $projectId');
 
+        // Find or create the agent operator
+        final operatorId = await _getOrCreateAgentOperator(factory, username);
+        debugPrint('[init] Agent operator: $operatorId');
+
         _chatBackend = AgentClient(
           factory: factory,
           eventBus: _sduiContext.eventBus,
-          agentOperatorId: _agentOperatorId,
+          agentOperatorId: operatorId,
           anthropicApiKey: _anthropicApiKey,
           projectId: projectId,
           userId: username,
           uiStateCollector: _collectUiState,
         );
-        debugPrint('[init] Agent backend ready: operator=$_agentOperatorId');
+        debugPrint('[init] Agent backend ready');
       }
 
       setState(() {
@@ -502,6 +505,60 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       ..isHidden = true
       ..acl.owner = username;
     final created = await factory.projectService.create(project);
+    return created.id;
+  }
+
+  /// Find or create the `tercen_agent` operator.
+  static const _agentOperatorUrl = 'https://github.com/tercen/tercen_agent';
+
+  Future<String> _getOrCreateAgentOperator(
+      sci.ServiceFactory factory, String username) async {
+    // Look up by URL
+    final docs = await factory.documentService.findOperatorByUrlAndVersion(
+      startKey: [_agentOperatorUrl, ''],
+      endKey: [_agentOperatorUrl, '\uf000'],
+      limit: 1,
+      useFactory: true,
+    );
+    if (docs.isNotEmpty) return docs.first.id;
+
+    // Not found — create it
+    debugPrint('[init] Registering tercen_agent operator...');
+    final op = sci.DockerOperator()
+      ..name = 'tercen_agent'
+      ..description = 'Claude AI agent operator'
+      ..version = '0.1.1'
+      ..container = 'ghcr.io/tercen/tercen_agent:latest'
+      ..url.uri = _agentOperatorUrl
+      ..acl.owner = username
+      ..properties.addAll([
+        sci.StringProperty()
+          ..name = 'prompt'
+          ..defaultValue = '',
+        sci.StringProperty()
+          ..name = 'ANTHROPIC_API_KEY'
+          ..defaultValue = '',
+        sci.StringProperty()
+          ..name = 'model'
+          ..defaultValue = 'claude-sonnet-4-6',
+        sci.StringProperty()
+          ..name = 'systemPrompt'
+          ..defaultValue = '',
+        sci.StringProperty()
+          ..name = 'maxTurns'
+          ..defaultValue = '8',
+        sci.StringProperty()
+          ..name = 'uiState'
+          ..defaultValue = '',
+        sci.StringProperty()
+          ..name = 'sessionId'
+          ..defaultValue = '',
+        sci.StringProperty()
+          ..name = 'sessionData'
+          ..defaultValue = '',
+      ]);
+    final created = await factory.operatorService.create(op);
+    debugPrint('[init] Operator registered: ${created.id}');
     return created.id;
   }
 
