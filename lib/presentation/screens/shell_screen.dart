@@ -8,7 +8,6 @@ import 'package:tercen_ui_orchestrator/presentation/widgets/workspace_panel.dart
 /// Minimal shell — SDUI workspace filling the screen + error bar.
 /// The header region is rendered above the workspace when the catalog
 /// defines a "top" region in home.regions.
-/// A FAB in the lower-right opens the ChatPanel as a floating window.
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
 
@@ -43,26 +42,6 @@ class _ShellScreenState extends State<ShellScreen> {
     }
   }
 
-  void _openChat() {
-    final sdui = SduiScope.of(context);
-    sdui.eventBus.publish(
-      'system.layout.op',
-      EventPayload(type: 'layout.op', data: {
-        'op': 'addWindow',
-        'id': 'win-chat',
-        'size': 'column',
-        'align': 'right',
-        'title': 'Chat',
-        'content': {
-          'type': 'ChatPanel',
-          'id': 'chat-root',
-          'props': {},
-          'children': [],
-        },
-      }),
-    );
-  }
-
   @override
   void dispose() {
     _regionSub?.cancel();
@@ -93,11 +72,6 @@ class _ShellScreenState extends State<ShellScreen> {
             const ErrorBar(),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openChat,
-        tooltip: 'Open Chat',
-        child: const Icon(Icons.chat_rounded),
       ),
     );
   }
