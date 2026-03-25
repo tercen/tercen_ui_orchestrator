@@ -116,6 +116,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _registerOrchestratorWidgets();
     _listenHeaderIntents();
     _listenChatActions();
+    _listenWorkflowActions();
 
     if (_serverUrl.isNotEmpty) {
       // Dev mode: WebSocket to local Dart server
@@ -164,6 +165,32 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   /// Listen for header menu actions (theme toggle, etc.)
   int _chatSessionCounter = 0;
+  int _workflowViewerCounter = 0;
+
+  void _openWorkflowViewer({String? workflowId}) {
+    _workflowViewerCounter++;
+    final id = 'workflow-viewer-$_workflowViewerCounter';
+    final props = <String, dynamic>{};
+    if (workflowId != null) props['workflowId'] = workflowId;
+
+    _sduiContext.eventBus.publish(
+      'system.layout.op',
+      EventPayload(type: 'layout.op', data: {
+        'op': 'addWindow',
+        'id': id,
+        'size': 'large',
+        'align': 'center',
+        'title': 'Workflow',
+        'content': {
+          'type': 'WorkflowViewer',
+          'id': '$id-root',
+          'props': props,
+          'children': [],
+        },
+      }),
+    );
+    debugPrint('[workflow] Opened WorkflowViewer as "$id"');
+  }
 
   void _listenChatActions() {
     _sduiContext.eventBus.subscribe('chat.newSession').listen((_) {
@@ -189,6 +216,14 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     });
   }
 
+  void _listenWorkflowActions() {
+    _sduiContext.eventBus.subscribe('workflow.open').listen((event) {
+      _openWorkflowViewer(
+        workflowId: event.data['workflowId'] as String?,
+      );
+    });
+  }
+
   void _listenHeaderIntents() {
     _sduiContext.eventBus.subscribe('header.intent').listen((event) {
       final value = event.data['value'] as String? ??
@@ -206,6 +241,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           debugPrint('[header] connectLlm — not yet implemented');
         case 'taskManager':
           debugPrint('[header] taskManager — not yet implemented');
+        case 'openWorkflow':
+          _openWorkflowViewer(
+            workflowId: event.data['workflowId'] as String?,
+          );
         case 'signOut':
           debugPrint('[header] signOut — not yet implemented');
       }
