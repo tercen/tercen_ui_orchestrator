@@ -11,6 +11,7 @@ import 'package:sci_tercen_client/sci_client.dart' as sci;
 import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
 import 'package:tercen_ui_orchestrator/presentation/widgets/chat_panel.dart';
+import 'package:tercen_ui_orchestrator/sdui/widgets/chat_stream.dart';
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
 import 'package:tercen_ui_orchestrator/services/agent_client.dart';
@@ -385,7 +386,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void _registerOrchestratorWidgets() {
     _sduiContext.registry.register('ChatPanel', buildChatPanel,
         metadata: chatPanelMetadata);
-    debugPrint('[widgets] Registered ChatPanel Tier 1 primitive');
+    _sduiContext.registry.registerScope('ChatStream', buildChatStream,
+        metadata: chatStreamMetadata);
+    debugPrint('[widgets] Registered ChatPanel + ChatStream');
   }
 
   void _toggleTheme() {
