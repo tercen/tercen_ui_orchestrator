@@ -10,7 +10,7 @@ class WorkspacePanel extends StatelessWidget {
     final sdui = SduiScope.of(context);
 
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: Theme.of(context).colorScheme.surface,
       child: ListenableBuilder(
         listenable: sdui.windowManager,
         builder: (context, _) {
