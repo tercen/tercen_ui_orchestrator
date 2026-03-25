@@ -120,6 +120,13 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       debugPrint('[init] Will use Agent backend after auth');
     }
 
+    // Wire chat backend into SDUI for the ChatStream behavior widget.
+    _sduiContext.renderContext.chatStreamProvider = (
+      messages: _chatBackend.chatMessages,
+      send: _chatBackend.sendChat,
+      isConnected: () => _chatBackend.isConnected,
+    );
+
     _startup();
   }
 
@@ -391,6 +398,12 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           projectId: projectId,
           userId: username,
           uiStateCollector: _collectUiState,
+        );
+        // Re-wire SDUI chat provider to the real backend.
+        _sduiContext.renderContext.chatStreamProvider = (
+          messages: _chatBackend.chatMessages,
+          send: _chatBackend.sendChat,
+          isConnected: () => _chatBackend.isConnected,
         );
         debugPrint('[init] Agent backend ready');
       }
