@@ -45,9 +45,15 @@ class _ErrorBarState extends State<ErrorBar> {
     if (_dismissed || _lastSeen == null) return const SizedBox.shrink();
 
     final errors = ErrorReporter.instance.errors;
+    final theme = Theme.of(context);
+    final bodySmall = theme.textTheme.bodySmall;
+    final labelSmall = theme.textTheme.labelSmall;
+    final sduiTheme = SduiScope.of(context).renderContext.theme;
+    final iconSm = sduiTheme.iconSize.sm;
+    final spacingSm = sduiTheme.spacing.sm;
 
     return Container(
-      color: Theme.of(context).colorScheme.errorContainer,
+      color: theme.colorScheme.errorContainer,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -58,44 +64,46 @@ class _ErrorBarState extends State<ErrorBar> {
                 ? () => setState(() => _expanded = !_expanded)
                 : null,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: sduiTheme.spacing.md, vertical: sduiTheme.spacing.xs),
               child: Row(
                 children: [
                   Icon(
                     _severityIcon(_lastSeen!.severity),
                     color: _severityColor(_lastSeen!.severity),
-                    size: 16,
+                    size: iconSm,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: spacingSm),
                   Expanded(
                     child: Text(
                       '[${_lastSeen!.source}] ${_lastSeen!.error}',
-                      style: TextStyle(
+                      style: bodySmall?.copyWith(
                         color: _severityColor(_lastSeen!.severity),
-                        fontSize: 12,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (errors.length > 1) ...[
-                    const SizedBox(width: 8),
+                    SizedBox(width: spacingSm),
                     Text(
                       '${errors.length} errors',
-                      style: TextStyle(color: Theme.of(context).hintColor, fontSize: 11),
+                      style: labelSmall?.copyWith(color: theme.hintColor),
                     ),
                     Icon(
                       _expanded ? Icons.expand_less : Icons.expand_more,
-                      color: Theme.of(context).hintColor,
-                      size: 16,
+                      color: theme.hintColor,
+                      size: iconSm,
                     ),
                   ],
-                  const SizedBox(width: 4),
+                  SizedBox(width: sduiTheme.spacing.xs),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 14),
-                    color: Theme.of(context).hintColor,
+                    icon: Icon(Icons.close, size: iconSm),
+                    color: theme.hintColor,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                    constraints: BoxConstraints(
+                      minWidth: sduiTheme.controlHeight.sm,
+                      minHeight: sduiTheme.controlHeight.sm,
+                    ),
                     onPressed: () => setState(() => _dismissed = true),
                     tooltip: 'Dismiss',
                   ),
@@ -114,12 +122,11 @@ class _ErrorBarState extends State<ErrorBar> {
                 itemBuilder: (context, index) {
                   final report = errors[errors.length - 2 - index];
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    padding: EdgeInsets.symmetric(horizontal: sduiTheme.spacing.md, vertical: 2),
                     child: Text(
                       '[${report.source}] ${report.error}',
-                      style: TextStyle(
+                      style: labelSmall?.copyWith(
                         color: _severityColor(report.severity).withAlpha(178),
-                        fontSize: 11,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -137,7 +144,7 @@ class _ErrorBarState extends State<ErrorBar> {
     final colorScheme = Theme.of(context).colorScheme;
     return switch (severity) {
       ErrorSeverity.info => colorScheme.primary,
-      ErrorSeverity.warning => Colors.orange.shade300,
+      ErrorSeverity.warning => colorScheme.tertiary,
       ErrorSeverity.error => colorScheme.error,
       ErrorSeverity.fatal => colorScheme.error,
     };

@@ -60,7 +60,11 @@ class _ShellScreenState extends State<ShellScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       body: Padding(
-        padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 4.0),
+        padding: EdgeInsets.only(
+          left: sdui.renderContext.theme.spacing.sm,
+          right: sdui.renderContext.theme.spacing.sm,
+          top: sdui.renderContext.theme.spacing.xs,
+        ),
         child: Column(
           children: [
             if (_headerNode != null)

@@ -20,9 +20,8 @@ class WorkspacePanel extends StatelessWidget {
                 return Center(
                   child: Text(
                     'Workspace',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 24,
                     ),
                   ),
                 );

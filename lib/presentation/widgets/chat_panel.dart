@@ -240,9 +240,10 @@ class _ChatPanelState extends State<ChatPanel> {
       );
     }
 
+    final sduiTheme = SduiScope.of(context).renderContext.theme;
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(sduiTheme.spacing.md),
       itemCount: _messages.length,
       itemBuilder: (context, index) {
         final msg = _messages[index];
@@ -260,52 +261,54 @@ class _ChatPanelState extends State<ChatPanel> {
     final Color iconColor;
 
     final colorScheme = Theme.of(context).colorScheme;
+    final sduiTheme = SduiScope.of(context).renderContext.theme;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+
     if (isUser) {
       icon = Icons.person;
       iconColor = colorScheme.primary;
     } else if (isTool) {
       icon = Icons.build;
-      iconColor = Colors.amber;
+      iconColor = colorScheme.tertiary;
     } else if (isError) {
       icon = Icons.error_outline;
       iconColor = colorScheme.error;
     } else {
       icon = Icons.smart_toy;
-      iconColor = Colors.orange;
+      iconColor = colorScheme.secondary;
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: sduiTheme.spacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: iconColor, size: 18),
-          const SizedBox(width: 8),
+          Icon(icon, color: iconColor, size: sduiTheme.iconSize.sm),
+          SizedBox(width: sduiTheme.spacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   msg.displayText,
-                  style: TextStyle(
+                  style: bodyStyle?.copyWith(
                     color: isError
                         ? colorScheme.error
                         : (isTool
-                            ? Colors.amber.shade200
+                            ? colorScheme.onSurfaceVariant
                             : colorScheme.onSurface),
-                    fontSize: 14,
                     fontFamily: isTool ? 'monospace' : null,
                   ),
                 ),
                 if (msg.isStreaming)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4),
+                  Padding(
+                    padding: EdgeInsets.only(top: sduiTheme.spacing.xs),
                     child: SizedBox(
-                      width: 12,
-                      height: 12,
+                      width: sduiTheme.spacing.md,
+                      height: sduiTheme.spacing.md,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.orange,
+                        color: colorScheme.secondary,
                       ),
                     ),
                   ),
@@ -318,16 +321,17 @@ class _ChatPanelState extends State<ChatPanel> {
   }
 
   Widget _buildInput() {
+    final sduiTheme = SduiScope.of(context).renderContext.theme;
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(sduiTheme.spacing.md),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: _controller,
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontSize: 14),
+              style: bodyStyle?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: _isStreaming
                     ? 'Claude is thinking...'
@@ -336,19 +340,19 @@ class _ChatPanelState extends State<ChatPanel> {
                 filled: true,
                 fillColor: Theme.of(context).scaffoldBackgroundColor,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(sduiTheme.radius.md),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: sduiTheme.spacing.md,
+                  vertical: sduiTheme.spacing.sm,
                 ),
               ),
               enabled: !_isStreaming,
               onSubmitted: (_) => _sendMessage(),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: sduiTheme.spacing.sm),
           IconButton(
             onPressed: _isStreaming ? null : _sendMessage,
             icon: Icon(
