@@ -1,3 +1,6 @@
 {
-  "widgetLibraryUrl": "https://github.com/tercen/tercen_ui_widgets"
+  "widgetLibrary": {
+    "repo": "https://github.com/tercen/tercen_ui_widgets",
+    "ref": "main"
+  }
 }

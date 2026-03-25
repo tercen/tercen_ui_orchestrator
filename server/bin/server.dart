@@ -795,14 +795,25 @@ Future<void> _autoLoadCatalog() async {
   try {
     final configStr = File(configPath).readAsStringSync();
     final config = jsonDecode(configStr) as Map<String, dynamic>;
-    final repoUrl = config['widgetLibraryUrl'] as String?;
+    // Support both old flat format and new nested format
+    final String repoUrl;
+    final String ref;
+    final lib = config['widgetLibrary'] as Map<String, dynamic>?;
+    if (lib != null) {
+      repoUrl = lib['repo'] as String? ?? '';
+      ref = lib['ref'] as String? ?? 'main';
+    } else {
+      // Legacy flat format
+      repoUrl = config['widgetLibraryUrl'] as String? ?? '';
+      ref = config['widgetLibraryRef'] as String? ?? 'main';
+    }
 
-    if (repoUrl == null || repoUrl.isEmpty) {
-      print('[catalog] No widgetLibraryUrl in config — skipping auto-load');
+    if (repoUrl.isEmpty) {
+      print('[catalog] No widget library repo in config — skipping auto-load');
       return;
     }
 
-    print('[catalog] Auto-loading from $repoUrl');
+    print('[catalog] Auto-loading from $repoUrl (ref=$ref)');
 
     // Convert GitHub URL to raw content URL (same logic as POST endpoint)
     final uri = Uri.parse(repoUrl);
@@ -811,7 +822,6 @@ Future<void> _autoLoadCatalog() async {
       print('[catalog] Invalid repo URL: $repoUrl');
       return;
     }
-    final ref = config['widgetLibraryRef'] as String? ?? 'main';
     final rawUrl = 'https://raw.githubusercontent.com/${segments[0]}/${segments[1]}/$ref/catalog.json';
     // Prefer local clone over GitHub fetch (avoids CDN caching delays).
     final localCandidates = [

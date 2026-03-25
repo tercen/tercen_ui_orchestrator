@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:sci_http_client/http_auth_client.dart' as auth_http;
 import 'package:sci_http_client/http_browser_client.dart' as io_http;
 import 'package:sci_http_client/http_client.dart' as http_api;
@@ -92,6 +93,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   Map<String, dynamic>? _themeTokens;
   bool _authReady = false;
   String? _authError;
+  String? _defaultProjectId; // agent_internal project, used as fallback for layout saves
 
   SduiTheme get _currentTheme {
     final tokens = _themeTokens;
@@ -148,7 +150,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         case 'navigateHome':
           debugPrint('[header] navigateHome — not yet implemented');
         case 'saveLayout':
-          debugPrint('[header] saveLayout — not yet implemented');
+          _saveLayout();
         case 'connectLlm':
           debugPrint('[header] connectLlm — not yet implemented');
         case 'taskManager':
@@ -166,37 +168,91 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _autoLoadCatalog(); // non-blocking — catalog loads after auth
   }
 
-  /// Auto-load the widget catalog from the server.
-  /// The server fetches it from the configured widgetLibraryUrl on startup.
+  /// Auto-load the widget catalog.
+  /// In WebSocket mode: fetches from the server's /api/widget-catalog endpoint.
+  /// In agent mode: fetches catalog.json directly from GitHub using the
+  /// repo/ref configured in orchestrator.config.json (bundled as Flutter asset).
   Future<void> _autoLoadCatalog() async {
     try {
-      final httpUrl = _serverUrl
-          .replaceFirst('ws://', 'http://')
-          .replaceFirst('wss://', 'https://');
-      final url = '$httpUrl/api/widget-catalog';
+      Map<String, dynamic>? catalog;
 
-      final httpClient = io_http.HttpBrowserClient();
-      final response = await httpClient.get(url);
-
-      if (response.statusCode == 200) {
-        final catalog =
-            jsonDecode(response.body as String) as Map<String, dynamic>;
-        final widgets = catalog['widgets'] as List? ?? [];
-        if (widgets.isNotEmpty) {
-          _sduiContext.registry.loadCatalog(catalog);
-          debugPrint('[catalog] Auto-loaded ${widgets.length} widget(s)');
-
-          // Open home windows if defined in catalog
-          _openHomeWindows(catalog);
-        } else {
-          debugPrint('[catalog] Server returned empty catalog');
-        }
+      if (_serverUrl.isNotEmpty) {
+        // WebSocket mode — server proxies the catalog
+        catalog = await _fetchCatalogFromServer();
       } else {
-        debugPrint('[catalog] Server returned ${response.statusCode}');
+        // Agent mode — fetch directly from GitHub
+        catalog = await _fetchCatalogFromGitHub();
+      }
+
+      if (catalog == null) return;
+
+      final widgets = catalog['widgets'] as List? ?? [];
+      if (widgets.isNotEmpty) {
+        _sduiContext.registry.loadCatalog(catalog);
+        debugPrint('[catalog] Loaded ${widgets.length} widget(s)');
+        _openHomeWindows(catalog);
+      } else {
+        debugPrint('[catalog] Empty catalog — no widgets');
       }
     } catch (e) {
       debugPrint('[catalog] Auto-load failed: $e');
     }
+  }
+
+  /// Fetch catalog from the WebSocket server's API.
+  Future<Map<String, dynamic>?> _fetchCatalogFromServer() async {
+    final httpUrl = _serverUrl
+        .replaceFirst('ws://', 'http://')
+        .replaceFirst('wss://', 'https://');
+    final url = '$httpUrl/api/widget-catalog';
+
+    final httpClient = io_http.HttpBrowserClient();
+    final response = await httpClient.get(url);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body as String) as Map<String, dynamic>;
+    }
+    debugPrint('[catalog] Server returned ${response.statusCode}');
+    return null;
+  }
+
+  /// Fetch catalog.json directly from GitHub using orchestrator.config.json.
+  Future<Map<String, dynamic>?> _fetchCatalogFromGitHub() async {
+    // Load config asset
+    final configStr = await rootBundle.loadString('orchestrator.config.json');
+    final config = jsonDecode(configStr) as Map<String, dynamic>;
+    final lib = config['widgetLibrary'] as Map<String, dynamic>?;
+    if (lib == null) {
+      debugPrint('[catalog] No widgetLibrary in config');
+      return null;
+    }
+
+    final repo = lib['repo'] as String? ?? '';
+    final ref = lib['ref'] as String? ?? 'main';
+    if (repo.isEmpty) {
+      debugPrint('[catalog] No repo URL in config');
+      return null;
+    }
+
+    // Build raw.githubusercontent.com URL
+    final uri = Uri.parse(repo);
+    final segments = uri.pathSegments;
+    if (segments.length < 2) {
+      debugPrint('[catalog] Invalid repo URL: $repo');
+      return null;
+    }
+    final rawUrl = 'https://raw.githubusercontent.com/'
+        '${segments[0]}/${segments[1]}/$ref/catalog.json';
+    debugPrint('[catalog] Fetching $rawUrl');
+
+    final httpClient = io_http.HttpBrowserClient();
+    final response = await httpClient.get(rawUrl);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body as String) as Map<String, dynamic>;
+    }
+    debugPrint('[catalog] GitHub returned ${response.statusCode}');
+    return null;
   }
 
   /// Open home regions and windows defined in the catalog's "home" key.
@@ -389,6 +445,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
         // Get or create a hidden project for agent task execution
         final projectId = await _getOrCreateAgentProject(factory, username);
+        _defaultProjectId = projectId;
         debugPrint('[init] Agent project: $projectId');
 
         // Find or create the agent operator
@@ -489,19 +546,144 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     });
   }
 
-  /// Collect a minimal UI state snapshot for the agent.
+  /// Collect a UI state snapshot for the agent.
+  /// Uses WindowState.toJson() which includes content tree summary with
+  /// DataSource service/method/args so the agent knows what each window shows.
+  /// Includes viewport dimensions so the agent can calculate pixel positions
+  /// for grid layouts and window rearrangement.
   Map<String, dynamic> _collectUiState() {
     final wm = _sduiContext.windowManager;
-    final windows = wm.windows.map((ws) => {
-      'id': ws.id,
-      'title': ws.title ?? '',
-      'type': ws.content.type,
-    }).toList();
-
     return {
+      'viewport': {
+        'width': wm.viewportWidth.round(),
+        'height': wm.viewportHeight.round(),
+      },
       'selections': Map<String, dynamic>.from(_selections),
-      'windows': windows,
+      'windows': wm.layoutState, // full toJson() per window
     };
+  }
+
+  /// Save the current window layout as a .sdui.json file in Tercen.
+  /// If a project is selected, saves there with a prompted name.
+  /// Otherwise saves to the agent_internal project with a default name.
+  Future<void> _saveLayout() async {
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) {
+      ErrorReporter.instance.report('Cannot save layout — not authenticated',
+          source: 'layout.save', severity: ErrorSeverity.warning);
+      return;
+    }
+
+    final wm = _sduiContext.windowManager;
+    if (wm.windows.isEmpty) {
+      ErrorReporter.instance.report('Nothing to save — no windows open',
+          source: 'layout.save', severity: ErrorSeverity.info);
+      return;
+    }
+
+    // Determine target project
+    final selectedProjectId = _selections['selectedProjectId'] as String?;
+    final projectId = selectedProjectId ?? _defaultProjectId;
+    if (projectId == null || projectId.isEmpty) {
+      ErrorReporter.instance.report(
+          'Cannot save layout — no project selected and no default project',
+          source: 'layout.save', severity: ErrorSeverity.warning);
+      return;
+    }
+
+    // Prompt for name if project is selected, use default otherwise
+    String fileName;
+    if (selectedProjectId != null && selectedProjectId.isNotEmpty) {
+      final name = await _promptForLayoutName();
+      if (name == null || name.isEmpty) return; // user cancelled
+      fileName = name.endsWith('.sdui.json') ? name : '$name.sdui.json';
+    } else {
+      fileName = 'default-layout.sdui.json';
+    }
+
+    try {
+      final layoutJson = wm.toLayoutJson();
+      layoutJson['name'] = fileName;
+      layoutJson['savedAt'] = DateTime.now().toUtc().toIso8601String();
+
+      final bytes = utf8.encode(
+          const JsonEncoder.withIndent('  ').convert(layoutJson));
+
+      final file = sci.FileDocument()
+        ..name = fileName
+        ..projectId = projectId
+        ..description = 'Saved SDUI layout'
+        ..acl.owner = (_sduiContext.renderContext.templateResolver
+            .get('username') as String?) ?? '';
+
+      await factory.fileService.upload(
+        file,
+        Stream.value(bytes),
+      );
+
+      debugPrint('[layout] Saved "$fileName" to project $projectId '
+          '(${wm.windows.length} windows, ${bytes.length} bytes)');
+
+      ErrorReporter.instance.report('Layout saved: $fileName',
+          source: 'layout.save', severity: ErrorSeverity.info);
+    } catch (e, st) {
+      ErrorReporter.instance.report(e,
+          stackTrace: st,
+          source: 'layout.save',
+          context: 'saving layout to project $projectId');
+    }
+  }
+
+  /// Show a dialog prompting for a layout name.
+  Future<String?> _promptForLayoutName() async {
+    final controller = TextEditingController(
+      text: 'my-layout-${DateTime.now().millisecondsSinceEpoch ~/ 1000}',
+    );
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Save Layout'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Layout name',
+            hintText: 'e.g. analysis-view',
+          ),
+          autofocus: true,
+          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(null),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Load a saved layout from a .sdui.json file.
+  Future<void> loadLayoutFromFile(String fileId) async {
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) return;
+
+    try {
+      final content = await utf8.decodeStream(
+          factory.fileService.download(fileId));
+      final layoutJson =
+          jsonDecode(content) as Map<String, dynamic>;
+      _sduiContext.windowManager.loadLayout(layoutJson);
+      debugPrint('[layout] Loaded layout from file $fileId');
+    } catch (e, st) {
+      ErrorReporter.instance.report(e,
+          stackTrace: st,
+          source: 'layout.load',
+          context: 'loading layout from file $fileId');
+    }
   }
 
   /// Find or create the hidden `agent_internal` project for the user.
