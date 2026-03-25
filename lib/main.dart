@@ -115,6 +115,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _sduiContext = SduiContext.create(theme: const SduiTheme.light());
     _registerOrchestratorWidgets();
     _listenHeaderIntents();
+    _listenChatActions();
 
     if (_serverUrl.isNotEmpty) {
       // Dev mode: WebSocket to local Dart server
@@ -162,6 +163,32 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   }
 
   /// Listen for header menu actions (theme toggle, etc.)
+  int _chatSessionCounter = 0;
+
+  void _listenChatActions() {
+    _sduiContext.eventBus.subscribe('chat.newSession').listen((_) {
+      _chatSessionCounter++;
+      final id = 'chat-box-$_chatSessionCounter';
+      _sduiContext.eventBus.publish(
+        'system.layout.op',
+        EventPayload(type: 'layout.op', data: {
+          'op': 'addWindow',
+          'id': id,
+          'size': 'column',
+          'align': 'right',
+          'title': 'Chat',
+          'content': {
+            'type': 'ChatBox',
+            'id': '$id-root',
+            'props': {},
+            'children': [],
+          },
+        }),
+      );
+      debugPrint('[chat] Opened new session as "$id"');
+    });
+  }
+
   void _listenHeaderIntents() {
     _sduiContext.eventBus.subscribe('header.intent').listen((event) {
       final value = event.data['value'] as String? ??
