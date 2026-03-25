@@ -813,22 +813,42 @@ Future<void> _autoLoadCatalog() async {
     }
     final ref = config['widgetLibraryRef'] as String? ?? 'main';
     final rawUrl = 'https://raw.githubusercontent.com/${segments[0]}/${segments[1]}/$ref/catalog.json';
-    print('[catalog] Fetching $rawUrl');
-
-    final httpClient = HttpClient();
-    final request = await httpClient.getUrl(Uri.parse(rawUrl));
-    final response = await request.close();
-
-    if (response.statusCode != 200) {
-      httpClient.close();
-      print('[catalog] GitHub returned ${response.statusCode} for $rawUrl');
-      return;
+    // Prefer local clone over GitHub fetch (avoids CDN caching delays).
+    final localCandidates = [
+      '../../tercen_ui_widgets/catalog.json',  // from server/bin/
+      '../tercen_ui_widgets/catalog.json',     // from server/
+    ];
+    Map<String, dynamic>? catalog;
+    for (final path in localCandidates) {
+      final file = File(path);
+      if (file.existsSync()) {
+        try {
+          catalog = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+          print('[catalog] Loaded from local: ${file.absolute.path}');
+          break;
+        } catch (e) {
+          print('[catalog] Failed to parse local $path: $e');
+        }
+      }
     }
 
-    final responseBody = await response.transform(utf8.decoder).join();
-    httpClient.close();
+    // Fall back to GitHub fetch if no local clone.
+    if (catalog == null) {
+      print('[catalog] Fetching $rawUrl');
+      final httpClient = HttpClient();
+      final request = await httpClient.getUrl(Uri.parse(rawUrl));
+      final response = await request.close();
 
-    final catalog = jsonDecode(responseBody) as Map<String, dynamic>;
+      if (response.statusCode != 200) {
+        httpClient.close();
+        print('[catalog] GitHub returned ${response.statusCode} for $rawUrl');
+        return;
+      }
+
+      final responseBody = await response.transform(utf8.decoder).join();
+      httpClient.close();
+      catalog = jsonDecode(responseBody) as Map<String, dynamic>;
+    }
     _loadCatalog(catalog);
   } catch (e) {
     print('[catalog] Auto-load failed: $e');

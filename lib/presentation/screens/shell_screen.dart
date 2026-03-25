@@ -76,17 +76,23 @@ class _ShellScreenState extends State<ShellScreen> {
     // with updated colors when the user toggles light/dark mode.
     Theme.of(context);
 
+    final bgColor = Theme.of(context).colorScheme.surface;
+
     return Scaffold(
-      body: Column(
-        children: [
-          if (_headerNode != null)
-            SduiRenderer(
-              registry: sdui.registry,
-              renderContext: sdui.renderContext,
-            ).render(_headerNode!),
-          const Expanded(child: WorkspacePanel()),
-          const ErrorBar(),
-        ],
+      backgroundColor: bgColor,
+      body: Padding(
+        padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 4.0),
+        child: Column(
+          children: [
+            if (_headerNode != null)
+              SduiRenderer(
+                registry: sdui.registry,
+                renderContext: sdui.renderContext,
+              ).render(_headerNode!),
+            const Expanded(child: WorkspacePanel()),
+            const ErrorBar(),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openChat,

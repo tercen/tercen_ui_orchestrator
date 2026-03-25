@@ -2,11 +2,7 @@ _local
 .dart_tool/
 **/.dart_tool/
 **/.server.pid
+.playwright-mcp/
 
-# Flutter build artifacts (not source code)
-build/.last_build_id
-build/*.cache.dill.track.dill
-build/[0-9a-f][0-9a-f][0-9a-f]*/
-build/flutter_assets/packages/
-build/flutter_assets/shaders/stretch_effect.frag
-build/native_hooks/
+# Flutter build artifacts — run `flutter build web` after cloning
+build/
