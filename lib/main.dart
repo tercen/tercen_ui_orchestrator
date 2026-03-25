@@ -16,10 +16,15 @@ import 'package:tercen_ui_orchestrator/services/agent_client.dart';
 import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
-const _serverUrl = String.fromEnvironment('SERVER_URL', defaultValue: '');
-const _anthropicApiKey = String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
-
-const _tercenToken = String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
+// Compile-time defaults, overridable via URL query parameters:
+//   ?token=eyJ...    → TERCEN_TOKEN
+//   ?server=ws://... → SERVER_URL
+final String _serverUrl = Uri.base.queryParameters['server'] ??
+    const String.fromEnvironment('SERVER_URL', defaultValue: '');
+final String _anthropicApiKey =
+    const String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
+final String _tercenToken = Uri.base.queryParameters['token'] ??
+    const String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
 
 /// Decodes the JWT payload.
 Map<String, dynamic> _decodeJwtPayload(String token) {
