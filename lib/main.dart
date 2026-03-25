@@ -95,6 +95,11 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   String? _authError;
   String? _defaultProjectId; // agent_internal project, used as fallback for layout saves
 
+  /// Stable chat message stream that survives backend swaps.
+  /// When _chatBackend changes, we re-pipe from the new backend's stream.
+  final _chatBridge = StreamController<Map<String, dynamic>>.broadcast();
+  StreamSubscription<Map<String, dynamic>>? _chatBridgeSub;
+
   SduiTheme get _currentTheme {
     final tokens = _themeTokens;
     if (tokens != null) {
@@ -127,14 +132,32 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       debugPrint('[init] Will use Agent backend after auth');
     }
 
-    // Wire chat backend into SDUI for the ChatStream behavior widget.
+    // Wire chat backend into SDUI via a stable bridge stream.
+    // The bridge survives backend swaps (placeholder → AgentClient).
+    _pipeChatBackend();
     _sduiContext.renderContext.chatStreamProvider = (
-      messages: _chatBackend.chatMessages,
-      send: _chatBackend.sendChat,
+      messages: _chatBridge.stream,
+      send: (text) {
+        debugPrint('[chat-bridge] sendChat("$text") via ${_chatBackend.runtimeType}');
+        _chatBackend.sendChat(text);
+      },
       isConnected: () => _chatBackend.isConnected,
     );
 
     _startup();
+  }
+
+  /// Pipe current _chatBackend's message stream into the stable bridge.
+  void _pipeChatBackend() {
+    _chatBridgeSub?.cancel();
+    debugPrint('[chat-bridge] Piping from ${_chatBackend.runtimeType}');
+    _chatBridgeSub = _chatBackend.chatMessages.listen(
+      (msg) {
+        debugPrint('[chat-bridge] → ${msg['type']}');
+        _chatBridge.add(msg);
+      },
+      onError: (e) => _chatBridge.addError(e),
+    );
   }
 
   /// Listen for header menu actions (theme toggle, etc.)
@@ -461,12 +484,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           userId: username,
           uiStateCollector: _collectUiState,
         );
-        // Re-wire SDUI chat provider to the real backend.
-        _sduiContext.renderContext.chatStreamProvider = (
-          messages: _chatBackend.chatMessages,
-          send: _chatBackend.sendChat,
-          isConnected: () => _chatBackend.isConnected,
-        );
+        // Re-pipe chat bridge to the real backend's stream.
+        _pipeChatBackend();
         debugPrint('[init] Agent backend ready');
       }
 
@@ -765,6 +784,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   @override
   void dispose() {
     _selectionSub?.cancel();
+    _chatBridgeSub?.cancel();
+    _chatBridge.close();
     _chatBackend.dispose();
     _sduiContext.dispose();
     super.dispose();
