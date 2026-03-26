@@ -196,9 +196,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   }
 
   void _listenChatActions() {
-    _sduiContext.eventBus.subscribe('chat.newSession').listen((_) {
+    _sduiContext.eventBus.subscribe('chat.newSession').listen((event) {
       _chatSessionCounter++;
       final id = 'chat-box-$_chatSessionCounter';
+      final sourceId = event.sourceWidgetId;
       _sduiContext.eventBus.publish(
         'system.layout.op',
         EventPayload(type: 'layout.op', data: {
@@ -207,6 +208,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           'size': 'column',
           'align': 'right',
           'title': 'Chat',
+          if (sourceId != null) 'sourceWidgetId': sourceId,
           'content': {
             'type': 'ChatBox',
             'id': '$id-root',
