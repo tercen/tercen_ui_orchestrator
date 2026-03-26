@@ -98,6 +98,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   String? _authError;
   String? _defaultProjectId; // agent_internal project, used as fallback for layout saves
   LayoutPersistenceService? _layoutPersistence;
+  Map<String, dynamic>? _loadedCatalog; // cached for home layout reload
 
   /// Stable chat message stream that survives backend swaps.
   /// When _chatBackend changes, we re-pipe from the new backend's stream.
@@ -170,6 +171,18 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   int _chatSessionCounter = 0;
   int _workflowViewerCounter = 0;
 
+  /// Clear all panes and reload the home layout from catalog.json.
+  void _navigateHome() {
+    final catalog = _loadedCatalog;
+    if (catalog == null) {
+      debugPrint('[navigateHome] No catalog loaded');
+      return;
+    }
+    _sduiContext.windowManager.clearAll();
+    _openHomeWindows(catalog);
+    debugPrint('[navigateHome] Reloaded home layout');
+  }
+
   void _openWorkflowViewer({String? workflowId}) {
     _workflowViewerCounter++;
     final id = 'workflow-viewer-$_workflowViewerCounter';
@@ -239,7 +252,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         case 'toggleTheme':
           _toggleTheme();
         case 'navigateHome':
-          debugPrint('[header] navigateHome — not yet implemented');
+          _navigateHome();
         case 'saveLayout':
           _saveLayout();
         case 'connectLlm':
@@ -302,6 +315,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       final widgets = catalog['widgets'] as List? ?? [];
       if (widgets.isNotEmpty) {
         _sduiContext.registry.loadCatalog(catalog);
+        _loadedCatalog = catalog;
         debugPrint('[catalog] Loaded ${widgets.length} widget(s)');
         _openHomeWindows(catalog);
       } else {
