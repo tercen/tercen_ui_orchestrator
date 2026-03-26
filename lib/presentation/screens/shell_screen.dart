@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:sdui/sdui.dart';
-import 'package:tercen_ui_orchestrator/presentation/widgets/error_bar.dart';
 import 'package:tercen_ui_orchestrator/presentation/widgets/workspace_panel.dart';
 
 /// Minimal shell — SDUI workspace filling the screen + error bar.
@@ -72,8 +71,18 @@ class _ShellScreenState extends State<ShellScreen> {
                 registry: sdui.registry,
                 renderContext: sdui.renderContext,
               ).render(_headerNode!),
-            const Expanded(child: WorkspacePanel()),
-            const ErrorBar(),
+            Expanded(
+              child: ToastOverlay(
+                eventBus: sdui.eventBus,
+                theme: sdui.renderContext.theme,
+                child: PopupOverlay(
+                  eventBus: sdui.eventBus,
+                  windowManager: sdui.windowManager,
+                  theme: sdui.renderContext.theme,
+                  child: const WorkspacePanel(),
+                ),
+              ),
+            ),
           ],
         ),
       ),
