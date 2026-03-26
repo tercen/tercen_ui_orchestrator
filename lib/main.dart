@@ -16,6 +16,8 @@ import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart
 import 'package:tercen_ui_orchestrator/services/agent_client.dart';
 import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
 import 'package:tercen_ui_orchestrator/services/local_claude_backend.dart';
+import 'package:tercen_ui_orchestrator/sdui/widgets/chat_stream.dart';
+import 'package:tercen_ui_orchestrator/services/layout_persistence_service.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
 
 // Compile-time defaults, overridable via URL query parameters:
@@ -95,6 +97,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   bool _authReady = false;
   String? _authError;
   String? _defaultProjectId; // agent_internal project, used as fallback for layout saves
+  LayoutPersistenceService? _layoutPersistence;
 
   /// Stable chat message stream that survives backend swaps.
   /// When _chatBackend changes, we re-pipe from the new backend's stream.
@@ -254,8 +257,26 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   Future<void> _startup() async {
     _startTrackingSelections();
     await _bootstrapAuth();
+    _initLayoutPersistence();
     _fetchThemeTokens(); // non-blocking — theme can load after UI
     _autoLoadCatalog(); // non-blocking — catalog loads after auth
+  }
+
+  void _initLayoutPersistence() {
+    _layoutPersistence = LayoutPersistenceService(
+      windowManager: _sduiContext.windowManager,
+      eventBus: _sduiContext.eventBus,
+      getUsername: () =>
+          (_sduiContext.renderContext.templateResolver.get('username')
+              as String?) ??
+          '',
+      getProjectId: () {
+        final selected = _selections['selectedProjectId'] as String?;
+        return (selected != null && selected.isNotEmpty)
+            ? selected
+            : _defaultProjectId;
+      },
+    );
   }
 
   /// Auto-load the widget catalog.
@@ -452,9 +473,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void _registerOrchestratorWidgets() {
     _sduiContext.registry.register('ChatPanel', buildChatPanel,
         metadata: chatPanelMetadata);
-    // ChatStream is registered by the SDUI library itself (behavior_widgets.dart).
-    // The orchestrator injects chatStreamProvider into renderContext to bridge it.
-    debugPrint('[widgets] Registered ChatPanel (ChatStream provided by SDUI)');
+    _sduiContext.registry.registerScope('ChatStream', buildChatStream,
+        metadata: chatStreamMetadata);
+    debugPrint('[widgets] Registered ChatPanel + ChatStream');
   }
 
   void _toggleTheme() {
@@ -865,6 +886,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   @override
   void dispose() {
+    _layoutPersistence?.dispose();
     _selectionSub?.cancel();
     _chatBridgeSub?.cancel();
     _chatBridge.close();
