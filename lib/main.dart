@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:web/web.dart' as web;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:sci_http_client/http_auth_client.dart' as auth_http;
@@ -122,6 +124,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _sduiContext = SduiContext.create(theme: const SduiTheme.light());
     _registerOrchestratorWidgets();
     _listenHeaderIntents();
+    _listenWindowIntents();
     _listenChatActions();
     _listenWorkflowActions();
 
@@ -279,6 +282,21 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           );
         case 'signOut':
           debugPrint('[header] signOut — not yet implemented');
+      }
+    });
+  }
+
+  /// Listen for window-level intents that the orchestrator must handle
+  /// (e.g. opening external URLs in a new browser tab).
+  void _listenWindowIntents() {
+    _sduiContext.eventBus.subscribe('window.intent').listen((event) {
+      final intent = event.type;
+      if (intent == 'openUrl') {
+        final url = event.data['url'] as String?;
+        if (url != null && url.isNotEmpty) {
+          debugPrint('[window.intent] openUrl: $url');
+          web.window.open(url, '_blank');
+        }
       }
     });
   }

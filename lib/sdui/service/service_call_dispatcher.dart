@@ -35,18 +35,37 @@ class ServiceCallDispatcher {
     }
 
     // Try base CRUD methods first (get, list, findStartKeys, findKeys)
-    final baseResult = await _tryBaseMethod(service, method, args);
-    if (baseResult != null) return baseResult;
+    dynamic result = await _tryBaseMethod(service, method, args);
 
-    // Try service-specific methods (these have correct named-param calling)
-    try {
-      return await _callSpecificMethod(serviceName, method, args);
-    } on ArgumentError {
-      // Not a known specific method — fall through to generic find handler
+    if (result == null) {
+      // Try service-specific methods (these have correct named-param calling)
+      try {
+        result = await _callSpecificMethod(serviceName, method, args);
+      } on ArgumentError {
+        // Not a known specific method — fall through to generic find handler
+      }
     }
 
     // Generic find handler — last resort for find* methods not explicitly handled
-    return _tryGenericFind(service, method, args);
+    result ??= await _tryGenericFind(service, method, args);
+
+    // Post-process activity results to add colorToken for SDUI color binding
+    if (serviceName == 'activityService' && result is List) {
+      for (final item in result) {
+        if (item is Map<String, dynamic>) {
+          final type = item['type'] as String? ?? '';
+          item['colorToken'] = switch (type) {
+            'create' || 'complete' => 'success',
+            'update' => 'info',
+            'delete' => 'error',
+            'run' => 'warning',
+            _ => 'onSurfaceMuted',
+          };
+        }
+      }
+    }
+
+    return result;
   }
 
   Service? _getService(String name) {
@@ -116,6 +135,22 @@ class ServiceCallDispatcher {
         final keys = (args.length > 1 ? args[1] as List : []);
         final result = await service.findKeys(viewName, keys: keys);
         return result.map((obj) => service.toJson(obj)).toList();
+
+      case 'create':
+        final obj = service.fromJson(args[0] as Map<String, dynamic>);
+        final result = await service.create(obj);
+        return service.toJson(result);
+
+      case 'update':
+        final obj = service.fromJson(args[0] as Map<String, dynamic>);
+        final result = await service.update(obj);
+        return service.toJson(result);
+
+      case 'delete':
+        final id = args[0] as String;
+        final rev = args[1] as String;
+        await service.delete(id, rev);
+        return {'success': true, 'id': id};
 
       default:
         return null; // Not a base method — try specific
