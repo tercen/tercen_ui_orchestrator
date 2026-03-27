@@ -613,7 +613,7 @@ The router handles widget selection and window creation. The AI can also bypass 
 |--------|---------|------------|
 | `openWorkflow` | WorkflowViewer | `workflowId` |
 | `openFile` | DocumentViewer | `fileId`, `fileName` |
-| `openFileNavigator` | FileNavigator | `projectId`, `projectName` |
+| `openProjectNavigator` | ProjectNavigator | `projectId`, `projectName` |
 | `openStepTables` | DataTableViewer | `workflowId`, `stepId`, `stepName` |
 | `openStepImages` | PngViewer | `workflowId`, `stepId`, `stepName` |
 
@@ -748,7 +748,7 @@ Here is a full widget definition for a file navigator with PromptRequired, seman
   "widgets": [
     {
       "metadata": {
-        "type": "FileNavigator",
+        "type": "ProjectNavigator",
         "tier": 2,
         "description": "File browser for a Tercen project. Lists project documents (files, schemas, workflows) with selection support.",
         "props": {

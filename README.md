@@ -284,7 +284,7 @@ Widget templates are JSON files that compose Tier 1 primitives into reusable Tie
 
 ### Tier 2 — Template widgets (from catalog.json)
 
-Loaded from widget libraries (e.g., `tercen_ui_widgets`). Examples: FileNavigator, WorkflowViewer, ChatBox, DataTableViewer, DocumentEditor.
+Loaded from widget libraries (e.g., `tercen_ui_widgets`). Examples: ProjectNavigator, WorkflowViewer, ChatBox, DataTableViewer, DocumentEditor.
 
 ### Template bindings
 

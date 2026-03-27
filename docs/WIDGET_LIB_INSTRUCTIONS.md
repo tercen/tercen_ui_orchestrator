@@ -692,7 +692,7 @@ The `ServiceCallDispatcher` routes DataSource calls to the correct Tercen API me
 - If missing, a "Configure" button is shown; clicking it opens a dialog with defaults pre-filled
 - Once submitted, resolved values are exposed in child scope under the field names
 
-**Example from FileNavigator:**
+**Example from ProjectNavigator:**
 ```json
 {
   "type": "PromptRequired",

@@ -254,7 +254,7 @@ Home windows open after the catalog loads. Widgets with `handlesIntent` in their
 |--------|--------|------------|
 | **workflow-viewer** | Template exists | Verify `getWorkflowGraph` works with real data |
 | **data-table** | Template exists | Verify `TabbedDataTable` handles column-major data. CSV export via `selectCSV`. |
-| **file-navigator** | Template needed | Use `projectDocumentService` methods. Check if `ForEach` + layout is sufficient or if a tree primitive is needed. |
+| **project-navigator** | Template needed | Use `projectDocumentService` methods. Check if `ForEach` + layout is sufficient or if a tree primitive is needed. |
 | **home-panel** | Template needed | Multiple `DataSource` nodes for projects, user info. `Grid`/`Card` layout. |
 | **png-viewer** | Template needed | `fileService.downloadUrl` → `ImageViewer` |
 | **audit-trail** | Template needed | Use `discover_methods('activityService')` first |
