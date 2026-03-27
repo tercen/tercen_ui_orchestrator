@@ -122,6 +122,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void initState() {
     super.initState();
     _sduiContext = SduiContext.create(theme: const SduiTheme.light());
+    _registerResourceMappings();
     _registerOrchestratorWidgets();
     _listenHeaderIntents();
     _listenWindowIntents();
@@ -532,6 +533,16 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   }
 
   /// Register orchestrator-specific widgets as Tier 1 builders.
+  void _registerResourceMappings() {
+    final wm = _sduiContext.windowManager;
+    wm.registerResource('project', const ResourceMapping(
+      widgetType: 'ProjectNavigator',
+      size: 'medium',
+      align: 'center',
+      deduplicate: true,
+    ));
+  }
+
   /// These are compiled Dart widgets that need access to orchestrator internals
   /// (e.g., OrchestratorClient for chat streaming) and can't be JSON templates.
   void _registerOrchestratorWidgets() {

@@ -254,6 +254,12 @@ class ServiceCallDispatcher {
           PropConverter.to<int>(args[5]) ?? 20,
         );
         return result.map((obj) => svc.toJson(obj)).toList();
+      case 'getTercenAppLibrary':
+        final result = await svc.getTercenAppLibrary(
+          PropConverter.to<int>(args[0]) ?? 0,
+          PropConverter.to<int>(args[1]) ?? 20,
+        );
+        return result.map((obj) => svc.toJson(obj)).toList();
       default:
         throw ArgumentError(
             'Method "$method" not found on documentService');
