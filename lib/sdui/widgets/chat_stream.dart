@@ -66,6 +66,7 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
   StreamSubscription? _sendSub;
   StreamSubscription? _submitSub;
   StreamSubscription? _changeSub;
+  StreamSubscription? _newSessionSub;
 
   String get _sendChannel =>
       PropConverter.to<String>(widget.node.props['sendChannel']) ?? 'chat.send';
@@ -112,6 +113,13 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
       _sendMessage();
     });
 
+    // Listen for new session button
+    _newSessionSub = bus.subscribe('chat.newSession').listen((_) {
+      debugPrint('[ChatStream] new session requested');
+      if (!mounted) return;
+      _resetSession();
+    });
+
     // Listen for TextField input changes and submit
     final inputId = _inputId;
     if (inputId != null && inputId.isNotEmpty) {
@@ -128,6 +136,15 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
         }
       });
     }
+  }
+
+  void _resetSession() {
+    final provider = widget.context.chatStreamProvider;
+    provider?.resetSession();
+    setState(() {
+      _messages.clear();
+      _isStreaming = false;
+    });
   }
 
   void _sendMessage({String? overrideText}) {
@@ -297,6 +314,7 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
     _sendSub?.cancel();
     _submitSub?.cancel();
     _changeSub?.cancel();
+    _newSessionSub?.cancel();
     super.dispose();
   }
 

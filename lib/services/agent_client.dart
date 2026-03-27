@@ -276,6 +276,14 @@ class AgentClient extends ChatBackend {
   }
 
   @override
+  void resetSession() {
+    _sessionId = null;
+    _sessionData = null;
+    _textAccumulator.clear();
+    debugPrint('[agent] Session reset');
+  }
+
+  @override
   void dispose() {
     _eventSub?.cancel();
     _chatMessages.close();

@@ -25,4 +25,7 @@ abstract class ChatBackend extends ChangeNotifier {
 
   /// Whether the backend is currently processing a message.
   bool get isProcessing;
+
+  /// Reset the session so the next message starts a fresh conversation.
+  void resetSession() {}
 }

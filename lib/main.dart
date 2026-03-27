@@ -10,22 +10,24 @@ import 'package:sci_http_client/http_client.dart' as http_api;
 import 'package:sci_tercen_client/sci_client.dart' as sci;
 import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
-import 'package:tercen_ui_orchestrator/presentation/widgets/chat_panel.dart';
+
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
 import 'package:tercen_ui_orchestrator/services/agent_client.dart';
 import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
-import 'package:tercen_ui_orchestrator/services/local_claude_backend.dart';
+
 import 'package:tercen_ui_orchestrator/sdui/widgets/chat_stream.dart';
+import 'package:tercen_ui_orchestrator/sdui/widgets/task_stream.dart';
 import 'package:tercen_ui_orchestrator/services/layout_persistence_service.dart';
 import 'package:tercen_ui_orchestrator/services/orchestrator_client.dart';
+import 'package:tercen_ui_orchestrator/services/task_monitor_service.dart';
 
 // Compile-time defaults, overridable via URL query parameters:
 //   ?token=eyJ...    → TERCEN_TOKEN
 //   ?server=ws://... → SERVER_URL
 final String _serverUrl = Uri.base.queryParameters['server'] ??
     const String.fromEnvironment('SERVER_URL', defaultValue: '');
-final String _anthropicApiKey = Uri.base.queryParameters['apiKey'] ??
+final String _anthropicApiKey =
     const String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 final String _tercenToken = Uri.base.queryParameters['token'] ??
     const String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
@@ -99,6 +101,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   String? _defaultProjectId; // agent_internal project, used as fallback for layout saves
   LayoutPersistenceService? _layoutPersistence;
   Map<String, dynamic>? _loadedCatalog; // cached for home layout reload
+  TaskMonitorService? _taskMonitor;
 
   /// Stable chat message stream that survives backend swaps.
   /// When _chatBackend changes, we re-pipe from the new backend's stream.
@@ -149,6 +152,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         _chatBackend.sendChat(text);
       },
       isConnected: () => _chatBackend.isConnected,
+      resetSession: () {
+        debugPrint('[chat-bridge] resetSession via ${_chatBackend.runtimeType}');
+        _chatBackend.resetSession();
+      },
     );
 
     _startup();
@@ -258,7 +265,14 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         case 'connectLlm':
           debugPrint('[header] connectLlm — not yet implemented');
         case 'taskManager':
-          debugPrint('[header] taskManager — not yet implemented');
+          _sduiContext.eventBus.publish(
+            'system.intent',
+            EventPayload(
+              type: 'openTaskMonitor',
+              sourceWidgetId: 'header',
+              data: {'intent': 'openTaskMonitor'},
+            ),
+          );
         case 'openWorkflow':
           _openWorkflowViewer(
             workflowId: event.data['workflowId'] as String?,
@@ -273,8 +287,24 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _startTrackingSelections();
     await _bootstrapAuth();
     _initLayoutPersistence();
+    _initTaskMonitor();
     _fetchThemeTokens(); // non-blocking — theme can load after UI
     _autoLoadCatalog(); // non-blocking — catalog loads after auth
+  }
+
+  void _initTaskMonitor() {
+    final monitor = TaskMonitorService(eventBus: _sduiContext.eventBus);
+    _taskMonitor = monitor;
+
+    // Wire the provider into SDUI context
+    _sduiContext.renderContext.taskStreamProvider = (
+      tasks: monitor.tasks,
+      cancel: monitor.cancelTask,
+      hasRunning: () => monitor.hasRunning,
+    );
+
+    // Start polling (needs ServiceFactory to be available)
+    monitor.start();
   }
 
   void _initLayoutPersistence() {
@@ -487,11 +517,11 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   /// These are compiled Dart widgets that need access to orchestrator internals
   /// (e.g., OrchestratorClient for chat streaming) and can't be JSON templates.
   void _registerOrchestratorWidgets() {
-    _sduiContext.registry.register('ChatPanel', buildChatPanel,
-        metadata: chatPanelMetadata);
     _sduiContext.registry.registerScope('ChatStream', buildChatStream,
         metadata: chatStreamMetadata);
-    debugPrint('[widgets] Registered ChatPanel + ChatStream');
+    _sduiContext.registry.registerScope('TaskStream', buildTaskStream,
+        metadata: taskStreamMetadata);
+    debugPrint('[widgets] Registered ChatStream + TaskStream');
   }
 
   void _toggleTheme() {
@@ -546,14 +576,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     }
 
     try {
-      // When served from localhost (dev proxy mode), route API calls through
-      // the proxy at the current page origin instead of directly to the
-      // Tercen backend. This avoids CORS issues.
-      final pageOrigin = Uri.base.origin;
-      final isLocalDev = Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1';
-      final effectiveUri = isLocalDev ? pageOrigin : serviceUri;
-      debugPrint('[auth] Creating ServiceFactory for $effectiveUri'
-          '${isLocalDev ? " (proxying $serviceUri)" : ""}');
+      debugPrint('[auth] Creating ServiceFactory for $serviceUri');
 
       // Use explicit browser HTTP client (matches webapp pattern)
       http_api.HttpClient.setCurrent(io_http.HttpBrowserClient());
@@ -561,7 +584,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           auth_http.HttpAuthClient(_tercenToken, io_http.HttpBrowserClient());
 
       final factory = sci.ServiceFactory();
-      final uri = Uri.parse(effectiveUri);
+      final uri = Uri.parse(serviceUri);
       await factory.initializeWith(
           Uri(scheme: uri.scheme, host: uri.host, port: uri.port), authClient);
       tercen.ServiceFactory.CURRENT = factory;
@@ -573,9 +596,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       _setUserContext();
       debugPrint('[auth] ServiceFactory ready — data widgets enabled');
 
-      // Choose chat backend:
-      // 1. API key provided → AgentClient (Tercen agent operator + Anthropic API)
-      // 2. Local dev, no API key → LocalClaudeBackend (claude CLI via dev proxy)
+      // Create AgentClient if no WebSocket backend and API key is available
       if (_wsClient == null && _anthropicApiKey.isNotEmpty) {
         final jwtData = _decodeJwtPayload(_tercenToken)['data']
             as Map<String, dynamic>? ?? {};
@@ -600,12 +621,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           uiStateCollector: _collectUiState,
         );
         _pipeChatBackend();
-        debugPrint('[init] Agent backend ready (Anthropic API key)');
-      } else if (_wsClient == null && isLocalDev) {
-        // Local dev without API key — use claude CLI via dev proxy
-        _chatBackend = LocalClaudeBackend(baseUrl: pageOrigin);
-        _pipeChatBackend();
-        debugPrint('[init] Local Claude Code backend ready (no API key)');
+        debugPrint('[init] Agent backend ready');
       }
 
       setState(() {
@@ -902,6 +918,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   @override
   void dispose() {
+    _taskMonitor?.dispose();
     _layoutPersistence?.dispose();
     _selectionSub?.cancel();
     _chatBridgeSub?.cancel();
@@ -958,18 +975,14 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
     return SduiScope(
       sduiContext: _sduiContext,
-      child: ChatBackendScope(
-        backend: _chatBackend,
-        wsClient: _wsClient,
-        child: ThemeController(
-          isDark: _isDark,
-          onToggle: _toggleTheme,
-          child: MaterialApp(
-            title: 'Tercen',
-            debugShowCheckedModeBanner: false,
-            theme: _currentTheme.toMaterialTheme(),
-            home: const ShellScreen(),
-          ),
+      child: ThemeController(
+        isDark: _isDark,
+        onToggle: _toggleTheme,
+        child: MaterialApp(
+          title: 'Tercen',
+          debugShowCheckedModeBanner: false,
+          theme: _currentTheme.toMaterialTheme(),
+          home: const ShellScreen(),
         ),
       ),
     );
@@ -1000,40 +1013,7 @@ class ThemeController extends InheritedWidget {
       isDark != oldWidget.isDark;
 }
 
-/// Makes the chat backend available down the widget tree.
-///
-/// [backend] is the active ChatBackend (either OrchestratorClient or AgentClient).
-/// [wsClient] is optionally set when using WebSocket mode, for features that
-/// need direct WebSocket access (e.g. toolbar widget catalog loading).
-class ChatBackendScope extends InheritedWidget {
-  final ChatBackend backend;
-  final OrchestratorClient? wsClient;
 
-  const ChatBackendScope({
-    super.key,
-    required this.backend,
-    this.wsClient,
-    required super.child,
-  });
-
-  static ChatBackend of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<ChatBackendScope>();
-    assert(scope != null, 'ChatBackendScope not found');
-    return scope!.backend;
-  }
-
-  /// Returns the WebSocket client if available (dev mode only).
-  static OrchestratorClient? wsClientOf(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<ChatBackendScope>();
-    return scope?.wsClient;
-  }
-
-  @override
-  bool updateShouldNotify(ChatBackendScope oldWidget) =>
-      backend != oldWidget.backend || wsClient != oldWidget.wsClient;
-}
 
 /// Placeholder backend used before auth completes.
 class _PlaceholderBackend extends ChatBackend {
