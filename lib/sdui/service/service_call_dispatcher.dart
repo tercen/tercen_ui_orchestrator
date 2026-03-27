@@ -243,7 +243,9 @@ class ServiceCallDispatcher {
           args.length > 2 ? args[2] as bool : false,
           args.length > 3 ? args[3] as String : '',
         );
-        return result.toJson();
+        // Return the rows list directly so DataSource gets a flat list.
+        final json = result.toJson();
+        return (json['rows'] as List?) ?? [];
       case 'getLibrary':
         final result = await svc.getLibrary(
           args[0] as String,
