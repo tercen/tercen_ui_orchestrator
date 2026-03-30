@@ -296,6 +296,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       // Toolbar actions publish with type='action' and data.intent=<name>.
       final intent =
           event.data['intent'] as String? ?? event.type;
+      debugPrint('[window.intent] received: intent=$intent type=${event.type} data=${event.data}');
       switch (intent) {
         case 'openUrl':
           final url = event.data['url'] as String?;
