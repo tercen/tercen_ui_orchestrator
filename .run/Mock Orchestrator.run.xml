@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Mock Orchestrator" type="FlutterRunConfigurationType" factoryName="Flutter">
+    <option name="additionalArgs" value="--web-hostname=127.0.0.1 --web-port=12889" />
+    <option name="dartDefines" value="MOCK_WIDGET=ProjectNavigator" />
+    <option name="filePath" value="$PROJECT_DIR$/lib/mock/main_mock.dart" />
+    <method v="2" />
+  </configuration>
+</component>
