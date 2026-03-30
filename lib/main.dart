@@ -305,8 +305,54 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           }
         case 'createProject':
           _showCreateProjectPopup(event.data['sourceWindowId'] as String?);
+        case 'openTeamManagement':
+          _openWidgetAsTab(
+            widgetType: 'TeamManager',
+            windowId: 'team-manager',
+            title: 'Teams',
+            sourceWindowId: event.data['sourceWindowId'] as String?,
+            placement: event.data['placement'] as String? ?? 'samePane',
+          );
+        case 'openAuditTrail':
+          _openWidgetAsTab(
+            widgetType: 'AuditTrail',
+            windowId: 'audit-trail',
+            title: 'Audit',
+            sourceWindowId: event.data['sourceWindowId'] as String?,
+            placement: event.data['placement'] as String? ?? 'samePane',
+          );
       }
     });
+  }
+
+  /// Open a widget as a tab in the source pane (or new pane).
+  void _openWidgetAsTab({
+    required String widgetType,
+    required String windowId,
+    required String title,
+    String? sourceWindowId,
+    String placement = 'samePane',
+    Map<String, dynamic> props = const {},
+  }) {
+    _sduiContext.eventBus.publish(
+      'system.layout.op',
+      EventPayload(type: 'layout.op', data: {
+        'op': 'addWindow',
+        'id': windowId,
+        'size': 'large',
+        'align': 'center',
+        'title': title,
+        'placement': placement,
+        'sourceWidgetId': sourceWindowId,
+        'content': {
+          'type': widgetType,
+          'id': '$windowId-root',
+          'props': props,
+          'children': [],
+        },
+      }),
+    );
+    debugPrint('[window.intent] Opened $widgetType as "$windowId" in $placement');
   }
 
   /// Fetch the user's teams and show a "New Project" form popup.
