@@ -480,36 +480,14 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
                   'children': [],
                 },
                 {
-                  'type': 'Tooltip',
-                  'id': '$dialogId-git-tip',
-                  'props': {'message': 'Add from Git'},
-                  'children': [
-                    {
-                      'type': 'Row',
-                      'id': '$dialogId-git-row',
-                      'props': {'mainAxisSize': 'min'},
-                      'children': [
-                        {
-                          'type': 'Switch',
-                          'id': '$dialogId-git-state',
-                          'props': {'value': false},
-                          'children': [],
-                        },
-                        {
-                          'type': 'SizedBox',
-                          'id': '$dialogId-sp-git-label',
-                          'props': {'width': 4},
-                          'children': [],
-                        },
-                        {
-                          'type': 'Text',
-                          'id': '$dialogId-git-label',
-                          'props': {'text': 'Git'},
-                          'children': [],
-                        },
-                      ],
-                    },
-                  ],
+                  'type': 'ToggleButton',
+                  'id': '$dialogId-git-state',
+                  'props': {
+                    'icon': 'account_tree',
+                    'value': false,
+                    'tooltip': 'Add from Git',
+                  },
+                  'children': [],
                 },
               ],
             },
