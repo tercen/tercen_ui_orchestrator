@@ -78,6 +78,8 @@ class _ShellScreenState extends State<ShellScreen> {
                 child: PopupOverlay(
                   eventBus: sdui.eventBus,
                   windowManager: sdui.windowManager,
+                  registry: sdui.registry,
+                  renderContext: sdui.renderContext,
                   theme: sdui.renderContext.theme,
                   child: const WorkspacePanel(),
                 ),

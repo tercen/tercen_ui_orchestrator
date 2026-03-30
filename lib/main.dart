@@ -339,70 +339,255 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       teamNames.insert(0, username);
     }
 
-    // Unique channel for this popup's submit action.
+    // Channels for form interactions.
     const submitChannel = 'popup.createProject.submit';
+    const cancelChannel = 'popup.createProject.cancel';
+    const dialogId = 'new-project-dialog';
+    final windowId = sourceWindowId ?? 'home-panel-main';
 
-    // Listen for the submit action (one-shot).
-    late StreamSubscription<EventPayload> sub;
-    sub = _sduiContext.eventBus.subscribe(submitChannel).listen((submitEvent) {
-      sub.cancel();
-      _handleCreateProjectSubmit(submitEvent.data, sourceWindowId);
+    // Collect form values as they change via input channels.
+    final formValues = <String, dynamic>{
+      'owner': username, // default
+    };
+    final inputSubs = <StreamSubscription<EventPayload>>[];
+    for (final fieldId in [
+      '$dialogId-name', '$dialogId-owner', '$dialogId-description',
+      '$dialogId-public', '$dialogId-gitUrl', '$dialogId-gitBranch',
+      '$dialogId-gitTag', '$dialogId-gitToken',
+    ]) {
+      inputSubs.add(
+        _sduiContext.eventBus.subscribe('input.$fieldId.changed').listen((e) {
+          final key = fieldId.replaceFirst('$dialogId-', '');
+          formValues[key] = e.data['value'];
+        }),
+      );
+    }
+
+    void _closeDialog() {
+      for (final sub in inputSubs) { sub.cancel(); }
+      _sduiContext.eventBus.publish(
+        'window.$windowId.popup.close',
+        EventPayload(type: 'popup.close', data: {}),
+      );
+    }
+
+    // Listen for submit (one-shot).
+    late StreamSubscription<EventPayload> submitSub;
+    submitSub = _sduiContext.eventBus.subscribe(submitChannel).listen((event) {
+      submitSub.cancel();
+      _handleCreateProjectSubmit({'formValues': formValues}, sourceWindowId);
+      _closeDialog();
     });
 
-    // Open the form popup.
-    final windowId = sourceWindowId ?? 'home-panel-main';
+    // Listen for cancel (one-shot).
+    late StreamSubscription<EventPayload> cancelSub;
+    cancelSub = _sduiContext.eventBus.subscribe(cancelChannel).listen((_) {
+      cancelSub.cancel();
+      submitSub.cancel();
+      _closeDialog();
+    });
+
+    // Build the dropdown items for the owner field.
+    final ownerItems = teamNames
+        .map((t) => {'value': t, 'label': t})
+        .toList();
+
+    // Open FormDialog as a popup overlay with SDUI content.
     _sduiContext.eventBus.publish(
       'window.$windowId.popup.open',
       EventPayload(
         type: 'popup.open',
         data: {
-          'windowId': windowId,
-          'type': 'form',
-          'title': 'New Project',
-          'modal': true,
-          'fields': [
+          'content': {
+          'type': 'FormDialog',
+          'id': '$dialogId-root',
+          'props': {
+            'title': 'New Project',
+            'visible': true,
+            'modal': true,
+          },
+          'children': [
+            // Project Name
             {
-              'key': 'name',
-              'type': 'text',
-              'label': 'Project Name',
-              'hint': 'Enter project name',
-              'required': true,
+              'type': 'TextField',
+              'id': '$dialogId-name',
+              'props': {'label': 'Project Name', 'autofocus': true},
+              'children': [],
             },
+            {'type': 'SizedBox', 'id': '$dialogId-sp1', 'props': {'height': 8}, 'children': []},
+            // Owner dropdown
             {
-              'key': 'owner',
-              'type': 'dropdown',
-              'label': 'Owner',
-              'required': true,
-              'options': teamNames,
-              'defaultValue': username,
+              'type': 'DropdownButton',
+              'id': '$dialogId-owner',
+              'props': {
+                'items': ownerItems,
+                'value': username,
+                'label': 'Owner',
+              },
+              'children': [],
             },
+            {'type': 'SizedBox', 'id': '$dialogId-sp2', 'props': {'height': 8}, 'children': []},
+            // Description
             {
-              'key': 'description',
-              'type': 'text',
-              'label': 'Description',
-              'hint': 'Optional description',
-              'maxLines': 2,
+              'type': 'TextField',
+              'id': '$dialogId-description',
+              'props': {'label': 'Description', 'maxLines': 2},
+              'children': [],
             },
+            {'type': 'SizedBox', 'id': '$dialogId-sp3', 'props': {'height': 8}, 'children': []},
+            // Public switch + Git toggle on same row
             {
-              'key': 'isPublic',
-              'type': 'switch',
-              'label': 'Visibility',
-              'hint': 'Public (visible to everyone)',
-              'defaultValue': false,
+              'type': 'Row',
+              'id': '$dialogId-options-row',
+              'props': {'mainAxisAlignment': 'start'},
+              'children': [
+                {
+                  'type': 'Tooltip',
+                  'id': '$dialogId-public-tip',
+                  'props': {'message': 'Make this visible to everyone on the server'},
+                  'children': [
+                    {
+                      'type': 'Row',
+                      'id': '$dialogId-public-row',
+                      'props': {'mainAxisSize': 'min'},
+                      'children': [
+                        {
+                          'type': 'Switch',
+                          'id': '$dialogId-public',
+                          'props': {'value': false},
+                          'children': [],
+                        },
+                        {
+                          'type': 'SizedBox',
+                          'id': '$dialogId-sp-pub',
+                          'props': {'width': 4},
+                          'children': [],
+                        },
+                        {
+                          'type': 'Text',
+                          'id': '$dialogId-public-label',
+                          'props': {'text': 'Public'},
+                          'children': [],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  'type': 'SizedBox',
+                  'id': '$dialogId-sp-gap',
+                  'props': {'width': 16},
+                  'children': [],
+                },
+                {
+                  'type': 'Tooltip',
+                  'id': '$dialogId-git-tip',
+                  'props': {'message': 'Add from Git'},
+                  'children': [
+                    {
+                      'type': 'Row',
+                      'id': '$dialogId-git-row',
+                      'props': {'mainAxisSize': 'min'},
+                      'children': [
+                        {
+                          'type': 'Switch',
+                          'id': '$dialogId-git-state',
+                          'props': {'value': false},
+                          'children': [],
+                        },
+                        {
+                          'type': 'SizedBox',
+                          'id': '$dialogId-sp-git-label',
+                          'props': {'width': 4},
+                          'children': [],
+                        },
+                        {
+                          'type': 'Text',
+                          'id': '$dialogId-git-label',
+                          'props': {'text': 'Git'},
+                          'children': [],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
-          ],
-          'actions': [
-            {'label': 'Cancel'},
+            // Git fields — hidden by default, shown when git switch is toggled
             {
-              'label': 'Create Project',
-              'channel': submitChannel,
-              'isPrimary': true,
+              'type': 'ReactTo',
+              'id': '$dialogId-git-react',
+              'props': {'channel': 'input.$dialogId-git-state.changed'},
+              'children': [
+                {
+                  'type': 'Conditional',
+                  'id': '$dialogId-git-cond',
+                  'props': {'visible': '{{value}}'},
+                  'children': [
+                    {'type': 'SizedBox', 'id': '$dialogId-sp-git1', 'props': {'height': 8}, 'children': []},
+                    {
+                      'type': 'TextField',
+                      'id': '$dialogId-gitUrl',
+                      'props': {'label': 'Repository URL'},
+                      'children': [],
+                    },
+                    {'type': 'SizedBox', 'id': '$dialogId-sp-git2', 'props': {'height': 8}, 'children': []},
+                    {
+                      'type': 'TextField',
+                      'id': '$dialogId-gitBranch',
+                      'props': {'label': 'Branch'},
+                      'children': [],
+                    },
+                    {'type': 'SizedBox', 'id': '$dialogId-sp-git3', 'props': {'height': 8}, 'children': []},
+                    {
+                      'type': 'TextField',
+                      'id': '$dialogId-gitTag',
+                      'props': {'label': 'Tag'},
+                      'children': [],
+                    },
+                    {'type': 'SizedBox', 'id': '$dialogId-sp-git4', 'props': {'height': 8}, 'children': []},
+                    {
+                      'type': 'TextField',
+                      'id': '$dialogId-gitToken',
+                      'props': {'label': 'Git Token'},
+                      'children': [],
+                    },
+                  ],
+                },
+              ],
+            },
+            {'type': 'SizedBox', 'id': '$dialogId-sp4', 'props': {'height': 16}, 'children': []},
+            // Action buttons
+            {
+              'type': 'Row',
+              'id': '$dialogId-actions',
+              'props': {'mainAxisAlignment': 'end'},
+              'children': [
+                {
+                  'type': 'GhostButton',
+                  'id': '$dialogId-cancel',
+                  'props': {'text': 'Cancel', 'channel': cancelChannel},
+                  'children': [],
+                },
+                {
+                  'type': 'SizedBox',
+                  'id': '$dialogId-sp-btn',
+                  'props': {'width': 8},
+                  'children': [],
+                },
+                {
+                  'type': 'PrimaryButton',
+                  'id': '$dialogId-submit',
+                  'props': {'text': 'Create Project', 'channel': submitChannel},
+                  'children': [],
+                },
+              ],
             },
           ],
         },
-      ),
+      }),
     );
-    debugPrint('[createProject] Opened form popup with ${teamNames.length} team options');
+    debugPrint('[createProject] Opened FormDialog with ${teamNames.length} team options');
   }
 
   /// Handle the form submit from the "New Project" popup.
@@ -415,7 +600,12 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     final name = (formValues['name'] as String?)?.trim() ?? '';
     final owner = (formValues['owner'] as String?)?.trim() ?? '';
     final description = (formValues['description'] as String?)?.trim() ?? '';
-    final isPublic = formValues['isPublic'] == true;
+    final isPublic = formValues['public'] == true;
+    final gitUrl = (formValues['gitUrl'] as String?)?.trim() ?? '';
+    final gitBranch = (formValues['gitBranch'] as String?)?.trim() ?? '';
+    final gitTag = (formValues['gitTag'] as String?)?.trim() ?? '';
+    final gitToken = (formValues['gitToken'] as String?)?.trim() ?? '';
+    final isGitClone = gitUrl.isNotEmpty;
 
     if (name.isEmpty || owner.isEmpty) {
       debugPrint('[createProject] Missing name or owner');
@@ -423,14 +613,41 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     }
 
     try {
-      debugPrint('[createProject] Creating project "$name" for owner "$owner"');
+      debugPrint('[createProject] Creating project "$name" for owner "$owner"'
+          '${isGitClone ? " from git: $gitUrl" : ""}');
       final project = sci.Project()
         ..name = name
         ..description = description
         ..isPublic = isPublic
         ..acl.owner = owner;
+
+      // Store GIT_URL in project meta if cloning from git.
+      if (isGitClone) {
+        final gitUrlMeta = project.getOrCreateMetaPair('GIT_URL');
+        gitUrlMeta.value = gitUrl;
+      }
+
       final created = await factory.projectService.create(project);
       debugPrint('[createProject] Created project: ${created.id}');
+
+      // If cloning from git, create a GitProjectTask to pull the repo.
+      if (isGitClone) {
+        final task = sci.GitProjectTask()..owner = owner;
+        void addMeta(String key, String value) {
+          task.meta.add(sci.Pair()..key = key..value = value);
+        }
+        addMeta('PROJECT_ID', created.id);
+        addMeta('PROJECT_REV', created.rev);
+        addMeta('GIT_ACTION', 'reset/pull');
+        addMeta('GIT_PAT', gitToken);
+        addMeta('GIT_URL', gitUrl);
+        addMeta('GIT_BRANCH', gitBranch);
+        addMeta('GIT_COMMIT', '');
+        addMeta('GIT_MESSAGE', '');
+        addMeta('GIT_TAG', gitTag);
+        await factory.taskService.create(task);
+        debugPrint('[createProject] GitProjectTask created for ${created.id}');
+      }
 
       // Open the new project in the same pane.
       _sduiContext.eventBus.publish(
