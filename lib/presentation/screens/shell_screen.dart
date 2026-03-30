@@ -58,34 +58,34 @@ class _ShellScreenState extends State<ShellScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: Padding(
-        padding: EdgeInsets.only(
-          left: sdui.renderContext.theme.spacing.sm,
-          right: sdui.renderContext.theme.spacing.sm,
-          top: sdui.renderContext.theme.spacing.xs,
-        ),
-        child: Column(
-          children: [
-            if (_headerNode != null)
-              SduiRenderer(
-                registry: sdui.registry,
-                renderContext: sdui.renderContext,
-              ).render(_headerNode!),
-            Expanded(
-              child: ToastOverlay(
-                eventBus: sdui.eventBus,
-                theme: sdui.renderContext.theme,
-                child: PopupOverlay(
-                  eventBus: sdui.eventBus,
-                  windowManager: sdui.windowManager,
+      body: PopupOverlay(
+        eventBus: sdui.eventBus,
+        windowManager: sdui.windowManager,
+        registry: sdui.registry,
+        renderContext: sdui.renderContext,
+        theme: sdui.renderContext.theme,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: sdui.renderContext.theme.spacing.sm,
+            right: sdui.renderContext.theme.spacing.sm,
+            top: sdui.renderContext.theme.spacing.xs,
+          ),
+          child: Column(
+            children: [
+              if (_headerNode != null)
+                SduiRenderer(
                   registry: sdui.registry,
                   renderContext: sdui.renderContext,
+                ).render(_headerNode!),
+              Expanded(
+                child: ToastOverlay(
+                  eventBus: sdui.eventBus,
                   theme: sdui.renderContext.theme,
                   child: const WorkspacePanel(),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
