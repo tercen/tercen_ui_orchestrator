@@ -371,9 +371,21 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       );
     }
 
-    // Listen for submit (one-shot).
+    // Listen for submit (one-shot with validation).
     late StreamSubscription<EventPayload> submitSub;
     submitSub = _sduiContext.eventBus.subscribe(submitChannel).listen((event) {
+      // Validate required fields.
+      final name = (formValues['name'] as String?)?.trim() ?? '';
+      if (name.isEmpty) {
+        _sduiContext.eventBus.publish(
+          'system.notification',
+          EventPayload(type: 'notification', data: {
+            'severity': 'warning',
+            'message': 'Project name is required',
+          }),
+        );
+        return; // Don't close, don't cancel — let user fix and retry.
+      }
       submitSub.cancel();
       _handleCreateProjectSubmit({'formValues': formValues}, sourceWindowId);
       _closeDialog();
