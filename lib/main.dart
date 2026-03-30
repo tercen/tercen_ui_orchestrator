@@ -33,6 +33,8 @@ final String _anthropicApiKey =
     const String.fromEnvironment('ANTHROPIC_API_KEY', defaultValue: '');
 final String _tercenToken = Uri.base.queryParameters['token'] ??
     const String.fromEnvironment('TERCEN_TOKEN', defaultValue: '');
+final String _serviceUriOverride = Uri.base.queryParameters['serviceUri'] ??
+    const String.fromEnvironment('SERVICE_URI', defaultValue: '');
 
 /// Decodes the JWT payload.
 Map<String, dynamic> _decodeJwtPayload(String token) {
@@ -288,18 +290,189 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   }
 
   /// Listen for window-level intents that the orchestrator must handle
-  /// (e.g. opening external URLs in a new browser tab).
+  /// (e.g. opening external URLs in a new browser tab, creating projects).
   void _listenWindowIntents() {
     _sduiContext.eventBus.subscribe('window.intent').listen((event) {
-      final intent = event.type;
-      if (intent == 'openUrl') {
-        final url = event.data['url'] as String?;
-        if (url != null && url.isNotEmpty) {
-          debugPrint('[window.intent] openUrl: $url');
-          web.window.open(url, '_blank');
-        }
+      // Toolbar actions publish with type='action' and data.intent=<name>.
+      final intent =
+          event.data['intent'] as String? ?? event.type;
+      switch (intent) {
+        case 'openUrl':
+          final url = event.data['url'] as String?;
+          if (url != null && url.isNotEmpty) {
+            debugPrint('[window.intent] openUrl: $url');
+            web.window.open(url, '_blank');
+          }
+        case 'createProject':
+          _showCreateProjectPopup(event.data['sourceWindowId'] as String?);
       }
     });
+  }
+
+  /// Fetch the user's teams and show a "New Project" form popup.
+  Future<void> _showCreateProjectPopup(String? sourceWindowId) async {
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) {
+      debugPrint('[createProject] No ServiceFactory — auth not ready');
+      return;
+    }
+
+    final jwtData = _decodeJwtPayload(_tercenToken)['data']
+        as Map<String, dynamic>? ?? {};
+    final username = jwtData['u'] as String? ?? '';
+    if (username.isEmpty) return;
+
+    // Fetch all teams (paginated scan via findStartKeys on teamByOwner view).
+    List<String> teamNames;
+    try {
+      final svc = factory.teamService;
+      final teams = await svc.findTeamByOwner(keys: [username]);
+      teamNames = teams.map((t) => t.name).where((n) => n.isNotEmpty).toList();
+      debugPrint('[createProject] findTeamByOwner returned ${teamNames.length} team(s): $teamNames');
+    } catch (e) {
+      debugPrint('[createProject] Failed to fetch teams: $e');
+      teamNames = [];
+    }
+
+    // Always include the user's own namespace as first option.
+    if (!teamNames.contains(username)) {
+      teamNames.insert(0, username);
+    }
+
+    // Unique channel for this popup's submit action.
+    const submitChannel = 'popup.createProject.submit';
+
+    // Listen for the submit action (one-shot).
+    late StreamSubscription<EventPayload> sub;
+    sub = _sduiContext.eventBus.subscribe(submitChannel).listen((submitEvent) {
+      sub.cancel();
+      _handleCreateProjectSubmit(submitEvent.data, sourceWindowId);
+    });
+
+    // Open the form popup.
+    final windowId = sourceWindowId ?? 'home-panel-main';
+    _sduiContext.eventBus.publish(
+      'window.$windowId.popup.open',
+      EventPayload(
+        type: 'popup.open',
+        data: {
+          'windowId': windowId,
+          'type': 'form',
+          'title': 'New Project',
+          'modal': true,
+          'fields': [
+            {
+              'key': 'name',
+              'type': 'text',
+              'label': 'Project Name',
+              'hint': 'Enter project name',
+              'required': true,
+            },
+            {
+              'key': 'owner',
+              'type': 'dropdown',
+              'label': 'Owner',
+              'required': true,
+              'options': teamNames,
+              'defaultValue': username,
+            },
+            {
+              'key': 'description',
+              'type': 'text',
+              'label': 'Description',
+              'hint': 'Optional description',
+              'maxLines': 2,
+            },
+            {
+              'key': 'isPublic',
+              'type': 'switch',
+              'label': 'Visibility',
+              'hint': 'Public (visible to everyone)',
+              'defaultValue': false,
+            },
+          ],
+          'actions': [
+            {'label': 'Cancel'},
+            {
+              'label': 'Create Project',
+              'channel': submitChannel,
+              'isPrimary': true,
+            },
+          ],
+        },
+      ),
+    );
+    debugPrint('[createProject] Opened form popup with ${teamNames.length} team options');
+  }
+
+  /// Handle the form submit from the "New Project" popup.
+  Future<void> _handleCreateProjectSubmit(
+      Map<String, dynamic> data, String? sourceWindowId) async {
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) return;
+
+    final formValues = data['formValues'] as Map<String, dynamic>? ?? {};
+    final name = (formValues['name'] as String?)?.trim() ?? '';
+    final owner = (formValues['owner'] as String?)?.trim() ?? '';
+    final description = (formValues['description'] as String?)?.trim() ?? '';
+    final isPublic = formValues['isPublic'] == true;
+
+    if (name.isEmpty || owner.isEmpty) {
+      debugPrint('[createProject] Missing name or owner');
+      return;
+    }
+
+    try {
+      debugPrint('[createProject] Creating project "$name" for owner "$owner"');
+      final project = sci.Project()
+        ..name = name
+        ..description = description
+        ..isPublic = isPublic
+        ..acl.owner = owner;
+      final created = await factory.projectService.create(project);
+      debugPrint('[createProject] Created project: ${created.id}');
+
+      // Open the new project in the same pane.
+      _sduiContext.eventBus.publish(
+        'window.intent',
+        EventPayload(
+          type: 'openResource',
+          sourceWidgetId: sourceWindowId,
+          data: {
+            'intent': 'openResource',
+            'resourceType': 'project',
+            'resourceId': created.id,
+            'label': name,
+            'placement': 'samePane',
+            'sourceWindowId': sourceWindowId,
+          },
+        ),
+      );
+
+      // Show success notification.
+      _sduiContext.eventBus.publish(
+        'system.notification',
+        EventPayload(
+          type: 'notification',
+          data: {
+            'severity': 'info',
+            'message': 'Project "$name" created successfully',
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint('[createProject] Error: $e');
+      _sduiContext.eventBus.publish(
+        'system.notification',
+        EventPayload(
+          type: 'notification',
+          data: {
+            'severity': 'error',
+            'message': 'Failed to create project: $e',
+          },
+        ),
+      );
+    }
   }
 
   Future<void> _startup() async {
@@ -596,7 +769,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       return;
     }
 
-    final serviceUri = _parseServiceUriFromToken(_tercenToken);
+    final serviceUri = _serviceUriOverride.isNotEmpty
+        ? _serviceUriOverride
+        : _parseServiceUriFromToken(_tercenToken);
     if (serviceUri.isEmpty) {
       setState(() {
         _authError = 'Could not extract service URI from token. Check TERCEN_TOKEN.';
