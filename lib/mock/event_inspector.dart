@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sdui/sdui.dart';
 
 /// Panel that shows all EventBus events and lets the user inject events.
@@ -165,6 +166,20 @@ class _EventInspectorState extends State<EventInspector>
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    InkWell(
+                      onTap: () {
+                        final text = '${e.channel}: ${_compactJson(e.payload.data)}';
+                        Clipboard.setData(ClipboardData(text: text));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Event copied'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      child: Icon(Icons.copy, size: 12, color: cs.onSurfaceVariant),
+                    ),
+                    const SizedBox(width: 6),
                     Text(time, style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant)),
                   ],
                 ),

@@ -844,6 +844,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
     final repo = lib['repo'] as String? ?? '';
     final ref = lib['ref'] as String? ?? 'main';
+    final catalogFile = lib['catalogFile'] as String? ?? 'catalog.json';
     if (repo.isEmpty) {
       debugPrint('[catalog] No repo URL in config');
       return null;
@@ -857,7 +858,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       return null;
     }
     final rawUrl = 'https://raw.githubusercontent.com/'
-        '${segments[0]}/${segments[1]}/$ref/catalog.json';
+        '${segments[0]}/${segments[1]}/$ref/$catalogFile';
     debugPrint('[catalog] Fetching $rawUrl');
 
     final httpClient = io_http.HttpBrowserClient();

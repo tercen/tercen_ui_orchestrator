@@ -71,6 +71,7 @@ class _MockOrchestratorAppState extends State<MockOrchestratorApp> {
 
     final repo = lib['repo'] as String? ?? '';
     final ref = lib['ref'] as String? ?? 'main';
+    final catalogFile = lib['catalogFile'] as String? ?? 'catalog.json';
     if (repo.isEmpty) throw Exception('No repo URL in config');
 
     final uri = Uri.parse(repo);
@@ -78,7 +79,7 @@ class _MockOrchestratorAppState extends State<MockOrchestratorApp> {
     if (segments.length < 2) throw Exception('Invalid repo URL: $repo');
 
     final rawUrl = 'https://raw.githubusercontent.com/'
-        '${segments[0]}/${segments[1]}/$ref/catalog.json';
+        '${segments[0]}/${segments[1]}/$ref/$catalogFile';
     debugPrint('[mock] Fetching catalog from $rawUrl');
 
     final httpClient = io_http.HttpBrowserClient();

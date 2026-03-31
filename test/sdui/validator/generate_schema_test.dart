@@ -19,7 +19,17 @@ void main() {
       registry.loadCatalog(catalogJson);
     }
 
-    final generator = SduiSchemaGenerator(registry);
+    // Load tokens.json as the single source of truth for token definitions.
+    Map<String, dynamic>? tokensJson;
+    final tokensFile = File('../tercen-style/tokens.json');
+    if (tokensFile.existsSync()) {
+      tokensJson =
+          jsonDecode(tokensFile.readAsStringSync()) as Map<String, dynamic>;
+      // ignore: avoid_print
+      print('Loaded tokens.json from ${tokensFile.path}');
+    }
+
+    final generator = SduiSchemaGenerator(registry, tokensJson: tokensJson);
     final json = generator.toJson();
 
     // Write to file.

@@ -34,10 +34,14 @@ const _scopeProviders = <String, Map<String, String>>{
 /// Walks the [WidgetRegistry] after [registerBuiltinWidgets] and catalog loading,
 /// emitting a schema with every widget type, its props, children rules,
 /// scope provisions, and event contracts.
+///
+/// If [tokensJson] is provided, token definitions are extracted from it
+/// (single source of truth). Otherwise falls back to hardcoded defaults.
 class SduiSchemaGenerator {
   final WidgetRegistry registry;
+  final Map<String, dynamic>? tokensJson;
 
-  SduiSchemaGenerator(this.registry);
+  SduiSchemaGenerator(this.registry, {this.tokensJson});
 
   /// Generate the full SDUI component schema.
   Map<String, dynamic> generate() {
@@ -143,9 +147,66 @@ class SduiSchemaGenerator {
   }
 
   Map<String, dynamic> _tokenDefinitions() {
+    if (tokensJson != null) {
+      return _tokenDefinitionsFromJson(tokensJson!);
+    }
+    // Fallback if no tokens.json provided.
+    return _tokenDefinitionsFallback();
+  }
+
+  Map<String, dynamic> _tokenDefinitionsFromJson(Map<String, dynamic> tokens) {
+    // Colors: from themes.light.colors keys.
+    final themes = tokens['themes'] as Map<String, dynamic>? ?? {};
+    final lightTheme = themes['light'] as Map<String, dynamic>? ?? {};
+    final colors = lightTheme['colors'] as Map<String, dynamic>? ?? {};
+
+    // Text styles: from top-level textStyles keys.
+    final textStyles = tokens['textStyles'] as Map<String, dynamic>? ?? {};
+
+    // Spacing: from top-level spacing.
+    final spacing = tokens['spacing'] as Map<String, dynamic>? ?? {};
+
+    // Radius: from top-level radius.
+    final radius = tokens['radius'] as Map<String, dynamic>? ?? {};
+
     return {
       'color': {
-        'description': 'Semantic color token names from Material 3 ColorScheme + Tercen extensions',
+        'description': 'Semantic color token names — extracted from tokens.json themes.light.colors',
+        'values': colors.keys.toList()..sort(),
+      },
+      'textStyle': {
+        'description': 'Text style token names — extracted from tokens.json textStyles',
+        'values': textStyles.keys.toList()..sort(),
+      },
+      'spacing': {
+        'description': 'Spacing token names — extracted from tokens.json spacing',
+        'values': spacing.keys.toList(),
+        'mapping': spacing,
+      },
+      'radius': {
+        'description': 'Border radius token names — extracted from tokens.json radius',
+        'values': radius.keys.toList(),
+        'mapping': radius,
+      },
+      'roles': {
+        'description': 'Semantic text roles used by archetypes. '
+            'Widget authors pick roles, not raw token names.',
+        'values': {
+          'prominent': {'textStyle': 'titleMedium', 'color': 'onSurface'},
+          'primary': {'textStyle': 'bodySmall', 'color': 'onSurface'},
+          'secondary': {'textStyle': 'labelSmall', 'color': 'onSurfaceMuted'},
+          'muted': {'textStyle': 'labelSmall', 'color': 'onSurfaceDisabled'},
+          'action': {'textStyle': 'labelMedium', 'color': 'primary'},
+          'section': {'textStyle': 'labelMedium', 'color': 'onSurface'},
+        },
+      },
+    };
+  }
+
+  Map<String, dynamic> _tokenDefinitionsFallback() {
+    return {
+      'color': {
+        'description': 'Semantic color token names (fallback — no tokens.json)',
         'values': [
           'primary', 'onPrimary', 'primaryContainer', 'onPrimaryContainer',
           'secondary', 'onSecondary', 'secondaryContainer', 'onSecondaryContainer',
@@ -158,7 +219,7 @@ class SduiSchemaGenerator {
         ],
       },
       'textStyle': {
-        'description': 'Text style token names from Material 3 TextTheme',
+        'description': 'Text style token names (fallback)',
         'values': [
           'displayLarge', 'displayMedium', 'displaySmall',
           'headlineLarge', 'headlineMedium', 'headlineSmall',
@@ -168,7 +229,7 @@ class SduiSchemaGenerator {
         ],
       },
       'spacing': {
-        'description': 'Spacing token names',
+        'description': 'Spacing token names (fallback)',
         'values': ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'],
         'mapping': {'xs': 4, 'sm': 8, 'md': 16, 'lg': 24, 'xl': 32, 'xxl': 48},
       },
@@ -194,6 +255,7 @@ class SduiSchemaGenerator {
         '_index': 'Inside ForEach — current iteration index',
         'state': 'Inside StateHolder — mutable state object',
         'matched': 'Inside ReactTo — whether latest event matched',
+        'isSelected': 'Inside ForEach with Interaction ancestor — whether item is selected',
         'sorted': 'Inside Sort — sorted list',
         'filtered': 'Inside Filter — filtered list',
       },

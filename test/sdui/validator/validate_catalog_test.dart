@@ -72,4 +72,64 @@ void main() {
     // Uncomment the next line to fail on errors:
     // expect(totalErrors, 0);
   });
+
+  test('validate catalog2.json (experimentation catalog)', () {
+    final catalog2File = File('../tercen_ui_widgets/catalog2.json');
+    if (!catalog2File.existsSync()) {
+      // ignore: avoid_print
+      print('catalog2.json not found — skipping');
+      return;
+    }
+
+    final catalog2Json =
+        jsonDecode(catalog2File.readAsStringSync()) as Map<String, dynamic>;
+
+    final reg2 = WidgetRegistry();
+    registerBuiltinWidgets(reg2);
+    reg2.loadCatalog(catalog2Json);
+
+    final validator = TemplateValidator(registry: reg2);
+    final allResults = validator.validateCatalog(catalog2Json);
+
+    var totalErrors = 0;
+    var totalWarnings = 0;
+    var totalInfos = 0;
+
+    for (final entry in allResults.entries) {
+      final widgetName = entry.key;
+      final results = entry.value;
+
+      if (results.isEmpty) {
+        // ignore: avoid_print
+        print('  $widgetName: OK');
+        continue;
+      }
+
+      final errors = results.where((r) => r.isError).length;
+      final warnings = results.where((r) => r.isWarning).length;
+      final infos = results.where((r) => !r.isError && !r.isWarning).length;
+      totalErrors += errors;
+      totalWarnings += warnings;
+      totalInfos += infos;
+
+      // ignore: avoid_print
+      print('  $widgetName: $errors errors, $warnings warnings, $infos info');
+      for (final r in results) {
+        final icon = switch (r.severity) {
+          ValidationSeverity.error => 'E',
+          ValidationSeverity.warning => 'W',
+          ValidationSeverity.info => 'I',
+        };
+        // ignore: avoid_print
+        print('    [$icon] ${r.ruleId}: ${r.message}');
+        // ignore: avoid_print
+        print('        at ${r.nodePath}');
+      }
+    }
+
+    // ignore: avoid_print
+    print('');
+    // ignore: avoid_print
+    print('catalog2 Total: $totalErrors errors, $totalWarnings warnings, $totalInfos info');
+  });
 }

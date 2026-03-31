@@ -813,7 +813,8 @@ Future<void> _autoLoadCatalog() async {
       return;
     }
 
-    print('[catalog] Auto-loading from $repoUrl (ref=$ref)');
+    final catalogFile = lib?['catalogFile'] as String? ?? 'catalog.json';
+    print('[catalog] Auto-loading from $repoUrl (ref=$ref, file=$catalogFile)');
 
     // Convert GitHub URL to raw content URL (same logic as POST endpoint)
     final uri = Uri.parse(repoUrl);
@@ -822,11 +823,11 @@ Future<void> _autoLoadCatalog() async {
       print('[catalog] Invalid repo URL: $repoUrl');
       return;
     }
-    final rawUrl = 'https://raw.githubusercontent.com/${segments[0]}/${segments[1]}/$ref/catalog.json';
+    final rawUrl = 'https://raw.githubusercontent.com/${segments[0]}/${segments[1]}/$ref/$catalogFile';
     // Prefer local clone over GitHub fetch (avoids CDN caching delays).
     final localCandidates = [
-      '../../tercen_ui_widgets/catalog.json',  // from server/bin/
-      '../tercen_ui_widgets/catalog.json',     // from server/
+      '../../tercen_ui_widgets/$catalogFile',  // from server/bin/
+      '../tercen_ui_widgets/$catalogFile',     // from server/
     ];
     Map<String, dynamic>? catalog;
     for (final path in localCandidates) {
