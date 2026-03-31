@@ -8,7 +8,7 @@ import 'package:tercen_ui_orchestrator/sdui/archetypes/archetype_expander.dart';
 import 'package:tercen_ui_orchestrator/sdui/archetypes/skeleton_theme.dart';
 import 'package:tercen_ui_orchestrator/sdui/validator/template_validator.dart';
 
-const _catalog2Path = '../tercen_ui_widgets/catalog2.json';
+const _catalogPath = '../tercen_ui_widgets/catalog.json';
 
 // ---------------------------------------------------------------------------
 // Fresh widget builders using SkeletonTheme
@@ -314,16 +314,52 @@ Map<String, dynamic> _buildTeamManager() {
   };
 }
 
-// ChatBox, HomePanel, MainHeader, TaskMonitor — read from catalog.json
+// ChatBox, HomePanel, MainHeader, TaskMonitor — read from catalog.json backup
 // since they use compiled scope builders (ChatStream, TaskStream, WindowShell)
-// that archetypes can't generate. We copy metadata + template as-is.
+// that archetypes can't generate. We copy metadata + template, stripping
+// removed widgets (StateHolder).
 Map<String, dynamic> _copyFromCatalog(Map<String, dynamic> catalog, String type) {
   final widget = (catalog['widgets'] as List).firstWhere(
     (w) => (w as Map)['metadata']?['type'] == type,
     orElse: () => throw StateError('$type not found in catalog'),
   ) as Map<String, dynamic>;
-  // Deep copy to avoid modifying the original.
-  return jsonDecode(jsonEncode(widget)) as Map<String, dynamic>;
+  // Deep copy, then strip removed widget types.
+  final copy = jsonDecode(jsonEncode(widget)) as Map<String, dynamic>;
+  _stripRemovedWidgets(copy['template'] as Map<String, dynamic>);
+  return copy;
+}
+
+/// Recursively strip removed widget types (StateHolder) — unwrap to children.
+/// Also removes props that depend on removed widgets (pageSizeChannel, {{state}}).
+void _stripRemovedWidgets(Map<String, dynamic> node) {
+  // Remove props that reference removed systems.
+  final props = node['props'] as Map<String, dynamic>?;
+  if (props != null) {
+    props.remove('pageSizeChannel');
+    props.remove('initialState');
+    // Remove any prop value that references {{state}}
+    props.removeWhere((k, v) =>
+        v is String && v.contains('{{state'));
+  }
+
+  final children = node['children'] as List<dynamic>?;
+  if (children == null) return;
+
+  for (var i = 0; i < children.length; i++) {
+    final child = children[i] as Map<String, dynamic>;
+    if (child['type'] == 'StateHolder') {
+      final inner = child['children'] as List<dynamic>? ?? [];
+      if (inner.isNotEmpty) {
+        children[i] = inner.first;
+      }
+    }
+  }
+
+  for (final child in children) {
+    if (child is Map<String, dynamic>) {
+      _stripRemovedWidgets(child);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -331,12 +367,14 @@ Map<String, dynamic> _copyFromCatalog(Map<String, dynamic> catalog, String type)
 // ---------------------------------------------------------------------------
 
 void main() {
-  test('build catalog2 from scratch using formal specs', () {
-    // Read original catalog for widgets we need to copy (compiled scope builders).
-    final catalogFile = File('../tercen_ui_widgets/catalog.json');
-    if (!catalogFile.existsSync()) fail('catalog.json not found');
+  test('build catalog from scratch using formal specs', () {
+    // Read backup for widgets we need to copy (compiled scope builders).
+    // The backup was created before this migration.
+    final backupFile = File('../tercen_ui_widgets/catalog.json.bak');
+    final sourceFile = backupFile.existsSync() ? backupFile : File(_catalogPath);
+    if (!sourceFile.existsSync()) fail('No catalog source found');
     final originalCatalog =
-        jsonDecode(catalogFile.readAsStringSync()) as Map<String, dynamic>;
+        jsonDecode(sourceFile.readAsStringSync()) as Map<String, dynamic>;
 
     // Build all widgets fresh.
     final widgets = <Map<String, dynamic>>[
@@ -355,8 +393,8 @@ void main() {
       _copyFromCatalog(originalCatalog, 'TaskMonitor'),
     ];
 
-    // Build catalog2.
-    final catalog2 = <String, dynamic>{
+    // Build catalog.
+    final catalog = <String, dynamic>{
       'widgets': widgets,
       'home': originalCatalog['home'],
     };
@@ -364,7 +402,7 @@ void main() {
     // Validate each fresh widget.
     final registry = WidgetRegistry();
     registerBuiltinWidgets(registry);
-    registry.loadCatalog(catalog2);
+    registry.loadCatalog(catalog);
     final validator = TemplateValidator(registry: registry);
 
     var freshErrors = 0;
@@ -393,15 +431,15 @@ void main() {
       }
     }
 
-    // Write catalog2.
-    final catalog2File = File(_catalog2Path);
-    catalog2File.writeAsStringSync(
-        const JsonEncoder.withIndent('  ').convert(catalog2));
+    // Write catalog.json.
+    final catalogFile = File(_catalogPath);
+    catalogFile.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(catalog));
 
     // ignore: avoid_print
     print('');
     // ignore: avoid_print
-    print('Wrote ${widgets.length} widgets to catalog2.json');
+    print('Wrote ${widgets.length} widgets to catalog.json');
     // ignore: avoid_print
     print('Fresh widget errors: $freshErrors');
 

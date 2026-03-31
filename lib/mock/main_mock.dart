@@ -14,7 +14,7 @@ const _mockWidget =
 
 /// Theme tokens URL — fetched from tercen-style repo on GitHub.
 const _themeTokensUrl =
-    'https://raw.githubusercontent.com/tercen/tercen-style/main/tokens.json';
+    'https://raw.githubusercontent.com/tercen/tercen-style/master/tokens.json';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

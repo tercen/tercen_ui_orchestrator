@@ -1,7 +1,6 @@
 {
   "widgetLibrary": {
     "repo": "https://github.com/tercen/tercen_ui_widgets",
-    "ref": "main",
-    "catalogFile": "catalog2.json"
+    "ref": "main"
   }
 }
