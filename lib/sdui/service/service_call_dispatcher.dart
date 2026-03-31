@@ -49,7 +49,7 @@ class ServiceCallDispatcher {
     // Generic find handler — last resort for find* methods not explicitly handled
     result ??= await _tryGenericFind(service, method, args);
 
-    // Post-process activity results to add colorToken for SDUI color binding
+    // Post-process activity results — enrich with display-ready fields
     if (serviceName == 'activityService' && result is List) {
       for (final item in result) {
         if (item is Map<String, dynamic>) {
@@ -61,6 +61,28 @@ class ServiceCallDispatcher {
             'run' => 'warning',
             _ => 'onSurfaceMuted',
           };
+
+          // Extract objectName from properties list
+          final props = item['properties'];
+          if (props is List) {
+            for (final p in props) {
+              if (p is Map && p['key'] == 'name') {
+                item['objectName'] = p['value'] ?? '';
+                break;
+              }
+            }
+          }
+          item['objectName'] ??= item['objectKind'] ?? '';
+
+          // Map userId → userName (strip domain if present)
+          final uid = item['userId'] as String? ?? '';
+          item['userName'] = uid.contains('.') ? uid.split('.').first : uid;
+
+          // Use teamId as owner context when projectName is empty
+          final pn = item['projectName'] as String? ?? '';
+          if (pn.isEmpty) {
+            item['projectName'] = item['teamId'] ?? '';
+          }
         }
       }
     }
