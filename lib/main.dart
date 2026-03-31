@@ -746,7 +746,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     await _bootstrapAuth();
     _initLayoutPersistence();
     _initTaskMonitor();
-    _fetchThemeTokens(); // non-blocking — theme can load after UI
+    // Theme uses compiled-in defaults from SduiTheme.light() — no runtime fetch needed.
+    // Token values are baked into the schema at generation time.
     _autoLoadCatalog(); // non-blocking — catalog loads after auth
   }
 
