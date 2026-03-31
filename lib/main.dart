@@ -234,6 +234,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           'size': 'column',
           'align': 'right',
           'title': 'Chat',
+          'placement': 'samePane',
           if (sourceId != null) 'sourceWidgetId': sourceId,
           'content': {
             'type': 'ChatBox',

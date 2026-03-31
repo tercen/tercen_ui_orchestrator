@@ -329,6 +329,7 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
     final scope = <String, dynamic>{
       'messages': _messages,
       'isStreaming': _isStreaming,
+      'isThinking': _isStreaming,
       'connected': _connected,
       'hasMessages': _messages.isNotEmpty,
     };
