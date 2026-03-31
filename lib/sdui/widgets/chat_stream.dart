@@ -130,6 +130,8 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
         _messages.add({
           'role': 'system',
           'text': text,
+          'isUser': false,
+          'isAssistant': true,
           'isStreaming': false,
         });
       });
