@@ -6,6 +6,8 @@ import 'package:sci_tercen_client/sci_client_service_factory.dart';
 import 'package:sci_tercen_context/sci_tercen_context.dart' show OperatorContext, AbstractOperatorContext, Table;
 import 'package:sdui/sdui.dart' show PropConverter;
 
+import 'generated_service_map.dart' as spec;
+
 /// Dispatches service calls by name and returns JSON-serializable results.
 ///
 /// Used by the SDUI renderer's dataSource feature:
@@ -91,41 +93,29 @@ class ServiceCallDispatcher {
     return result;
   }
 
+  /// Resolves a service name to a ServiceFactory accessor.
+  /// The set of valid names comes from the generated OpenAPI spec map.
+  /// The switch maps to typed factory accessors (Dart has no runtime reflection on web).
   Service? _getService(String name) {
-    switch (name) {
-      case 'projectService':
-        return factory.projectService;
-      case 'workflowService':
-        return factory.workflowService;
-      case 'userService':
-        return factory.userService;
-      case 'teamService':
-        return factory.teamService;
-      case 'fileService':
-        return factory.fileService;
-      case 'taskService':
-        return factory.taskService;
-      case 'tableSchemaService':
-        return factory.tableSchemaService;
-      case 'operatorService':
-        return factory.operatorService;
-      case 'eventService':
-        return factory.eventService;
-      case 'documentService':
-        return factory.documentService;
-      case 'projectDocumentService':
-        return factory.projectDocumentService;
-      case 'folderService':
-        return factory.folderService;
-      case 'activityService':
-        return factory.activityService;
-      case 'persistentService':
-        return factory.persistentService;
-      case 'queryService':
-        return factory.queryService;
-      default:
-        return null;
-    }
+    if (!spec.serviceNames.contains(name)) return null;
+    return switch (name) {
+      'activityService' => factory.activityService,
+      'documentService' => factory.documentService,
+      'eventService' => factory.eventService,
+      'fileService' => factory.fileService,
+      'folderService' => factory.folderService,
+      'operatorService' => factory.operatorService,
+      'persistentService' => factory.persistentService,
+      'projectDocumentService' => factory.projectDocumentService,
+      'projectService' => factory.projectService,
+      'queryService' => factory.queryService,
+      'tableSchemaService' => factory.tableSchemaService,
+      'taskService' => factory.taskService,
+      'teamService' => factory.teamService,
+      'userService' => factory.userService,
+      'workflowService' => factory.workflowService,
+      _ => null,
+    };
   }
 
   /// Handles base CRUD methods that exist on every service.
@@ -865,17 +855,15 @@ class ServiceCallDispatcher {
       throw ArgumentError('Method "$method" not found');
     }
 
-    // Check if this is a known findKeys method (view name differs from method name)
-    final viewName = _findKeysViewName(method);
-    final isKnownFindKeys = viewName != method;
-
-    if (isKnownFindKeys) {
-      // findKeys: args[0] is the keys list
+    // Use the OpenAPI spec to determine view type.
+    final viewType = spec.viewTypes[method];
+    if (viewType == 'keys') {
+      final viewName = _findKeysViewName(method);
       final result = await service.findKeys(viewName,
           keys: args.isNotEmpty ? (args[0] is List ? args[0] as List : [args[0]]) : []);
       return result.map((obj) => service.toJson(obj)).toList();
     } else {
-      // findStartKeys: method name IS the view name
+      // startKeys (default for find* methods)
       final result = await service.findStartKeys(method,
           startKey: args.isNotEmpty ? args[0] : null,
           endKey: args.length > 1 ? args[1] : null,
@@ -886,22 +874,8 @@ class ServiceCallDispatcher {
     }
   }
 
-  /// Maps findKeys method names to their actual CouchDB view names.
-  ///
-  /// For findStartKeys methods, the method name IS the view name.
-  /// For findKeys methods, the view name may differ (e.g., findTeamByOwner → teamByOwner).
-  /// This mapping is derived from sci_tercen_client service base classes.
-  static String _findKeysViewName(String method) => switch (method) {
-    'findTeamByOwner' => 'teamByOwner',
-    'findTeamMembers' => 'teamMembers',
-    'findUserByEmail' => 'userByEmail',
-    'findSecretByUserId' => 'secret',
-    'findSubscriptionPlanByCheckoutSessionId' => 'checkoutSessionId',
-    // These findKeys methods happen to match their view name
-    'findDeleted' => 'findDeleted',
-    'findByKind' => 'findByKind',
-    'findByOwner' => 'findByOwner',
-    // Default: assume method name = view name
-    _ => method,
-  };
+  /// Maps findKeys method names to their CouchDB view names.
+  /// Generated from the OpenAPI spec.
+  static String _findKeysViewName(String method) =>
+      spec.findKeysViewNames[method] ?? method;
 }
