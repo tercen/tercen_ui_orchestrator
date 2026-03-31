@@ -50,10 +50,11 @@ class ServiceCallDispatcher {
     result ??= await _tryGenericFind(service, method, args);
 
     // Post-process activity results — enrich with display-ready fields
+    // Note: toJson() returns LinkedMap<dynamic, dynamic>, not Map<String, dynamic>
     if (serviceName == 'activityService' && result is List) {
       for (final item in result) {
-        if (item is Map<String, dynamic>) {
-          final type = item['type'] as String? ?? '';
+        if (item is Map) {
+          final type = (item['type'] ?? '') as String;
           item['colorToken'] = switch (type) {
             'create' || 'complete' => 'success',
             'update' => 'info',
@@ -75,11 +76,11 @@ class ServiceCallDispatcher {
           item['objectName'] ??= item['objectKind'] ?? '';
 
           // Map userId → userName (strip domain if present)
-          final uid = item['userId'] as String? ?? '';
+          final uid = (item['userId'] ?? '') as String;
           item['userName'] = uid.contains('.') ? uid.split('.').first : uid;
 
           // Use teamId as owner context when projectName is empty
-          final pn = item['projectName'] as String? ?? '';
+          final pn = (item['projectName'] ?? '') as String;
           if (pn.isEmpty) {
             item['projectName'] = item['teamId'] ?? '';
           }
