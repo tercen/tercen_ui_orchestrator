@@ -246,6 +246,17 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       );
       debugPrint('[chat] Opened new session as "$id"');
     });
+
+    _sduiContext.eventBus.subscribe('chat.showHistory').listen((event) {
+      debugPrint('[chat] History requested (not yet implemented)');
+      // DEV: show a system message in the chat indicating the event fired
+      _sduiContext.eventBus.publish(
+        'chat.systemMessage',
+        EventPayload(type: 'chat.systemMessage', data: {
+          'text': '[DEV] chat.showHistory event fired — History feature not yet wired in.',
+        }),
+      );
+    });
   }
 
   void _listenWorkflowActions() {

@@ -67,6 +67,7 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
   StreamSubscription? _submitSub;
   StreamSubscription? _changeSub;
   StreamSubscription? _newSessionSub;
+  StreamSubscription? _systemMsgSub;
 
   String get _sendChannel =>
       PropConverter.to<String>(widget.node.props['sendChannel']) ?? 'chat.send';
@@ -118,6 +119,20 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
       debugPrint('[ChatStream] new session requested');
       if (!mounted) return;
       _resetSession();
+    });
+
+    // Listen for system messages (dev notifications)
+    _systemMsgSub = bus.subscribe('chat.systemMessage').listen((event) {
+      if (!mounted) return;
+      final text = (event.data['text'] as String?) ?? '';
+      if (text.isEmpty) return;
+      setState(() {
+        _messages.add({
+          'role': 'system',
+          'text': text,
+          'isStreaming': false,
+        });
+      });
     });
 
     // Listen for TextField input changes and submit
@@ -315,6 +330,7 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
     _submitSub?.cancel();
     _changeSub?.cancel();
     _newSessionSub?.cancel();
+    _systemMsgSub?.cancel();
     super.dispose();
   }
 
