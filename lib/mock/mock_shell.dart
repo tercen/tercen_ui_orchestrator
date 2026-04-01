@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:sdui/sdui.dart';
+import 'package:tercen_ui_orchestrator/sdui/contracts/contract_registry.dart';
 
 import 'event_inspector.dart';
 import 'mock_service_caller.dart';
@@ -45,7 +46,10 @@ class _MockShellState extends State<MockShell> {
 
     _mockCaller = MockServiceCaller();
     final theme = widget.sduiTheme ?? const SduiTheme.light();
-    _sduiContext = SduiContext.create(theme: theme);
+    _sduiContext = SduiContext.create(
+      theme: theme,
+      contractRegistry: createDefaultRegistry(),
+    );
 
     // Wire the mock service caller.
     _sduiContext.renderContext.serviceCaller = _mockCaller.call;

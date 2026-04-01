@@ -16,6 +16,7 @@ import 'package:sci_tercen_client/sci_client_service_factory.dart' as tercen;
 import 'package:tercen_ui_orchestrator/presentation/screens/shell_screen.dart';
 
 import 'package:sdui/sdui.dart';
+import 'package:tercen_ui_orchestrator/sdui/contracts/contract_registry.dart';
 import 'package:tercen_ui_orchestrator/sdui/service/service_call_dispatcher.dart';
 import 'package:tercen_ui_orchestrator/services/agent_client.dart';
 import 'package:tercen_ui_orchestrator/services/chat_backend.dart';
@@ -125,7 +126,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   @override
   void initState() {
     super.initState();
-    _sduiContext = SduiContext.create(theme: const SduiTheme.light());
+    _sduiContext = SduiContext.create(
+      theme: const SduiTheme.light(),
+      contractRegistry: createDefaultRegistry(),
+    );
     _registerResourceMappings();
     _registerOrchestratorWidgets();
     _listenHeaderIntents();
