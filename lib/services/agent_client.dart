@@ -131,6 +131,7 @@ class AgentClient extends ChatBackend {
       }
 
       task.query.operatorSettings
+        ..namespace = DateTime.now().millisecondsSinceEpoch.toString()
         ..operatorRef.operatorId = agentOperatorId
         ..operatorRef.operatorKind = 'DockerOperator'
         ..environment.addAll(envPairs);
