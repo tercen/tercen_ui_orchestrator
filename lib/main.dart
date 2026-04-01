@@ -1444,7 +1444,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   /// for grid layouts and window rearrangement.
   Map<String, dynamic> _collectUiState() {
     final wm = _sduiContext.windowManager;
-    return {
+    final state = <String, dynamic>{
       'viewport': {
         'width': wm.viewportWidth.round(),
         'height': wm.viewportHeight.round(),
@@ -1453,6 +1453,15 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       'focus': Map<String, dynamic>.from(_focusContext),
       'windows': wm.layoutState, // full toJson() per window
     };
+
+    // Focus context: which window/entity the user is currently looking at.
+    // Open = selected = navigated to — all semantically equivalent.
+    final focus = wm.focusContext;
+    if (focus != null) {
+      state['focus'] = focus;
+    }
+
+    return state;
   }
 
   /// Save the current window layout as a .sdui.json file in Tercen.
