@@ -61,6 +61,7 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
   bool _isStreaming = false;
   bool _connected = false;
   String _currentInputText = '';
+  bool _rebuildScheduled = false;
 
   StreamSubscription<Map<String, dynamic>>? _chatSub;
   StreamSubscription? _sendSub;
@@ -126,15 +127,14 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
       if (!mounted) return;
       final text = (event.data['text'] as String?) ?? '';
       if (text.isEmpty) return;
-      setState(() {
-        _messages.add({
-          'role': 'system',
-          'text': text,
-          'isUser': false,
-          'isAssistant': true,
-          'isStreaming': false,
-        });
+      _messages.add({
+        'role': 'system',
+        'text': text,
+        'isUser': false,
+        'isAssistant': true,
+        'isStreaming': false,
       });
+      _scheduleRebuild();
     });
 
     // Listen for TextField input changes and submit
@@ -195,91 +195,108 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
     provider.send(text);
   }
 
+  /// Schedule a single setState per frame instead of one per event.
+  void _scheduleRebuild() {
+    if (_rebuildScheduled || !mounted) return;
+    _rebuildScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _rebuildScheduled = false;
+      if (mounted) setState(() {});
+    });
+  }
+
   void _onChatEvent(Map<String, dynamic> msg) {
     final type = msg['type'] as String?;
     if (!mounted) return;
 
-    setState(() {
-      switch (type) {
-        case 'thinking':
-          _ensureStreamingBubble();
-          break;
+    switch (type) {
+      case 'thinking':
+        _ensureStreamingBubble();
+        _scheduleRebuild();
+        break;
 
-        case 'text_delta':
-          final bubble = _ensureStreamingBubble();
-          final delta = msg['text'] as String? ?? '';
-          bubble['text'] = (bubble['text'] as String? ?? '') + delta;
-          break;
+      case 'text_delta':
+        // Mutate in place — batched rebuild via _scheduleRebuild.
+        final bubble = _ensureStreamingBubble();
+        final delta = msg['text'] as String? ?? '';
+        bubble['text'] = (bubble['text'] as String? ?? '') + delta;
+        _scheduleRebuild();
+        break;
 
-        case 'assistant_message':
-          _removeStreamingBubble();
+      case 'assistant_message':
+        _removeStreamingBubble();
+        _messages.add(_makeMessage(
+          role: 'assistant',
+          text: msg['text'] as String? ?? '',
+        ));
+        _isStreaming = false;
+        _scheduleRebuild();
+        break;
+
+      case 'tool_start':
+        _removeStreamingBubble();
+        _messages.add(_makeMessage(
+          role: 'tool',
+          text: '${msg['toolName']}...',
+          isStreaming: true,
+          toolName: msg['toolName'] as String?,
+          toolId: msg['toolId'] as String?,
+        ));
+        _scheduleRebuild();
+        break;
+
+      case 'tool_end':
+        final toolId = msg['toolId'] as String?;
+        for (int i = _messages.length - 1; i >= 0; i--) {
+          if (_messages[i]['role'] == 'tool' &&
+              _messages[i]['toolId'] == toolId) {
+            final name = _messages[i]['toolName'] ?? '';
+            final isError = msg['isError'] == true;
+            _messages[i]['text'] =
+                isError ? '\u2717 $name' : '\u2713 $name';
+            _messages[i]['isStreaming'] = false;
+            break;
+          }
+        }
+        // Add a "Thinking..." bubble to show the agent is still working
+        if (_isStreaming) {
           _messages.add(_makeMessage(
             role: 'assistant',
+            text: 'Thinking...',
+            isStreaming: true,
+          ));
+        }
+        _scheduleRebuild();
+        break;
+
+      case 'error':
+        _removeStreamingBubble();
+        _messages.add(_makeMessage(
+          role: 'error',
+          text: msg['text'] as String? ?? 'Unknown error',
+        ));
+        _isStreaming = false;
+        _scheduleRebuild();
+        break;
+
+      case 'done':
+        _removeStreamingBubble();
+        _isStreaming = false;
+        _scheduleRebuild();
+        break;
+
+      case 'stream_event':
+        break;
+
+      default:
+        if (msg.containsKey('role') && msg.containsKey('text')) {
+          _messages.add(_makeMessage(
+            role: msg['role'] as String? ?? 'assistant',
             text: msg['text'] as String? ?? '',
           ));
-          _isStreaming = false;
-          break;
-
-        case 'tool_start':
-          _removeStreamingBubble();
-          _messages.add(_makeMessage(
-            role: 'tool',
-            text: '${msg['toolName']}...',
-            isStreaming: true,
-            toolName: msg['toolName'] as String?,
-            toolId: msg['toolId'] as String?,
-          ));
-          break;
-
-        case 'tool_end':
-          final toolId = msg['toolId'] as String?;
-          for (int i = _messages.length - 1; i >= 0; i--) {
-            if (_messages[i]['role'] == 'tool' &&
-                _messages[i]['toolId'] == toolId) {
-              final name = _messages[i]['toolName'] ?? '';
-              final isError = msg['isError'] == true;
-              _messages[i]['text'] =
-                  isError ? '\u2717 $name' : '\u2713 $name';
-              _messages[i]['isStreaming'] = false;
-              break;
-            }
-          }
-          // Add a "Thinking..." bubble to show the agent is still working
-          if (_isStreaming) {
-            _messages.add(_makeMessage(
-              role: 'assistant',
-              text: 'Thinking...',
-              isStreaming: true,
-            ));
-          }
-          break;
-
-        case 'error':
-          _removeStreamingBubble();
-          _messages.add(_makeMessage(
-            role: 'error',
-            text: msg['text'] as String? ?? 'Unknown error',
-          ));
-          _isStreaming = false;
-          break;
-
-        case 'done':
-          _removeStreamingBubble();
-          _isStreaming = false;
-          break;
-
-        case 'stream_event':
-          break;
-
-        default:
-          if (msg.containsKey('role') && msg.containsKey('text')) {
-            _messages.add(_makeMessage(
-              role: msg['role'] as String? ?? 'assistant',
-              text: msg['text'] as String? ?? '',
-            ));
-          }
-      }
-    });
+          _scheduleRebuild();
+        }
+    }
   }
 
   Map<String, dynamic> _makeMessage({

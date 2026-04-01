@@ -229,6 +229,10 @@ class AgentClient extends ChatBackend {
           // This is the reliable path — doesn't depend on the model echoing tool output.
           final resultText = payload['result'] as String? ?? '';
           if (resultText.isNotEmpty) {
+            if (name == 'render_widget') {
+              debugPrint('[agent] render_widget result (${resultText.length} chars): '
+                  '${resultText.substring(0, resultText.length.clamp(0, 300))}');
+            }
             extractAndDispatchLayoutOps(resultText, eventBus);
           }
           _chatMessages.add({
