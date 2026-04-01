@@ -127,6 +127,12 @@ class SduiSchemaGenerator {
           .toList();
     }
 
+    // Semantic metadata (for agent discovery).
+    if (meta.domain != null) schema['domain'] = meta.domain;
+    if (meta.capabilities.isNotEmpty) schema['capabilities'] = meta.capabilities;
+    if (meta.selectionMode != 'none') schema['selectionMode'] = meta.selectionMode;
+    if (meta.dataSource != null) schema['dataSource'] = meta.dataSource;
+
     return schema;
   }
 
