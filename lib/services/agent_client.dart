@@ -34,6 +34,7 @@ class AgentClient extends ChatBackend {
   final Map<String, dynamic> Function()? uiStateCollector;
 
   StreamSubscription? _eventSub;
+  String? _currentTaskId;
   bool _processing = false;
   final StringBuffer _textAccumulator = StringBuffer();
 
@@ -140,6 +141,7 @@ class AgentClient extends ChatBackend {
       // Create task (assigns channelId)
       final created = await factory.taskService
           .create(task) as sci.RunComputationTask;
+      _currentTaskId = created.id;
       debugPrint('[agent] Task created: id=${created.id}, '
           'channelId=${created.channelId}');
 
@@ -171,6 +173,14 @@ class AgentClient extends ChatBackend {
   }
 
   void _onEvent(sci.Event event) {
+    // Ignore events from previous tasks on a shared channel.
+    if (event is sci.TaskEvent &&
+        _currentTaskId != null &&
+        event.taskId.isNotEmpty &&
+        event.taskId != _currentTaskId) {
+      return;
+    }
+
     if (event is sci.GenericEvent) {
       _handleAgentEvent(event.type, event.content);
     } else if (event is sci.TaskStateEvent) {
@@ -270,6 +280,7 @@ class AgentClient extends ChatBackend {
   void _finish() {
     _eventSub?.cancel();
     _eventSub = null;
+    _currentTaskId = null;
     _processing = false;
     _chatMessages.add({'type': 'done'});
     notifyListeners();
