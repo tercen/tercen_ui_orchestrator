@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:js_interop';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:web/web.dart' as web;
@@ -130,6 +132,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _listenWindowIntents();
     _listenChatActions();
     _listenWorkflowActions();
+    _listenFileUpload();
+    _listenFileDownload();
+    _listenTypeFilter();
 
     if (_serverUrl.isNotEmpty) {
       // Dev mode: WebSocket to local Dart server
@@ -982,6 +987,125 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       align: 'center',
       deduplicate: true,
     ));
+    wm.registerResource('team', const ResourceMapping(
+      widgetType: 'TeamManager',
+      size: 'medium',
+      align: 'center',
+      deduplicate: true,
+    ));
+  }
+
+  /// Listen for navigator.upload events — open native file picker and upload.
+  void _listenFileUpload() {
+    _sduiContext.eventBus.subscribe('navigator.upload').listen((event) async {
+      final projectId = event.data['projectId']?.toString() ?? '';
+      final folderId = event.data['folderId']?.toString() ?? '';
+      if (projectId.isEmpty) {
+        debugPrint('[upload] No projectId in upload event — ignoring');
+        return;
+      }
+
+      // Open native file picker
+      final input = web.document.createElement('input') as web.HTMLInputElement;
+      input.type = 'file';
+      input.multiple = true;
+      input.click();
+
+      // Listen for file selection — use sync callback, fire async upload inside
+      input.addEventListener('change', ((web.Event _) {
+        _handleFileUpload(input, projectId, folderId);
+      }).toJS);
+    });
+  }
+
+  /// Transform navigator.typeFilter into boolean flags for each type.
+  void _listenTypeFilter() {
+    _sduiContext.eventBus.subscribe('navigator.typeFilter').listen((event) {
+      final value = event.data['value']?.toString() ?? 'all';
+      final flags = <String, dynamic>{
+        'showFile': value == 'all' || value == 'file',
+        'showDataset': value == 'all' || value == 'dataset',
+        'showWorkflow': value == 'all' || value == 'workflow',
+        'showFolder': value == 'all',
+        'showReadme': value == 'all' || value == 'file',
+        'activeFilter': value,
+      };
+      _sduiContext.eventBus.publish(
+        'navigator.typeFilter.resolved',
+        EventPayload(type: 'filter', sourceWidgetId: 'type-filter', data: flags),
+      );
+    });
+  }
+
+  /// Listen for navigator.downloadFile events — trigger browser download.
+  void _listenFileDownload() {
+    _sduiContext.eventBus.subscribe('navigator.downloadFile').listen((event) async {
+      final nodeId = event.data['nodeId']?.toString() ?? '';
+      final nodeName = event.data['nodeName']?.toString() ?? 'download';
+      if (nodeId.isEmpty) {
+        debugPrint('[download] No nodeId in download event');
+        return;
+      }
+
+      try {
+        final factory = tercen.ServiceFactory.CURRENT;
+        if (factory == null) return;
+
+        final dispatcher = ServiceCallDispatcher(factory, authToken: _tercenToken);
+        final result = await dispatcher.call('fileService', 'downloadUrl', [nodeId]);
+        final url = (result as Map)['url']?.toString() ?? '';
+        if (url.isNotEmpty) {
+          // Fetch as blob to preserve filename on cross-origin download
+          final response = await web.window.fetch(url.toJS).toDart;
+          final blob = await response.blob().toDart;
+          final blobUrl = web.URL.createObjectURL(blob);
+          final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+          anchor.href = blobUrl;
+          anchor.download = nodeName;
+          anchor.click();
+          web.URL.revokeObjectURL(blobUrl);
+          debugPrint('[download] Started download: $nodeName');
+        }
+      } catch (e) {
+        debugPrint('[download] Failed: $e');
+      }
+    });
+  }
+
+  /// Handle file upload after native file picker selection.
+  Future<void> _handleFileUpload(
+      web.HTMLInputElement input, String projectId, String folderId) async {
+    final files = input.files;
+    if (files == null || files.length == 0) return;
+
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) return;
+
+    final svcDispatcher = ServiceCallDispatcher(factory, authToken: _tercenToken);
+
+    for (var i = 0; i < files.length; i++) {
+      final file = files.item(i);
+      if (file == null) continue;
+
+      try {
+        // Read file as ArrayBuffer using JS interop
+        final arrayBuffer = await file.arrayBuffer().toDart;
+        final bytes = arrayBuffer.toDart.asUint8List();
+
+        final uploaded = await svcDispatcher.uploadFile(
+          projectId, folderId, file.name, bytes.toList(),
+        );
+        debugPrint('[upload] Uploaded: ${uploaded['name']} (${uploaded['id']})');
+      } catch (e) {
+        debugPrint('[upload] Failed: $e');
+      }
+    }
+
+    // Refresh the navigator tree after upload
+    _sduiContext.eventBus.publish(
+      'navigator.refreshTree',
+      EventPayload(type: 'refresh', sourceWidgetId: 'upload-handler', data: {}),
+    );
   }
 
   /// These are compiled Dart widgets that need access to orchestrator internals

@@ -90,6 +90,20 @@ class ServiceCallDispatcher {
       }
     }
 
+    // Post-process project results — add shortVersion for git chip display
+    if (serviceName == 'projectService' && result is List) {
+      for (final item in result) {
+        if (item is Map) {
+          final version = (item['version'] ?? '') as String;
+          if (version.isNotEmpty) {
+            item['shortVersion'] = version.length > 8
+                ? version.substring(0, 8)
+                : version;
+          }
+        }
+      }
+    }
+
     return result;
   }
 
@@ -290,6 +304,7 @@ class ServiceCallDispatcher {
           startKey: args.isNotEmpty ? args[0] : null,
           endKey: args.length > 1 ? args[1] : null,
           limit: args.length > 2 ? PropConverter.to<int>(args[2]) ?? 20 : 20,
+          useFactory: true,
         );
         return result.map((obj) => svc.toJson(obj)).toList();
       case 'findProjectObjectsByFolderAndName':
@@ -297,12 +312,46 @@ class ServiceCallDispatcher {
           startKey: args.isNotEmpty ? args[0] : null,
           endKey: args.length > 1 ? args[1] : null,
           limit: args.length > 2 ? PropConverter.to<int>(args[2]) ?? 20 : 20,
+          skip: args.length > 3 ? PropConverter.to<int>(args[3]) ?? 0 : 0,
+          descending: args.length > 4 ? args[4] == true : false,
+          useFactory: true,
         );
-        return result.map((obj) => svc.toJson(obj)).toList();
+        // Filter out internal schema types and computed tables.
+        final _uuidPattern = RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', caseSensitive: false);
+        final filtered = result.where((obj) {
+          final json = svc.toJson(obj);
+          final kind = json['kind'] as String? ?? '';
+          // Exclude computed/derived schema types
+          if (kind == 'ComputedTableSchema' || kind == 'CubeQueryTableSchema') {
+            return false;
+          }
+          // Exclude TableSchema with UUID-like names (internal references)
+          if (kind == 'TableSchema') {
+            final name = json['name'] as String? ?? '';
+            if (_uuidPattern.hasMatch(name)) return false;
+          }
+          return true;
+        }).toList();
+        return filtered.map((obj) => svc.toJson(obj)).toList();
       default:
         throw ArgumentError(
             'Method "$method" not found on projectDocumentService');
     }
+  }
+
+  /// Upload a file to a project/folder. Called from the SDUI file upload handler.
+  /// Args: [projectId, folderId, fileName, base64Content]
+  Future<Map<String, dynamic>> uploadFile(
+      String projectId, String folderId, String fileName, List<int> bytes) async {
+    final svc = factory.fileService;
+    final fileDoc = svc.fromJson({
+      'kind': 'FileDocument',
+      'name': fileName,
+      'projectId': projectId,
+      'folderId': folderId,
+    });
+    final uploaded = await svc.upload(fileDoc, Stream.value(bytes));
+    return Map<String, dynamic>.from(svc.toJson(uploaded));
   }
 
   Future<dynamic> _fileServiceCall(String method, List<dynamic> args) async {
