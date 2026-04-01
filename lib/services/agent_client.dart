@@ -225,6 +225,12 @@ class AgentClient extends ChatBackend {
 
         case 'agent_tool_result':
           final name = payload['name'] as String? ?? '';
+          // Extract layout ops from tool results (render_widget returns JSON code blocks).
+          // This is the reliable path — doesn't depend on the model echoing tool output.
+          final resultText = payload['result'] as String? ?? '';
+          if (resultText.isNotEmpty) {
+            extractAndDispatchLayoutOps(resultText, eventBus);
+          }
           _chatMessages.add({
             'type': 'tool_end',
             'toolId': name,
