@@ -50,7 +50,7 @@ class AgentClient extends ChatBackend {
     required this.agentOperatorId,
     required this.anthropicApiKey,
     this.systemPrompt = '',
-    this.modelName = 'claude-sonnet-4-6',
+    this.modelName = 'claude-haiku-3-5-20241022',
     this.maxTurns = 8,
     this.projectId,
     this.userId,
