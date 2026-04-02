@@ -131,6 +131,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _listenHeaderIntents();
     _listenWindowIntents();
     _listenAuditDateRange();
+    _listenAuditSelectionRelay();
     _listenChatActions();
     _listenWorkflowActions();
     _listenFileUpload();
@@ -1133,6 +1134,45 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   }
 
   Map<String, dynamic> _focusContext = {};
+
+  /// Relay audit trail selection events to system.selection (for LLM context)
+  /// and system.focus (for ChatBox focus indicator).
+  void _listenAuditSelectionRelay() {
+    _sduiContext.eventBus.subscribePrefix('audit.').listen((event) {
+      if (!event.type.contains('selection.changed')) return;
+      final selected = event.data['selected'];
+      if (selected is! List) return;
+
+      // Relay to system.selection so LLM sees it in uiState
+      _sduiContext.eventBus.publish(
+        'system.selection.auditTrail',
+        EventPayload(
+          type: 'selection',
+          sourceWidgetId: event.sourceWidgetId,
+          data: {'auditEvents': selected, 'count': selected.length},
+        ),
+      );
+
+      // Publish focus event so ChatBox shows "Focus: Audit selection (N events)"
+      final count = selected.length;
+      if (count > 0) {
+        _focusContext = {
+          'label': 'Audit selection ($count event${count == 1 ? '' : 's'})',
+          'type': 'auditSelection',
+          'count': count,
+          'source': 'AuditTrail',
+        };
+        _sduiContext.eventBus.publish(
+          'system.focus',
+          EventPayload(
+            type: 'focus',
+            sourceWidgetId: event.sourceWidgetId,
+            data: _focusContext,
+          ),
+        );
+      }
+    });
+  }
 
   /// Listen for navigator.downloadFile events — trigger browser download.
   void _listenFileDownload() {

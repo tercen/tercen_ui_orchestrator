@@ -924,12 +924,12 @@ class ServiceCallDispatcher {
       // If dates are empty, contain unresolved templates, or are sentinel values — apply defaults
       if (_isUnresolvedDate(startDate) || _isUnresolvedDate(endDate)) {
         final now = DateTime.now().toUtc();
-        final sevenDaysAgo = now.subtract(const Duration(days: 7));
-        startKey[1] = sevenDaysAgo.toIso8601String();
+        final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+        startKey[1] = thirtyDaysAgo.toIso8601String();
         endKey[1] = now.toIso8601String();
         result[0] = startKey;
         result[1] = endKey;
-        debugPrint('[audit] Applied default date range: ${startKey[1]} → ${endKey[1]}');
+        debugPrint('[audit] Applied default date range (30d): ${startKey[1]} → ${endKey[1]}');
       }
     }
 
@@ -994,28 +994,35 @@ class ServiceCallDispatcher {
     item['targetName'] = item['objectName'] ?? item['objectKind'] ?? '';
     item['targetId'] ??= item['objectId'] ?? item['id'] ?? '';
 
-    // displayDate + timestamp: formatted date strings
-    item['displayDate'] = _formatDateField(item['date']) ??
-        _formatDateField(item['lastModifiedDate']) ?? '';
+    // displayDate: human-readable YYYY-MMM-DD HH:mm
+    // sortDate: ISO-sortable YYYY-MM-DD HH:mm (for filtering/sorting)
+    final dateResult = _formatDateFields(item['date']) ??
+        _formatDateFields(item['lastModifiedDate']);
+    item['displayDate'] = dateResult?.$1 ?? '';
+    item['sortDate'] = dateResult?.$2 ?? '';
     item['timestamp'] = item['displayDate'];
   }
 
   /// Format a Tercen date field (Map with 'value' key, or raw String) to display string.
-  static String? _formatDateField(dynamic dateField) {
+  static const _monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  /// Returns (displayDate, sortDate) pair, or null if unparseable.
+  static (String, String)? _formatDateFields(dynamic dateField) {
+    DateTime? dt;
     if (dateField is Map) {
       final v = dateField['value'] as String?;
       if (v != null && v.isNotEmpty) {
-        try {
-          final dt = DateTime.parse(v);
-          return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
-              '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-        } catch (_) {
-          return v;
-        }
+        try { dt = DateTime.parse(v); } catch (_) { return (v, v); }
       }
     } else if (dateField is String && dateField.isNotEmpty) {
-      return dateField;
+      try { dt = DateTime.parse(dateField); } catch (_) { return (dateField, dateField); }
     }
-    return null;
+    if (dt == null) return null;
+
+    final display = '${dt.year}-${_monthNames[dt.month - 1]}-${dt.day.toString().padLeft(2, '0')} '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    final sortable = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return (display, sortable);
   }
 }
