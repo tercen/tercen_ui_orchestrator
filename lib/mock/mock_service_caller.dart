@@ -16,6 +16,7 @@ const _serviceModelKind = <String, String>{
   'operatorService': 'DockerOperator',
   'documentService': 'Document',
   'activityService': 'Activity',
+  'eventService': 'Activity',
 };
 
 /// Data scenario that controls how many items the mock returns.
@@ -228,12 +229,21 @@ class MockServiceCaller extends ChangeNotifier {
         break;
 
       case 'Activity':
-        doc['type'] = ['create', 'update', 'delete', 'run'][index % 4];
-        doc['objectKind'] = 'Workflow';
-        doc['objectId'] = 'wf-${index.toString().padLeft(3, '0')}';
-        doc['objectName'] = 'Workflow ${index + 1}';
-        doc['userId'] = 'mock-user';
-        doc['colorToken'] = ['primary', 'secondary', 'error', 'tertiary'][index % 4];
+        final actType = ['create', 'update', 'delete', 'run'][index % 4];
+        final objKind = ['Workflow', 'FileDocument', 'TableSchema', 'Project', 'FolderDocument'][index % 5];
+        doc['type'] = actType;
+        doc['objectKind'] = objKind;
+        doc['objectId'] = 'obj-${index.toString().padLeft(3, '0')}';
+        doc['objectName'] = '$objKind ${index + 1}';
+        doc['userId'] = ['alice', 'bob', 'carol', 'dave'][index % 4];
+        doc['teamId'] = ['science-team', 'data-team', 'admin'][index % 3];
+        doc['projectId'] = 'proj-${(index % 3).toString().padLeft(3, '0')}';
+        doc['projectName'] = ['Cancer Genomics', 'Proteomics Pipeline', 'QC Dashboard'][index % 3];
+        doc['date'] = _dateObj(now);
+        doc['properties'] = <Map<String, dynamic>>[
+          {'kind': 'Pair', 'key': 'name', 'value': '$objKind ${index + 1}'},
+          {'kind': 'Pair', 'key': 'objectId', 'value': 'obj-${index.toString().padLeft(3, '0')}'},
+        ];
         break;
     }
 

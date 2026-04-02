@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:sci_base/sci_client_base.dart';
 import 'package:sci_base/sci_service.dart';
 import 'package:sci_tercen_client/sci_client_service_factory.dart';
@@ -48,45 +49,24 @@ class ServiceCallDispatcher {
       }
     }
 
+    // Default date range for activity date-based queries.
+    // When startDate/endDate are empty (unresolved templates), default to last 7 days.
+    if (serviceName == 'activityService' && method.contains('Date')) {
+      args = _applyDefaultDateRange(args);
+    }
+
     // Generic find handler — last resort for find* methods not explicitly handled
     result ??= await _tryGenericFind(service, method, args);
 
-    // Post-process activity results — enrich with display-ready fields
+    // Post-process activity/event results — enrich with display-ready fields
     // Note: toJson() returns LinkedMap<dynamic, dynamic>, not Map<String, dynamic>
-    if (serviceName == 'activityService' && result is List) {
-      for (final item in result) {
-        if (item is Map) {
-          final type = (item['type'] ?? '') as String;
-          item['colorToken'] = switch (type) {
-            'create' || 'complete' => 'success',
-            'update' => 'info',
-            'delete' => 'error',
-            'run' => 'warning',
-            _ => 'onSurfaceMuted',
-          };
-
-          // Extract objectName from properties list
-          final props = item['properties'];
-          if (props is List) {
-            for (final p in props) {
-              if (p is Map && p['key'] == 'name') {
-                item['objectName'] = p['value'] ?? '';
-                break;
-              }
-            }
-          }
-          item['objectName'] ??= item['objectKind'] ?? '';
-
-          // Map userId → userName (strip domain if present)
-          final uid = (item['userId'] ?? '') as String;
-          item['userName'] = uid.contains('.') ? uid.split('.').first : uid;
-
-          // Use teamId as owner context when projectName is empty
-          final pn = (item['projectName'] ?? '') as String;
-          if (pn.isEmpty) {
-            item['projectName'] = item['teamId'] ?? '';
-          }
+    if (serviceName == 'activityService' || serviceName == 'eventService') {
+      if (result is List) {
+        for (final item in result) {
+          if (item is Map) _enrichActivityItem(item);
         }
+      } else if (result is Map) {
+        _enrichActivityItem(result);
       }
     }
 
@@ -927,4 +907,115 @@ class ServiceCallDispatcher {
   /// Generated from the OpenAPI spec.
   static String _findKeysViewName(String method) =>
       spec.findKeysViewNames[method] ?? method;
+
+  /// Apply default 7-day date range when date keys are empty/unresolved.
+  /// Args format for findBy*AndDate: [startKey=[scopeId, date], endKey=[scopeId, date], limit]
+  static List<dynamic> _applyDefaultDateRange(List<dynamic> args) {
+    if (args.length < 2) return args;
+
+    final result = List<dynamic>.from(args);
+    final startKey = result[0] is List ? List<dynamic>.from(result[0] as List) : result[0];
+    final endKey = result[1] is List ? List<dynamic>.from(result[1] as List) : result[1];
+
+    if (startKey is List && startKey.length >= 2 && endKey is List && endKey.length >= 2) {
+      final startDate = startKey[1]?.toString() ?? '';
+      final endDate = endKey[1]?.toString() ?? '';
+
+      // If dates are empty, contain unresolved templates, or are sentinel values — apply defaults
+      if (_isUnresolvedDate(startDate) || _isUnresolvedDate(endDate)) {
+        final now = DateTime.now().toUtc();
+        final sevenDaysAgo = now.subtract(const Duration(days: 7));
+        startKey[1] = sevenDaysAgo.toIso8601String();
+        endKey[1] = now.toIso8601String();
+        result[0] = startKey;
+        result[1] = endKey;
+        debugPrint('[audit] Applied default date range: ${startKey[1]} → ${endKey[1]}');
+      }
+    }
+
+    return result;
+  }
+
+  /// Check if a date string is unresolved or empty.
+  static bool _isUnresolvedDate(String date) =>
+      date.isEmpty || date.contains('{{') || date == '\uf000';
+
+  /// Enrich a single activity/event map with template-required computed fields.
+  static void _enrichActivityItem(Map item) {
+    final type = (item['type'] ?? '') as String;
+    item['colorToken'] = switch (type) {
+      'create' || 'complete' => 'success',
+      'update' => 'info',
+      'delete' => 'error',
+      'run' => 'warning',
+      _ => 'onSurfaceMuted',
+    };
+
+    // Extract objectName + objectId from properties list
+    final props = item['properties'];
+    if (props is List) {
+      for (final p in props) {
+        if (p is Map) {
+          if (p['key'] == 'name') item['objectName'] ??= p['value'] ?? '';
+          if (p['key'] == 'objectId') item['objectId'] ??= p['value'] ?? '';
+        }
+      }
+    }
+    item['objectName'] ??= item['objectKind'] ?? '';
+
+    // Map userId → userName (strip domain if present)
+    final uid = (item['userId'] ?? '') as String;
+    item['userName'] = uid.contains('.') ? uid.split('.').first : uid;
+
+    // Use teamId as owner context when projectName is empty
+    final pn = (item['projectName'] ?? '') as String;
+    if (pn.isEmpty) {
+      item['projectName'] = item['teamId'] ?? '';
+    }
+
+    // --- Template-required computed fields ---
+    // eventType: alias for 'type' (template uses {{item.eventType}})
+    item['eventType'] = type;
+
+    // actionSummary: human-readable "Created Workflow" style string
+    final verb = switch (type) {
+      'create' => 'Created',
+      'update' => 'Updated',
+      'delete' => 'Deleted',
+      'run' => 'Ran',
+      'complete' => 'Completed',
+      'fail' => 'Failed',
+      'cancel' => 'Cancelled',
+      _ => type,
+    };
+    item['actionSummary'] = '$verb ${item['objectKind'] ?? ''}';
+
+    // targetName / targetId: human-readable target from objectName/objectId
+    item['targetName'] = item['objectName'] ?? item['objectKind'] ?? '';
+    item['targetId'] ??= item['objectId'] ?? item['id'] ?? '';
+
+    // displayDate + timestamp: formatted date strings
+    item['displayDate'] = _formatDateField(item['date']) ??
+        _formatDateField(item['lastModifiedDate']) ?? '';
+    item['timestamp'] = item['displayDate'];
+  }
+
+  /// Format a Tercen date field (Map with 'value' key, or raw String) to display string.
+  static String? _formatDateField(dynamic dateField) {
+    if (dateField is Map) {
+      final v = dateField['value'] as String?;
+      if (v != null && v.isNotEmpty) {
+        try {
+          final dt = DateTime.parse(v);
+          return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+              '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+        } catch (_) {
+          return v;
+        }
+      }
+    } else if (dateField is String && dateField.isNotEmpty) {
+      return dateField;
+    }
+    return null;
+  }
 }

@@ -130,6 +130,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _registerOrchestratorWidgets();
     _listenHeaderIntents();
     _listenWindowIntents();
+    _listenAuditDateRange();
     _listenChatActions();
     _listenWorkflowActions();
     _listenFileUpload();
@@ -336,11 +337,49 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           _openWidgetAsTab(
             widgetType: 'AuditTrail',
             windowId: 'audit-trail',
-            title: 'Audit',
+            title: 'Audit Trail',
             sourceWindowId: event.data['sourceWindowId'] as String?,
             placement: event.data['placement'] as String? ?? 'samePane',
+            props: {
+              'scopeType': event.data['scopeType'] as String? ?? 'user',
+              'scopeId': event.data['scopeId'] as String? ?? '',
+            },
           );
       }
+    });
+  }
+
+  /// Wire audit trail date range controls.
+  /// Collects date TextField values and publishes them to the DataSource refresh channel.
+  void _listenAuditDateRange() {
+    final eb = _sduiContext.eventBus;
+    final dateValues = <String, String>{'from': '', 'to': ''};
+
+    // Track date field changes
+    eb.subscribe('input.audit-trail-root-date-from.changed').listen((e) {
+      dateValues['from'] = (e.data['value'] as String?) ?? '';
+    });
+    eb.subscribe('input.audit-trail-root-date-to.changed').listen((e) {
+      dateValues['to'] = (e.data['value'] as String?) ?? '';
+    });
+
+    // Apply button: collect dates and trigger DataSource refresh
+    eb.subscribe('audit.audit-trail-root.applyDateRange').listen((_) {
+      final from = dateValues['from'] ?? '';
+      final to = dateValues['to'] ?? '';
+
+      // Convert YYYY-MM-DD to ISO 8601 for CouchDB range query
+      final startDate = from.isNotEmpty ? '${from}T00:00:00.000Z' : '';
+      final endDate = to.isNotEmpty ? '${to}T23:59:59.999Z' : '';
+
+      debugPrint('[audit] Apply date range: $startDate → $endDate');
+      eb.publish(
+        'audit.audit-trail-root.refresh',
+        EventPayload(type: 'refresh', data: {
+          'startDate': startDate,
+          'endDate': endDate,
+        }),
+      );
     });
   }
 
@@ -797,10 +836,14 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     try {
       Map<String, dynamic>? catalog;
 
-      if (_serverUrl.isNotEmpty) {
+      // Try bundled local catalog first (for dev), then server/GitHub
+      catalog = await _tryLoadBundledCatalog();
+
+      if (catalog == null && _serverUrl.isNotEmpty) {
         // WebSocket mode — server proxies the catalog
         catalog = await _fetchCatalogFromServer();
-      } else {
+      }
+      if (catalog == null) {
         // Agent mode — fetch directly from GitHub
         catalog = await _fetchCatalogFromGitHub();
       }
@@ -818,6 +861,18 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       }
     } catch (e) {
       debugPrint('[catalog] Auto-load failed: $e');
+    }
+  }
+
+  /// Try loading a bundled catalog.json asset (for local dev).
+  Future<Map<String, dynamic>?> _tryLoadBundledCatalog() async {
+    try {
+      final str = await rootBundle.loadString('catalog.json');
+      final catalog = jsonDecode(str) as Map<String, dynamic>;
+      debugPrint('[catalog] Loaded from bundled asset');
+      return catalog;
+    } catch (_) {
+      return null; // No bundled catalog — fall through
     }
   }
 
