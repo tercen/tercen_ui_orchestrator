@@ -6,24 +6,27 @@ import 'package:sci_tercen_client/sci_client.dart' as sci;
 import 'package:sdui/sdui.dart';
 
 import 'chat_backend.dart';
-import 'layout_extractor.dart';
+import 'layout_dispatch.dart';
 
 /// Chat backend that creates Tercen agent operator tasks and
 /// streams results back via the event service.
 ///
-/// Each [sendChat] call creates a new [RunComputationTask] with
-/// the user's message as the `prompt` operator property, subscribes
-/// to the task's event channel, and maps agent events to the chat
-/// message format expected by ChatPanel.
+/// Event contract (from agent main.ts → Tercen GenericEvent):
 ///
-/// Conversation continuity: the agent returns a sessionId and
-/// base64-encoded session data after each turn. These are passed
-/// back on subsequent tasks so the CLI can resume the conversation.
+///   agent_text         {text: string}
+///   agent_tool_use     {name: string, input: object}
+///   agent_tool_result  {name: string, result: string}
+///                      — name contains 'render_widget' → result is LayoutOp JSON
+///   agent_result       {result, cost, turns, sessionId?, sessionData?}
+///   agent_error        {errors: string[]}
+///
+/// Layout op delivery:
+///   render_widget tool → PostToolUse hook → agent_tool_result event
+///   → this class parses result as JSON → dispatches to EventBus
 class AgentClient extends ChatBackend {
   final sci.ServiceFactory factory;
   final EventBus eventBus;
   final String agentOperatorId;
-  final String systemPrompt;
   final String anthropicApiKey;
   final String modelName;
   final int maxTurns;
@@ -36,7 +39,6 @@ class AgentClient extends ChatBackend {
   StreamSubscription? _eventSub;
   String? _currentTaskId;
   bool _processing = false;
-  final StringBuffer _textAccumulator = StringBuffer();
 
   final _chatMessages = StreamController<Map<String, dynamic>>.broadcast();
 
@@ -49,9 +51,8 @@ class AgentClient extends ChatBackend {
     required this.eventBus,
     required this.agentOperatorId,
     required this.anthropicApiKey,
-    this.systemPrompt = '',
     this.modelName = 'claude-3-haiku-20240307',
-    this.maxTurns = 8,
+    this.maxTurns = 12,
     this.projectId,
     this.userId,
     this.uiStateCollector,
@@ -61,7 +62,7 @@ class AgentClient extends ChatBackend {
   Stream<Map<String, dynamic>> get chatMessages => _chatMessages.stream;
 
   @override
-  bool get isConnected => true; // Always "connected" — tasks are on-demand
+  bool get isConnected => true;
 
   @override
   bool get isProcessing => _processing;
@@ -70,58 +71,37 @@ class AgentClient extends ChatBackend {
   void sendChat(String message) {
     if (_processing) return;
     _processing = true;
-    _textAccumulator.clear();
     notifyListeners();
     _startAgentTask(message);
   }
 
+  // -------------------------------------------------------------------------
+  // Task creation
+  // -------------------------------------------------------------------------
+
   Future<void> _startAgentTask(String message) async {
     try {
-      // Build operator properties
       final envPairs = <sci.Pair>[
-        sci.Pair()
-          ..key = 'prompt'
-          ..value = message,
-        sci.Pair()
-          ..key = 'ANTHROPIC_API_KEY'
-          ..value = anthropicApiKey,
-        sci.Pair()
-          ..key = 'model'
-          ..value = modelName,
-        sci.Pair()
-          ..key = 'maxTurns'
-          ..value = '$maxTurns',
+        _pair('prompt', message),
+        _pair('ANTHROPIC_API_KEY', anthropicApiKey),
+        _pair('model', modelName),
+        _pair('maxTurns', '$maxTurns'),
       ];
 
-      if (systemPrompt.isNotEmpty) {
-        envPairs.add(sci.Pair()
-          ..key = 'systemPrompt'
-          ..value = systemPrompt);
-      }
-
-      // Collect and attach UI state snapshot
       if (uiStateCollector != null) {
         final uiState = uiStateCollector!();
         if (uiState.isNotEmpty) {
-          envPairs.add(sci.Pair()
-            ..key = 'uiState'
-            ..value = jsonEncode(uiState));
+          envPairs.add(_pair('uiState', jsonEncode(uiState)));
         }
       }
 
-      // Session continuity — pass previous session if available
       if (_sessionId != null && _sessionId!.isNotEmpty) {
-        envPairs.add(sci.Pair()
-          ..key = 'sessionId'
-          ..value = _sessionId!);
+        envPairs.add(_pair('sessionId', _sessionId!));
       }
       if (_sessionData != null && _sessionData!.isNotEmpty) {
-        envPairs.add(sci.Pair()
-          ..key = 'sessionData'
-          ..value = _sessionData!);
+        envPairs.add(_pair('sessionData', _sessionData!));
       }
 
-      // Build the task
       final task = sci.RunComputationTask();
       if (projectId != null && projectId!.isNotEmpty) {
         task.projectId = projectId!;
@@ -136,25 +116,19 @@ class AgentClient extends ChatBackend {
         ..operatorRef.operatorKind = 'DockerOperator'
         ..environment.addAll(envPairs);
 
-      debugPrint('[agent] Creating task with ${envPairs.length} properties'
-          '${_sessionId != null ? " (resuming session $_sessionId)" : ""}');
+      debugPrint('[agent] Creating task (${envPairs.length} props'
+          '${_sessionId != null ? ", session=$_sessionId" : ""})');
 
-      // Create task (assigns channelId)
-      final created = await factory.taskService
-          .create(task) as sci.RunComputationTask;
+      final created = await factory.taskService.create(task) as sci.RunComputationTask;
       _currentTaskId = created.id;
-      debugPrint('[agent] Task created: id=${created.id}, '
-          'channelId=${created.channelId}');
+      debugPrint('[agent] Task ${created.id} on channel ${created.channelId}');
 
-      // Subscribe to channel BEFORE starting the task
       _eventSub?.cancel();
-      _eventSub = factory.eventService
-          .channel(created.channelId)
-          .listen(
+      _eventSub = factory.eventService.channel(created.channelId).listen(
         _onEvent,
         onError: (e, st) {
           debugPrint('[agent] Event stream error: $e');
-          _chatMessages.add({'type': 'error', 'text': '$e'});
+          _emitChat('error', {'text': '$e'});
           _finish();
         },
         onDone: () {
@@ -163,23 +137,24 @@ class AgentClient extends ChatBackend {
         },
       );
 
-      // Start execution
       await factory.taskService.runTask(created.id);
-      debugPrint('[agent] Task started');
     } catch (e, st) {
       debugPrint('[agent] Failed to start task: $e\n$st');
-      _chatMessages.add({'type': 'error', 'text': '$e'});
+      _emitChat('error', {'text': '$e'});
       _finish();
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Event handling
+  // -------------------------------------------------------------------------
+
   void _onEvent(sci.Event event) {
-    // Ignore events from previous tasks on a shared channel.
     if (event is sci.TaskEvent &&
         _currentTaskId != null &&
         event.taskId.isNotEmpty &&
         event.taskId != _currentTaskId) {
-      return;
+      return; // Stale event from previous task on shared channel.
     }
 
     if (event is sci.GenericEvent) {
@@ -189,11 +164,7 @@ class AgentClient extends ChatBackend {
       debugPrint('[agent] Task state: ${state.kind}');
       if (state is sci.FailedState) {
         final reason = state.reason.isNotEmpty ? state.reason : state.error;
-        debugPrint('[agent] Task failed: $reason');
-        _chatMessages.add({
-          'type': 'error',
-          'text': 'Task failed: $reason',
-        });
+        _emitChat('error', {'text': 'Task failed: $reason'});
         _finish();
       } else if (state.kind == 'DoneState') {
         _finish();
@@ -204,88 +175,85 @@ class AgentClient extends ChatBackend {
   }
 
   void _handleAgentEvent(String type, String content) {
+    final Map<String, dynamic> payload;
     try {
-      final payload = jsonDecode(content) as Map<String, dynamic>;
-
-      switch (type) {
-        case 'agent_text':
-          final text = payload['text'] as String? ?? '';
-          _textAccumulator.write(text);
-          _chatMessages.add({'type': 'text_delta', 'text': text});
-          break;
-
-        case 'agent_tool_use':
-          final name = payload['name'] as String? ?? '';
-          _chatMessages.add({
-            'type': 'tool_start',
-            'toolName': name,
-            'toolId': name,
-          });
-          break;
-
-        case 'agent_tool_result':
-          final name = payload['name'] as String? ?? '';
-          // Extract layout ops from tool results (render_widget returns JSON code blocks).
-          // This is the reliable path — doesn't depend on the model echoing tool output.
-          final resultText = payload['result'] as String? ?? '';
-          if (resultText.isNotEmpty) {
-            if (name == 'render_widget') {
-              debugPrint('[agent] render_widget result (${resultText.length} chars): '
-                  '${resultText.substring(0, resultText.length.clamp(0, 300))}');
-            }
-            extractAndDispatchLayoutOps(resultText, eventBus);
-          }
-          _chatMessages.add({
-            'type': 'tool_end',
-            'toolId': name,
-            'isError': false,
-          });
-          break;
-
-        case 'agent_result':
-          final fullText = _textAccumulator.toString();
-          // Extract and dispatch layout operations
-          extractAndDispatchLayoutOps(fullText, eventBus);
-          // Send cleaned text as final message
-          final cleanText = stripJsonCodeBlocks(fullText);
-          _chatMessages.add({
-            'type': 'assistant_message',
-            'text': cleanText,
-          });
-
-          // Store session state for next turn
-          final sid = payload['sessionId'] as String?;
-          final sdata = payload['sessionData'] as String?;
-          if (sid != null && sid.isNotEmpty) {
-            _sessionId = sid;
-            debugPrint('[agent] Session ID: $_sessionId');
-          }
-          if (sdata != null && sdata.isNotEmpty) {
-            _sessionData = sdata;
-            debugPrint('[agent] Session data: ${sdata.length} chars');
-          }
-
-          final cost = payload['cost'];
-          final turns = payload['turns'];
-          debugPrint('[agent] Done — cost: \$$cost, turns: $turns');
-          _finish();
-          break;
-
-        case 'agent_error':
-          final errors = payload['errors'] as List? ?? [];
-          _chatMessages.add({
-            'type': 'error',
-            'text': errors.join(', '),
-          });
-          _finish();
-          break;
-
-        default:
-          debugPrint('[agent] Unknown event type: $type');
-      }
+      payload = jsonDecode(content) as Map<String, dynamic>;
     } catch (e) {
-      debugPrint('[agent] Failed to parse event content: $e');
+      debugPrint('[agent] Failed to parse event content ($type): $e');
+      return;
     }
+
+    switch (type) {
+      case 'agent_text':
+        final text = payload['text'] as String? ?? '';
+        _emitChat('text_delta', {'text': text});
+
+      case 'agent_tool_use':
+        final name = payload['name'] as String? ?? '';
+        _emitChat('tool_start', {'toolName': name, 'toolId': name});
+
+      case 'agent_tool_result':
+        _handleToolResult(payload);
+
+      case 'agent_result':
+        _handleResult(payload);
+
+      case 'agent_error':
+        final errors = payload['errors'] as List? ?? [];
+        _emitChat('error', {'text': errors.join(', ')});
+        _finish();
+
+      default:
+        debugPrint('[agent] Unknown event type: $type');
+    }
+  }
+
+  /// Handle agent_tool_result — the ONLY path for layout ops.
+  ///
+  /// Contract: if name contains 'render_widget', result is a JSON
+  /// string of a LayoutOp {op, id, title, size, align, content}.
+  void _handleToolResult(Map<String, dynamic> payload) {
+    final name = payload['name'] as String? ?? '';
+    final result = payload['result'] as String? ?? '';
+
+    debugPrint('[agent] tool_result: $name (${result.length} chars)');
+
+    if (name.contains('render_widget') && result.isNotEmpty) {
+      debugPrint('[agent] render_widget → dispatching layout op');
+      final dispatched = dispatchLayoutOp(result, eventBus);
+      if (!dispatched) {
+        debugPrint('[agent] render_widget result was NOT a valid layout op:');
+        debugPrint('[agent]   ${result.substring(0, result.length.clamp(0, 500))}');
+      }
+    }
+
+    _emitChat('tool_end', {'toolId': name, 'isError': false});
+  }
+
+  /// Handle agent_result — end of agent turn.
+  void _handleResult(Map<String, dynamic> payload) {
+    // Store session state for next turn.
+    final sid = payload['sessionId'] as String?;
+    final sdata = payload['sessionData'] as String?;
+    if (sid != null && sid.isNotEmpty) _sessionId = sid;
+    if (sdata != null && sdata.isNotEmpty) _sessionData = sdata;
+
+    final cost = payload['cost'];
+    final turns = payload['turns'];
+    debugPrint('[agent] Done — cost=\$$cost turns=$turns'
+        '${_sessionId != null ? " session=$_sessionId" : ""}');
+
+    // Final message marker for chat UI.
+    _emitChat('assistant_message', {'text': ''});
+    _finish();
+  }
+
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  void _emitChat(String type, Map<String, dynamic> extra) {
+    _chatMessages.add({'type': type, ...extra});
   }
 
   void _finish() {
@@ -297,11 +265,16 @@ class AgentClient extends ChatBackend {
     notifyListeners();
   }
 
+  static sci.Pair _pair(String key, String value) {
+    return sci.Pair()
+      ..key = key
+      ..value = value;
+  }
+
   @override
   void resetSession() {
     _sessionId = null;
     _sessionData = null;
-    _textAccumulator.clear();
     debugPrint('[agent] Session reset');
   }
 

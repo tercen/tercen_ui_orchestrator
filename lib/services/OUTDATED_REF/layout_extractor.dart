@@ -83,7 +83,3 @@ int _findJsonObjectEnd(String text) {
   return -1;
 }
 
-/// Remove ```json code blocks from text for clean chat display.
-String stripJsonCodeBlocks(String text) {
-  return text.replaceAll(RegExp(r'```json\s*\n[\s\S]*?\n```'), '').trim();
-}
