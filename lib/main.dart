@@ -350,8 +350,37 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
               'scopeId': event.data['scopeId'] as String? ?? '',
             },
           );
+        case 'openDocument':
+          _openDocumentEditor(
+            documentId: event.data['documentId'] as String? ?? '',
+            documentName: event.data['documentName'] as String? ?? 'Document',
+            projectId: event.data['projectId'] as String? ?? '',
+            sourceWindowId: event.data['sourceWindowId'] as String?,
+          );
       }
     });
+
+    // Listen for navigator focus (single click) AND double-click to open documents
+    for (final channel in ['navigator.focusChanged', 'navigator.openViewer']) {
+      _sduiContext.eventBus.subscribe(channel).listen((event) {
+        final nodeId = (event.data['nodeId'] ?? event.data['id'] ?? '').toString();
+        final nodeType = (event.data['nodeType'] ?? event.data['kind'] ?? '').toString();
+        final nodeName = (event.data['nodeName'] ?? event.data['name'] ?? '').toString();
+        if (nodeId.isEmpty || nodeName.isEmpty) return;
+
+        // Open .md and .txt files in DocumentEditor
+        final lowerName = nodeName.toLowerCase();
+        if (nodeType == 'FileDocument' &&
+            (lowerName.endsWith('.md') || lowerName.endsWith('.txt'))) {
+          _openDocumentEditor(
+            documentId: nodeId,
+            documentName: nodeName,
+            projectId: _selections['selectedProjectId'] as String? ?? _defaultProjectId ?? '',
+            sourceWindowId: event.sourceWidgetId,
+          );
+        }
+      });
+    }
   }
 
   /// Wire audit trail date range controls.
@@ -386,6 +415,34 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         }),
       );
     });
+  }
+
+  /// Open a document in the DocumentEditor widget.
+  void _openDocumentEditor({
+    required String documentId,
+    required String documentName,
+    required String projectId,
+    String? sourceWindowId,
+  }) {
+    if (documentId.isEmpty) {
+      debugPrint('[openDocument] No documentId — ignoring');
+      return;
+    }
+    // Use document ID in the window ID for deduplication
+    final windowId = 'doc-$documentId';
+    _openWidgetAsTab(
+      widgetType: 'DocumentEditor',
+      windowId: windowId,
+      title: documentName,
+      sourceWindowId: sourceWindowId,
+      placement: 'newPane', // Opens in a new pane, not grouped with source
+      props: {
+        'documentId': documentId,
+        'projectId': projectId,
+        'documentName': documentName,
+      },
+    );
+    debugPrint('[openDocument] Opened DocumentEditor for "$documentName" (id=$documentId, project=$projectId)');
   }
 
   /// Open a widget as a tab in the source pane (or new pane).
