@@ -135,6 +135,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _listenFileUpload();
     _listenFileDownload();
     _listenTypeFilter();
+    _listenFocusRelay();
 
     if (_serverUrl.isNotEmpty) {
       // Dev mode: WebSocket to local Dart server
@@ -1037,6 +1038,47 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     });
   }
 
+  /// Relay widget-specific focus events to the generic system.focus channel.
+  /// Any widget can publish to system.focus directly, or publish to its own
+  /// channel and get relayed here. The focus context is:
+  /// - Shown in the ChatBox as "Focus: <label>"
+  /// - Sent to the LLM as uiState.focus so it knows what the user is looking at
+  void _listenFocusRelay() {
+    // Relay navigator.focusChanged → system.focus
+    _sduiContext.eventBus.subscribe('navigator.focusChanged').listen((event) {
+      final data = event.data;
+      final label = data['nodeName']?.toString() ?? '';
+      final type = data['nodeType']?.toString() ?? '';
+      if (label.isEmpty) return;
+
+      _focusContext = {
+        'label': label,
+        'type': type,
+        'id': data['nodeId']?.toString() ?? '',
+        'source': 'ProjectNavigator',
+      };
+
+      _sduiContext.eventBus.publish(
+        'system.focus',
+        EventPayload(
+          type: 'focus',
+          sourceWidgetId: event.sourceWidgetId,
+          data: _focusContext,
+        ),
+      );
+    });
+
+    // Also listen for direct system.focus from future widgets
+    _sduiContext.eventBus.subscribe('system.focus').listen((event) {
+      final label = event.data['label']?.toString() ?? '';
+      if (label.isNotEmpty) {
+        _focusContext = Map<String, dynamic>.from(event.data);
+      }
+    });
+  }
+
+  Map<String, dynamic> _focusContext = {};
+
   /// Listen for navigator.downloadFile events — trigger browser download.
   void _listenFileDownload() {
     _sduiContext.eventBus.subscribe('navigator.downloadFile').listen((event) async {
@@ -1309,6 +1351,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         'height': wm.viewportHeight.round(),
       },
       'selections': Map<String, dynamic>.from(_selections),
+      'focus': Map<String, dynamic>.from(_focusContext),
       'windows': wm.layoutState, // full toJson() per window
     };
   }
