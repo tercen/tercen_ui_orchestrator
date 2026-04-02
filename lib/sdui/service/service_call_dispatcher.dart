@@ -359,6 +359,16 @@ class ServiceCallDispatcher {
         }
         final url = baseUri.replace(queryParameters: queryParams).toString();
         return {'url': url, 'fileId': fileId};
+      case 'updateContent':
+        // Update an existing file's content.
+        // Args: [fileDocumentId, contentString]
+        // Flow: get existing doc (preserves rev) → re-upload with new bytes.
+        final fileId = args[0] as String;
+        final content = args[1] as String;
+        final bytes = utf8.encode(content);
+        final existing = await svc.get(fileId);
+        final updated = await svc.upload(existing, Stream.value(bytes));
+        return Map<String, dynamic>.from(svc.toJson(updated));
       default:
         throw ArgumentError('Method "$method" not found on fileService');
     }

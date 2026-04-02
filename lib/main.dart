@@ -1511,13 +1511,6 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       'windows': wm.layoutState, // full toJson() per window
     };
 
-    // Focus context: which window/entity the user is currently looking at.
-    // Open = selected = navigated to — all semantically equivalent.
-    final focus = wm.focusContext;
-    if (focus != null) {
-      state['focus'] = focus;
-    }
-
     return state;
   }
 
