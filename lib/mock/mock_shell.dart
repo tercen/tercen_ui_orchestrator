@@ -5,6 +5,7 @@ import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/contracts/contract_registry.dart';
 
 import 'event_inspector.dart';
+import 'item_inspector.dart';
 import 'mock_service_caller.dart';
 
 /// Scope builder types that require a real backend and won't work in mock mode.
@@ -396,7 +397,7 @@ class _MockShellState extends State<MockShell> {
 
   Widget _buildRightPanel(ColorScheme cs, TextTheme tt) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Column(
         children: [
           TabBar(
@@ -405,7 +406,8 @@ class _MockShellState extends State<MockShell> {
             indicatorColor: cs.primary,
             tabs: const [
               Tab(text: 'Events'),
-              Tab(text: 'Service Calls'),
+              Tab(text: 'Calls'),
+              Tab(text: 'Item'),
             ],
           ),
           Expanded(
@@ -416,6 +418,7 @@ class _MockShellState extends State<MockShell> {
                   knownChannels: _knownChannels,
                 ),
                 _buildServiceCallLog(cs, tt),
+                ItemInspector(eventBus: _sduiContext.eventBus),
               ],
             ),
           ),
