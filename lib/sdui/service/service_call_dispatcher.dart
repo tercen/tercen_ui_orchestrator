@@ -395,26 +395,77 @@ class ServiceCallDispatcher {
         final table = await svc.select(schemaId, cnames, offset, limit);
         return _serializeTable(table);
       case 'selectAll':
-        // Convenience: discover columns via select(id,[],0,0), then fetch data.
+        // Pattern: get schema → extract relation.id → list relation schemas
+        // to discover columns → select using relation.id with column names.
         // Args: [schemaId] or [schemaId, offset, limit]
         final schemaId = args[0] as String;
         final offset = args.length > 1 ? (PropConverter.to<int>(args[1]) ?? 0) : 0;
         final limit = args.length > 2 ? (PropConverter.to<int>(args[2]) ?? 100) : 100;
-        // Step 1: select with empty columns and limit=0 to discover schema
-        debugPrint('[ServiceDispatcher] tableSchemaService.selectAll($schemaId) step 1: discovering columns...');
-        final probe = await svc.select(schemaId, <String>[], 0, 0);
-        final probeJson = _serializeTable(probe);
-        final probeCols = probeJson['columns'] as List? ?? [];
-        final colNames = probeCols.map((c) => (c as Map)['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
-        final nRows = PropConverter.to<int>(probeJson['nRows']) ?? 0;
-        debugPrint('[ServiceDispatcher] tableSchemaService.selectAll($schemaId) discovered ${colNames.length} columns, nRows=$nRows');
-        if (colNames.isEmpty || nRows == 0) {
-          return probeJson;
+
+        // Step 1: get schema to find the SimpleRelation ID
+        final schema = await svc.get(schemaId);
+        final schemaJson = Map<String, dynamic>.from(svc.toJson(schema));
+        final relation = schemaJson['relation'] as Map?;
+        final relationId = relation?['id']?.toString() ?? schemaId;
+        debugPrint('[ServiceDispatcher] selectAll($schemaId) relationId=$relationId');
+
+        // Step 2: list the relation's schema to discover columns
+        // The relation ID points to the actual data schema with column metadata.
+        final relSchemas = await svc.list([relationId]);
+        final colNames = <String>[];
+        int nRows = 0;
+        for (final rs in relSchemas) {
+          final rsJson = Map<String, dynamic>.from(svc.toJson(rs));
+          nRows = PropConverter.to<int>(rsJson['nRows']) ?? nRows;
+          final cols = rsJson['columns'] as List? ?? [];
+          for (final c in cols) {
+            final name = (c as Map)['name']?.toString() ?? '';
+            final type = (c as Map)['type']?.toString() ?? '';
+            // Filter out system/internal columns (same as getUserAttributes)
+            if (name.isEmpty) continue;
+            if (name.startsWith('.')) continue; // binary-like
+            if (name == 'rowId') continue; // internal Tercen reference
+            if (name.endsWith('._rids') || name.endsWith('.tlbId') || name.endsWith('.tlbIdx')) continue;
+            if (type == 'uint64') continue;
+            colNames.add(name);
+          }
         }
-        // Step 2: select with all columns
-        final actualLimit = limit > 0 ? limit : nRows;
-        final table = await svc.select(schemaId, colNames, offset, actualLimit);
-        return _serializeTable(table);
+        debugPrint('[ServiceDispatcher] selectAll($schemaId) discovered ${colNames.length} columns, nRows=$nRows');
+
+        if (colNames.isEmpty || nRows == 0) {
+          return {'nRows': nRows, 'columns': []};
+        }
+
+        // Step 3: select using the relation ID (SimpleRelation.select pattern)
+        final actualLimit = limit > 0 && limit < nRows ? limit : nRows;
+        final table = await svc.select(relationId, colNames, offset, actualLimit);
+        final serialized = _serializeTable(table);
+
+        // Add a "Row" column with 1-based row numbers as first column.
+        final dataCols = serialized['columns'] as List;
+        final rowCount = dataCols.isNotEmpty
+            ? (dataCols.first as Map)['values']?.length ?? 0
+            : 0;
+        final rowNumbers = List.generate(rowCount, (i) => offset + i + 1);
+        final allColumns = <Map<String, dynamic>>[
+          {'name': 'Row', 'type': 'int32', 'values': rowNumbers},
+          ...dataCols.cast<Map<String, dynamic>>(),
+        ];
+
+        // Return as a single-element tables list for TabbedDataTable.
+        final schemaName = (schemaJson['name'] as String?) ?? 'Table';
+        final schemaKind = (schemaJson['kind'] as String?) ?? 'TableSchema';
+        return {
+          'tables': [
+            {
+              'schemaId': schemaId,
+              'name': schemaName,
+              'kind': schemaKind,
+              'nRows': nRows,
+              'columns': allColumns,
+            },
+          ],
+        };
       case 'selectCSV':
         // Export table data as CSV text.
         // Args: [schemaId, columnNames, offset, limit, separator?, quote?, encoding?]
