@@ -336,13 +336,16 @@ class ServiceCallDispatcher {
 
   Future<dynamic> _fileServiceCall(String method, List<dynamic> args) async {
     final svc = factory.fileService;
+    debugPrint('[ServiceDispatcher] fileService.$method(${args.join(', ')})');
     switch (method) {
       case 'download':
         // Download file content as UTF-8 text.
         // Args: [fileDocumentId]
         // Returns: {"content": "...", "fileId": "..."}
         final fileId = args[0] as String;
+        debugPrint('[ServiceDispatcher] fileService.download: fetching content for $fileId');
         final content = await utf8.decodeStream(svc.download(fileId));
+        debugPrint('[ServiceDispatcher] fileService.download: got ${content.length} chars');
         return {'content': content, 'fileId': fileId};
       case 'downloadUrl':
         // Build an authenticated download URL for a file.
@@ -385,10 +388,32 @@ class ServiceCallDispatcher {
       case 'select':
         // Args: [schemaId, columnNames, offset, limit]
         final schemaId = args[0] as String;
-        final cnames = (args[1] as List).cast<String>();
-        final offset = PropConverter.to<int>(args[2]) ?? 0;
-        final limit = PropConverter.to<int>(args[3]) ?? 100;
+        final cnames = (args.length > 1 && args[1] is List) ? (args[1] as List).cast<String>() : <String>[];
+        final offset = args.length > 2 ? (PropConverter.to<int>(args[2]) ?? 0) : 0;
+        final limit = args.length > 3 ? (PropConverter.to<int>(args[3]) ?? 100) : 100;
+        debugPrint('[ServiceDispatcher] tableSchemaService.select($schemaId, $cnames, $offset, $limit)');
         final table = await svc.select(schemaId, cnames, offset, limit);
+        return _serializeTable(table);
+      case 'selectAll':
+        // Convenience: discover columns via select(id,[],0,0), then fetch data.
+        // Args: [schemaId] or [schemaId, offset, limit]
+        final schemaId = args[0] as String;
+        final offset = args.length > 1 ? (PropConverter.to<int>(args[1]) ?? 0) : 0;
+        final limit = args.length > 2 ? (PropConverter.to<int>(args[2]) ?? 100) : 100;
+        // Step 1: select with empty columns and limit=0 to discover schema
+        debugPrint('[ServiceDispatcher] tableSchemaService.selectAll($schemaId) step 1: discovering columns...');
+        final probe = await svc.select(schemaId, <String>[], 0, 0);
+        final probeJson = _serializeTable(probe);
+        final probeCols = probeJson['columns'] as List? ?? [];
+        final colNames = probeCols.map((c) => (c as Map)['name']?.toString() ?? '').where((n) => n.isNotEmpty).toList();
+        final nRows = PropConverter.to<int>(probeJson['nRows']) ?? 0;
+        debugPrint('[ServiceDispatcher] tableSchemaService.selectAll($schemaId) discovered ${colNames.length} columns, nRows=$nRows');
+        if (colNames.isEmpty || nRows == 0) {
+          return probeJson;
+        }
+        // Step 2: select with all columns
+        final actualLimit = limit > 0 ? limit : nRows;
+        final table = await svc.select(schemaId, colNames, offset, actualLimit);
         return _serializeTable(table);
       case 'selectCSV':
         // Export table data as CSV text.

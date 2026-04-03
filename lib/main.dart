@@ -357,6 +357,13 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
             projectId: event.data['projectId'] as String? ?? '',
             sourceWindowId: event.data['sourceWindowId'] as String?,
           );
+        case 'openDataTable':
+          _openDataTable(
+            tableId: event.data['tableId'] as String? ?? '',
+            tableName: event.data['tableName'] as String? ?? 'Data Table',
+            tableKind: event.data['tableKind'] as String? ?? 'TableSchema',
+            sourceWindowId: event.data['sourceWindowId'] as String?,
+          );
       }
     });
 
@@ -376,6 +383,18 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
             documentId: nodeId,
             documentName: nodeName,
             projectId: _selections['selectedProjectId'] as String? ?? _defaultProjectId ?? '',
+            sourceWindowId: event.sourceWidgetId,
+          );
+        }
+
+        // Open table schemas in DataTable
+        if (nodeType == 'TableSchema' ||
+            nodeType == 'ComputedTableSchema' ||
+            nodeType == 'CubeQueryTableSchema') {
+          _openDataTable(
+            tableId: nodeId,
+            tableName: nodeName,
+            tableKind: nodeType,
             sourceWindowId: event.sourceWidgetId,
           );
         }
@@ -443,6 +462,33 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       },
     );
     debugPrint('[openDocument] Opened DocumentEditor for "$documentName" (id=$documentId, project=$projectId)');
+  }
+
+  /// Open a data table in the DataTable widget.
+  void _openDataTable({
+    required String tableId,
+    required String tableName,
+    required String tableKind,
+    String? sourceWindowId,
+  }) {
+    if (tableId.isEmpty) {
+      debugPrint('[openDataTable] No tableId — ignoring');
+      return;
+    }
+    final windowId = 'table-$tableId';
+    _openWidgetAsTab(
+      widgetType: 'TableViewer',
+      windowId: windowId,
+      title: tableName,
+      sourceWindowId: sourceWindowId,
+      placement: 'newPane',
+      props: {
+        'tableId': tableId,
+        'tableName': tableName,
+        'tableKind': tableKind,
+      },
+    );
+    debugPrint('[openDataTable] Opened DataTable for "$tableName" (id=$tableId, kind=$tableKind)');
   }
 
   /// Open a widget as a tab in the source pane (or new pane).
@@ -1108,6 +1154,12 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     wm.registerResource('team', const ResourceMapping(
       widgetType: 'TeamManager',
       size: 'medium',
+      align: 'center',
+      deduplicate: true,
+    ));
+    wm.registerResource('table', const ResourceMapping(
+      widgetType: 'TableViewer',
+      size: 'large',
       align: 'center',
       deduplicate: true,
     ));
