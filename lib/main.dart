@@ -477,7 +477,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     }
     final windowId = 'table-$tableId';
     _openWidgetAsTab(
-      widgetType: 'TableViewer',
+      widgetType: 'DataTableViewer',
       windowId: windowId,
       title: tableName,
       sourceWindowId: sourceWindowId,
@@ -1144,7 +1144,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       deduplicate: true,
     ));
     wm.registerResource('table', const ResourceMapping(
-      widgetType: 'TableViewer',
+      widgetType: 'DataTableViewer',
       size: 'large',
       align: 'center',
       deduplicate: true,
