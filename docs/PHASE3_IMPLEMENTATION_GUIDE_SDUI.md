@@ -70,7 +70,7 @@ These are the building blocks your templates compose:
 | Display | `Text`, `SelectableText`, `Icon`, `Divider`, `Chip`, `CircleAvatar`, `Image`, `Tooltip`, `ProgressBar`, `Placeholder`, `LoadingIndicator` |
 | Interactive | `TextField`, `ElevatedButton`, `TextButton`, `IconButton`, `Switch`, `Checkbox`, `DropdownButton` |
 | Behaviour | `DataSource`, `ForEach`, `Action`, `ReactTo`, `Conditional`, `PromptRequired`, `StateHolder`, `Sort`, `Filter` |
-| Domain | `DataTable`, `DirectedGraph`, `ImageViewer`, `TabbedImageViewer`, `TabbedDataTable` |
+| Domain | `DataGrid`, `DirectedGraph`, `ImageViewer`, `TabbedImageViewer` |
 | Orchestrator | `ChatPanel` — chat interface with Claude Code streaming |
 
 The domain primitives handle the complex rendering (scroll-synced grids, graph layouts, image zoom/pan). Your templates compose these — the hard UI work is already done.
@@ -253,7 +253,7 @@ Home windows open after the catalog loads. Widgets with `handlesIntent` in their
 | Widget | Status | What to do |
 |--------|--------|------------|
 | **workflow-viewer** | Template exists | Verify `getWorkflowGraph` works with real data |
-| **data-table** | Template exists | Verify `TabbedDataTable` handles column-major data. CSV export via `selectCSV`. |
+| **data-table** | Template exists | Uses `DataGrid` with `columnMode: "scroll"`. Service transforms column-major to row-major. CSV export via `selectCSV`. |
 | **project-navigator** | Template needed | Use `projectDocumentService` methods. Check if `ForEach` + layout is sufficient or if a tree primitive is needed. |
 | **home-panel** | Template needed | Multiple `DataSource` nodes for projects, user info. `Grid`/`Card` layout. |
 | **png-viewer** | Template needed | `fileService.downloadUrl` → `ImageViewer` |
@@ -288,6 +288,6 @@ Verify in browser console:
 | `DataSource` returns unexpected results | Verify method name is exact. Check `findStartKeys` vs `findKeys` arg format. |
 | Template shows nothing | Check browser console for `[SduiRenderer] UNKNOWN type` — widget type not registered |
 | Data loads in mock but not real mode | Check orchestrator has `TERCEN_TOKEN` set. Look for `[auth]` logs. |
-| `select()` data looks wrong | It's column-major: each column has a `values` array. `TabbedDataTable` handles this. |
+| `select()` data looks wrong | It's column-major: each column has a `values` array. The service dispatcher transforms this to row-major for `DataGrid`. |
 | Images don't load | Use `downloadUrl` (returns authenticated URL), not `download` (returns text). |
 | `findStartKeys` vs `findKeys` | `discover_methods` output shows `(startKeys)` or `(keys)` — use matching arg format |

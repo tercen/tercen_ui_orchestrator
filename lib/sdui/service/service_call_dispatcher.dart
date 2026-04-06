@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:sci_base/sci_client_base.dart';
@@ -452,9 +453,10 @@ class ServiceCallDispatcher {
           ...dataCols.cast<Map<String, dynamic>>(),
         ];
 
-        // Return as a single-element tables list for TabbedDataTable.
+        // Transform to row-major for DataGrid consumption.
         final schemaName = (schemaJson['name'] as String?) ?? 'Table';
         final schemaKind = (schemaJson['kind'] as String?) ?? 'TableSchema';
+        final rowMajor = _columnsToRowMajor(allColumns);
         return {
           'tables': [
             {
@@ -462,7 +464,8 @@ class ServiceCallDispatcher {
               'name': schemaName,
               'kind': schemaKind,
               'nRows': nRows,
-              'columns': allColumns,
+              'columns': rowMajor['columns'],
+              'items': rowMajor['items'],
             },
           ],
         };
@@ -709,6 +712,39 @@ class ServiceCallDispatcher {
     return {'stepName': stepName, 'tableType': tableType, 'tables': tables};
   }
 
+  /// Transforms column-major data [{name, type, values}] into row-major
+  /// format for DataGrid: {columns: [{key, label, type}], items: [{k:v}]}.
+  static Map<String, dynamic> _columnsToRowMajor(List<dynamic> colMajor) {
+    final colDefs = <Map<String, dynamic>>[];
+    final colData = <Map<String, dynamic>>[];
+    for (final c in colMajor) {
+      if (c is Map) {
+        final name = (c['name'] as String?) ?? '';
+        final type = (c['type'] as String?) ?? '';
+        colDefs.add({'key': name, 'label': name, 'type': type});
+        colData.add(Map<String, dynamic>.from(c));
+      }
+    }
+    if (colDefs.isEmpty) return {'columns': [], 'items': []};
+
+    final rowCount = colData.map((c) {
+      final v = c['values'];
+      return v is List ? v.length : 0;
+    }).reduce(max);
+
+    final items = <Map<String, dynamic>>[];
+    for (var i = 0; i < rowCount; i++) {
+      final row = <String, dynamic>{};
+      for (final col in colData) {
+        final values = col['values'] as List? ?? [];
+        final name = (col['name'] as String?) ?? '';
+        row[name] = i < values.length ? values[i] : null;
+      }
+      items.add(row);
+    }
+    return {'columns': colDefs, 'items': items};
+  }
+
   /// Fetches schema metadata and row data for a set of schema IDs.
   Future<List<Map<String, dynamic>>> _fetchTableData(
       Set<String> schemaIds) async {
@@ -728,12 +764,25 @@ class ServiceCallDispatcher {
         final table = await tss.select(schemaId, cnames, 0, fetchRows);
         final serialized = _serializeTable(table);
 
+        // Add Row column, then transform to row-major for DataGrid
+        final dataCols = serialized['columns'] as List;
+        final colCount = dataCols.isNotEmpty
+            ? (dataCols.first as Map)['values']?.length ?? 0
+            : 0;
+        final rowNumbers = List.generate(colCount, (i) => i + 1);
+        final allColMajor = <dynamic>[
+          {'name': 'Row', 'type': 'int32', 'values': rowNumbers},
+          ...dataCols,
+        ];
+        final rowMajor = _columnsToRowMajor(allColMajor);
+
         tables.add({
           'schemaId': schemaId,
           'name': schemaJson['name'] as String? ?? schemaId,
           'kind': schemaJson['kind'] as String? ?? '',
           'nRows': nRows,
-          'columns': serialized['columns'],
+          'columns': rowMajor['columns'],
+          'items': rowMajor['items'],
         });
       } catch (e) {
         tables.add({
@@ -742,6 +791,7 @@ class ServiceCallDispatcher {
           'kind': 'error',
           'nRows': 0,
           'columns': [],
+          'items': [],
           'error': e.toString(),
         });
       }

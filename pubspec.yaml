@@ -44,4 +44,3 @@ flutter:
   uses-material-design: true
   assets:
     - orchestrator.config.json
-    - catalog.json

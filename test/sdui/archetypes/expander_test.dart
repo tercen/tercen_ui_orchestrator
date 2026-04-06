@@ -194,7 +194,15 @@ Map<String, dynamic> _buildDataTableViewer() {
                 _toolbar('{{widgetId}}', '{{data.stepName}}', icon: 'table_chart', subtitle: '{{data.tableType}}'),
                 {'type': 'Divider', 'id': '{{widgetId}}-div', 'props': {'color': SkeletonTheme.dividerColor}},
                 {'type': 'Expanded', 'id': '{{widgetId}}-table-exp', 'children': [
-                  {'type': 'TabbedDataTable', 'id': '{{widgetId}}-table'},
+                  {'type': 'DataGrid', 'id': '{{widgetId}}-grid', 'props': {
+                    'items': '{{data.tables[0].items}}',
+                    'columns': '{{data.tables[0].columns}}',
+                    'columnMode': 'scroll',
+                    'showRowNumbers': true,
+                    'sortable': true,
+                    'searchMode': 'highlight',
+                    'selectionMode': 'single',
+                  }},
                 ]},
               ]},
             ]),

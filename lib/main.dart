@@ -938,21 +938,19 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   /// Auto-load the widget catalog.
   /// In WebSocket mode: fetches from the server's /api/widget-catalog endpoint.
-  /// In agent mode: fetches catalog.json directly from GitHub using the
+  /// Otherwise: fetches catalog.json directly from GitHub using the
   /// repo/ref configured in orchestrator.config.json (bundled as Flutter asset).
+  /// The canonical catalog.json lives in tercen_ui_widgets on GitHub.
   Future<void> _autoLoadCatalog() async {
     try {
       Map<String, dynamic>? catalog;
 
-      // Try bundled local catalog first (for dev), then server/GitHub
-      catalog = await _tryLoadBundledCatalog();
-
-      if (catalog == null && _serverUrl.isNotEmpty) {
+      if (_serverUrl.isNotEmpty) {
         // WebSocket mode — server proxies the catalog
         catalog = await _fetchCatalogFromServer();
       }
       if (catalog == null) {
-        // Agent mode — fetch directly from GitHub
+        // Fetch directly from GitHub (single source of truth)
         catalog = await _fetchCatalogFromGitHub();
       }
 
@@ -969,18 +967,6 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       }
     } catch (e) {
       debugPrint('[catalog] Auto-load failed: $e');
-    }
-  }
-
-  /// Try loading a bundled catalog.json asset (for local dev).
-  Future<Map<String, dynamic>?> _tryLoadBundledCatalog() async {
-    try {
-      final str = await rootBundle.loadString('catalog.json');
-      final catalog = jsonDecode(str) as Map<String, dynamic>;
-      debugPrint('[catalog] Loaded from bundled asset');
-      return catalog;
-    } catch (_) {
-      return null; // No bundled catalog — fall through
     }
   }
 

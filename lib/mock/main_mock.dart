@@ -62,21 +62,8 @@ class _MockOrchestratorAppState extends State<MockOrchestratorApp> {
     }
   }
 
-  /// Load catalog — prefers the local bundled asset (symlinked from
-  /// ../tercen_ui_widgets/catalog.json), falls back to GitHub.
+  /// Load catalog from GitHub (single source of truth: tercen_ui_widgets).
   Future<Map<String, dynamic>?> _fetchCatalog() async {
-    // Try local asset first — picks up edits on hot restart, no push needed.
-    try {
-      final localStr = await rootBundle.loadString('catalog.json');
-      final catalog = jsonDecode(localStr) as Map<String, dynamic>;
-      debugPrint('[mock] Loaded catalog from local asset '
-          '(${(catalog['widgets'] as List?)?.length ?? 0} widget(s))');
-      return catalog;
-    } catch (_) {
-      debugPrint('[mock] Local catalog.json not found, falling back to GitHub');
-    }
-
-    // Fallback: fetch from GitHub via orchestrator.config.json.
     final configStr = await rootBundle.loadString('orchestrator.config.json');
     final config = jsonDecode(configStr) as Map<String, dynamic>;
     final lib = config['widgetLibrary'] as Map<String, dynamic>?;
