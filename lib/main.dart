@@ -387,6 +387,11 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           );
         }
 
+        // Open workflows in WorkflowViewer
+        if (nodeType == 'Workflow') {
+          _openWorkflowViewer(workflowId: nodeId);
+        }
+
         // Open table schemas in DataTable
         if (nodeType == 'TableSchema' ||
             nodeType == 'ComputedTableSchema' ||
