@@ -194,7 +194,6 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   /// Listen for header menu actions (theme toggle, etc.)
   int _chatSessionCounter = 0;
-  int _workflowViewerCounter = 0;
 
   /// Clear all panes and reload the home layout from catalog.json.
   void _navigateHome() {
@@ -208,29 +207,28 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     debugPrint('[navigateHome] Reloaded home layout');
   }
 
-  void _openWorkflowViewer({String? workflowId}) {
-    _workflowViewerCounter++;
-    final id = 'workflow-viewer-$_workflowViewerCounter';
-    final props = <String, dynamic>{};
-    if (workflowId != null) props['workflowId'] = workflowId;
-
-    _sduiContext.eventBus.publish(
-      'system.layout.op',
-      EventPayload(type: 'layout.op', data: {
-        'op': 'addWindow',
-        'id': id,
-        'size': 'large',
-        'align': 'center',
-        'title': 'Workflow',
-        'content': {
-          'type': 'WorkflowViewer',
-          'id': '$id-root',
-          'props': props,
-          'children': [],
-        },
-      }),
+  void _openWorkflowViewer({
+    required String workflowId,
+    String workflowName = 'Workflow',
+    String? sourceWindowId,
+  }) {
+    if (workflowId.isEmpty) {
+      debugPrint('[openWorkflow] No workflowId — ignoring');
+      return;
+    }
+    final windowId = 'workflow-$workflowId';
+    _openWidgetAsTab(
+      widgetType: 'WorkflowViewer',
+      windowId: windowId,
+      title: workflowName,
+      sourceWindowId: sourceWindowId,
+      placement: 'newPane',
+      props: {
+        'workflowId': workflowId,
+        'workflowName': workflowName,
+      },
     );
-    debugPrint('[workflow] Opened WorkflowViewer as "$id"');
+    debugPrint('[openWorkflow] Opened WorkflowViewer for "$workflowName" (id=$workflowId)');
   }
 
   void _listenChatActions() {
@@ -274,7 +272,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   void _listenWorkflowActions() {
     _sduiContext.eventBus.subscribe('workflow.open').listen((event) {
       _openWorkflowViewer(
-        workflowId: event.data['workflowId'] as String?,
+        workflowId: event.data['workflowId'] as String? ?? '',
+        workflowName: event.data['workflowName'] as String? ?? 'Workflow',
       );
     });
   }
@@ -305,7 +304,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           );
         case 'openWorkflow':
           _openWorkflowViewer(
-            workflowId: event.data['workflowId'] as String?,
+            workflowId: event.data['workflowId'] as String? ?? '',
+            workflowName: event.data['workflowName'] as String? ?? 'Workflow',
           );
         case 'signOut':
           debugPrint('[header] signOut — not yet implemented');
@@ -389,7 +389,11 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
         // Open workflows in WorkflowViewer
         if (nodeType == 'Workflow') {
-          _openWorkflowViewer(workflowId: nodeId);
+          _openWorkflowViewer(
+            workflowId: nodeId,
+            workflowName: nodeName,
+            sourceWindowId: event.sourceWidgetId,
+          );
         }
 
         // Open table schemas in DataTable
@@ -1150,6 +1154,12 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     ));
     wm.registerResource('table', const ResourceMapping(
       widgetType: 'TableViewer',
+      size: 'large',
+      align: 'center',
+      deduplicate: true,
+    ));
+    wm.registerResource('workflow', const ResourceMapping(
+      widgetType: 'WorkflowViewer',
       size: 'large',
       align: 'center',
       deduplicate: true,
