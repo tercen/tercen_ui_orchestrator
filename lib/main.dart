@@ -1022,8 +1022,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       debugPrint('[catalog] Invalid repo URL: $repo');
       return null;
     }
+    final cacheBust = DateTime.now().millisecondsSinceEpoch;
     final rawUrl = 'https://raw.githubusercontent.com/'
-        '${segments[0]}/${segments[1]}/$ref/$catalogFile';
+        '${segments[0]}/${segments[1]}/$ref/$catalogFile?cb=$cacheBust';
     debugPrint('[catalog] Fetching $rawUrl');
 
     final httpClient = io_http.HttpBrowserClient();
