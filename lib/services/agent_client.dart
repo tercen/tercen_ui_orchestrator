@@ -8,21 +8,39 @@ import 'package:sdui/sdui.dart';
 import 'chat_backend.dart';
 import 'layout_dispatch.dart';
 
+// ---------------------------------------------------------------------------
+// Event contract constants (shared with main.ts via GenericEvent types)
+// ---------------------------------------------------------------------------
+
+/// Event types emitted by the agent container.
+abstract final class AgentEventType {
+  static const text = 'agent_text';
+  static const toolUse = 'agent_tool_use';
+  static const toolResult = 'agent_tool_result';
+  static const result = 'agent_result';
+  static const error = 'agent_error';
+}
+
+/// Tool name patterns for routing agent_tool_result events.
+abstract final class AgentToolPattern {
+  static const renderWidget = 'render_widget';
+  static const display = 'display';
+  static const tercenPrefix = 'mcp__tercen__';
+}
+
 /// Chat backend that creates Tercen agent operator tasks and
 /// streams results back via the event service.
 ///
 /// Event contract (from agent main.ts → Tercen GenericEvent):
-///
-///   agent_text         {text: string}
-///   agent_tool_use     {name: string, input: object}
-///   agent_tool_result  {name: string, result: string}
-///                      — name contains 'render_widget' → result is LayoutOp JSON
-///   agent_result       {result, cost, turns, sessionId?, sessionData?}
-///   agent_error        {errors: string[]}
+///   See [AgentEventType] for event types.
+///   See [AgentToolPattern] for tool result routing.
 ///
 /// Layout op delivery:
 ///   render_widget tool → PostToolUse hook → agent_tool_result event
 ///   → this class parses result as JSON → dispatches to EventBus
+///
+/// Tool result summarization happens server-side only (main.ts).
+/// This client displays summaries as-is — no re-processing.
 class AgentClient extends ChatBackend {
   final sci.ServiceFactory factory;
   final EventBus eventBus;
@@ -51,8 +69,8 @@ class AgentClient extends ChatBackend {
     required this.eventBus,
     required this.agentOperatorId,
     required this.anthropicApiKey,
-    this.modelName = 'claude-3-haiku-20240307',
-    this.maxTurns = 12,
+    this.modelName = 'sonnet',
+    this.maxTurns = 16,
     this.projectId,
     this.userId,
     this.uiStateCollector,
@@ -184,21 +202,22 @@ class AgentClient extends ChatBackend {
     }
 
     switch (type) {
-      case 'agent_text':
+      case AgentEventType.text:
         final text = payload['text'] as String? ?? '';
+        debugPrint('[agent] text: $text');
         _emitChat('text_delta', {'text': text});
 
-      case 'agent_tool_use':
+      case AgentEventType.toolUse:
         final name = payload['name'] as String? ?? '';
         _emitChat('tool_start', {'toolName': name, 'toolId': name});
 
-      case 'agent_tool_result':
+      case AgentEventType.toolResult:
         _handleToolResult(payload);
 
-      case 'agent_result':
+      case AgentEventType.result:
         _handleResult(payload);
 
-      case 'agent_error':
+      case AgentEventType.error:
         final errors = payload['errors'] as List? ?? [];
         _emitChat('error', {'text': errors.join(', ')});
         _finish();
@@ -208,23 +227,32 @@ class AgentClient extends ChatBackend {
     }
   }
 
-  /// Handle agent_tool_result — the ONLY path for layout ops.
+  /// Handle agent_tool_result — layout ops AND tercen tool feedback.
   ///
-  /// Contract: if name contains 'render_widget', result is a JSON
-  /// string of a LayoutOp {op, id, title, size, align, content}.
+  /// Contract:
+  /// - render_widget → result is LayoutOp JSON → dispatch to EventBus
+  /// - mcp__tercen__* → result is already summarized by server → display as-is
   void _handleToolResult(Map<String, dynamic> payload) {
     final name = payload['name'] as String? ?? '';
     final result = payload['result'] as String? ?? '';
 
-    debugPrint('[agent] tool_result: $name (${result.length} chars)');
+    debugPrint('[agent] tool_result: $name (${result.length} chars): $result');
 
-    if (name.contains('render_widget') && result.isNotEmpty) {
+    if ((name.contains(AgentToolPattern.renderWidget) || name.contains(AgentToolPattern.display)) && result.isNotEmpty) {
       debugPrint('[agent] render_widget → dispatching layout op');
       final dispatched = dispatchLayoutOp(result, eventBus);
       if (!dispatched) {
         debugPrint('[agent] render_widget result was NOT a valid layout op:');
         debugPrint('[agent]   ${result.substring(0, result.length.clamp(0, 500))}');
       }
+    } else if (name.contains(AgentToolPattern.tercenPrefix) && result.isNotEmpty) {
+      // Server already summarized — display as-is (no re-summarization, P4).
+      _emitChat('tool_end', {
+        'toolId': name,
+        'isError': false,
+        'summary': result,
+      });
+      return;
     }
 
     _emitChat('tool_end', {'toolId': name, 'isError': false});

@@ -396,40 +396,29 @@ class ServiceCallDispatcher {
         final table = await svc.select(schemaId, cnames, offset, limit);
         return _serializeTable(table);
       case 'selectAll':
-        // Pattern: get schema → extract relation.id → list relation schemas
-        // to discover columns → select using relation.id with column names.
+        // Pattern: get schema → discover columns from schema itself → select using schema ID.
         // Args: [schemaId] or [schemaId, offset, limit]
         final schemaId = args[0] as String;
         final offset = args.length > 1 ? (PropConverter.to<int>(args[1]) ?? 0) : 0;
         final limit = args.length > 2 ? (PropConverter.to<int>(args[2]) ?? 100) : 100;
 
-        // Step 1: get schema to find the SimpleRelation ID
+        // Step 1: get schema to discover columns and nRows
         final schema = await svc.get(schemaId);
         final schemaJson = Map<String, dynamic>.from(svc.toJson(schema));
-        final relation = schemaJson['relation'] as Map?;
-        final relationId = relation?['id']?.toString() ?? schemaId;
-        debugPrint('[ServiceDispatcher] selectAll($schemaId) relationId=$relationId');
+        debugPrint('[ServiceDispatcher] selectAll($schemaId) kind=${schemaJson['kind']}');
 
-        // Step 2: list the relation's schema to discover columns
-        // The relation ID points to the actual data schema with column metadata.
-        final relSchemas = await svc.list([relationId]);
         final colNames = <String>[];
-        int nRows = 0;
-        for (final rs in relSchemas) {
-          final rsJson = Map<String, dynamic>.from(svc.toJson(rs));
-          nRows = PropConverter.to<int>(rsJson['nRows']) ?? nRows;
-          final cols = rsJson['columns'] as List? ?? [];
-          for (final c in cols) {
-            final name = (c as Map)['name']?.toString() ?? '';
-            final type = (c as Map)['type']?.toString() ?? '';
-            // Filter out system/internal columns (same as getUserAttributes)
-            if (name.isEmpty) continue;
-            if (name.startsWith('.')) continue; // binary-like
-            if (name == 'rowId') continue; // internal Tercen reference
-            if (name.endsWith('._rids') || name.endsWith('.tlbId') || name.endsWith('.tlbIdx')) continue;
-            if (type == 'uint64') continue;
-            colNames.add(name);
-          }
+        int nRows = PropConverter.to<int>(schemaJson['nRows']) ?? 0;
+        final cols = schemaJson['columns'] as List? ?? [];
+        for (final c in cols) {
+          final name = (c as Map)['name']?.toString() ?? '';
+          final type = (c as Map)['type']?.toString() ?? '';
+          if (name.isEmpty) continue;
+          if (name.startsWith('.')) continue; // binary-like
+          if (name == 'rowId') continue;
+          if (name.endsWith('._rids') || name.endsWith('.tlbId') || name.endsWith('.tlbIdx')) continue;
+          if (type == 'uint64') continue;
+          colNames.add(name);
         }
         debugPrint('[ServiceDispatcher] selectAll($schemaId) discovered ${colNames.length} columns, nRows=$nRows');
 
@@ -437,9 +426,9 @@ class ServiceCallDispatcher {
           return {'nRows': nRows, 'columns': []};
         }
 
-        // Step 3: select using the relation ID (SimpleRelation.select pattern)
+        // Step 2: select using the schema ID directly
         final actualLimit = limit > 0 && limit < nRows ? limit : nRows;
-        final table = await svc.select(relationId, colNames, offset, actualLimit);
+        final table = await svc.select(schemaId, colNames, offset, actualLimit);
         final serialized = _serializeTable(table);
 
         // Add a "Row" column with 1-based row numbers as first column.

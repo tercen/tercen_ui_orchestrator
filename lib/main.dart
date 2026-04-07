@@ -1751,7 +1751,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
           ..defaultValue = '',
         sci.StringProperty()
           ..name = 'maxTurns'
-          ..defaultValue = '8',
+          ..defaultValue = '16',
         sci.StringProperty()
           ..name = 'uiState'
           ..defaultValue = '',

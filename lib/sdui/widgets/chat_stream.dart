@@ -247,13 +247,15 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
 
       case 'tool_end':
         final toolId = msg['toolId'] as String?;
+        final summary = msg['summary'] as String?;
         for (int i = _messages.length - 1; i >= 0; i--) {
           if (_messages[i]['role'] == 'tool' &&
               _messages[i]['toolId'] == toolId) {
             final name = _messages[i]['toolName'] ?? '';
             final isError = msg['isError'] == true;
+            final label = isError ? '\u2717 $name' : '\u2713 $name';
             _messages[i]['text'] =
-                isError ? '\u2717 $name' : '\u2713 $name';
+                summary != null ? '$label — $summary' : label;
             _messages[i]['isStreaming'] = false;
             break;
           }
