@@ -1,0 +1,4 @@
+kind: window
+label: Chat Box
+description: Primary LLM interaction surface for the Tercen platform.
+design_reference: _references/window-design.md

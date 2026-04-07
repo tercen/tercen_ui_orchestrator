@@ -8,7 +8,7 @@ Validates widget templates for correctness against the SDUI spec.
 flutter test test/sdui/validator/validate_catalog_test.dart
 ```
 
-This validates all widgets in `../tercen_ui_widgets/catalog.json` and prints a report.
+This validates all widgets in `packages/tercen_ui_widgets/catalog.json` and prints a report.
 
 ## What It Checks
 

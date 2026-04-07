@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PNG Viewer — Styled Mock</title>
+
+  <!-- FontAwesome 6 Solid (CDN) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    crossorigin="anonymous"
+  />
+
+  <!-- Google Font: Fira Sans -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ════════════════════════════════════════════════════════════
+       DESIGN TOKENS  (embedded from ../tercen-style/dist/tercen-tokens.css)
+       Only approved colour tokens from tokens.meta.json used below.
+    ════════════════════════════════════════════════════════════ */
+
+    /* Auto-generated from theme-export.json -- do not edit */
+
+    :root {
+      --font-family: 'Fira Sans', sans-serif;
+
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+      --spacing-xxl: 48px;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+
+      --elevation-none: 0;
+      --elevation-low: 1;
+      --elevation-medium: 4;
+      --elevation-high: 8;
+
+      --line-weight-subtle: 1px;
+      --line-weight-standard: 1.5px;
+      --line-weight-emphasis: 2px;
+      --line-weight-viz-grid: 1px;
+      --line-weight-viz-axis: 2px;
+      --line-weight-viz-data: 2px;
+      --line-weight-viz-highlight: 3px;
+
+      --control-height-sm: 28px;
+      --control-height-md: 36px;
+      --control-height-lg: 44px;
+
+      --button-padding-h: 16px;
+      --button-padding-v: 8px;
+      --button-border-radius: 8px;
+      --button-border-width: 1.5px;
+
+      --icon-size-sm: 16px;
+      --icon-size-md: 24px;
+      --icon-size-lg: 32px;
+
+      --text-headline-large-size: 24px;
+      --text-headline-large-weight: 600;
+      --text-headline-large-line-height: 1.25;
+      --text-headline-medium-size: 20px;
+      --text-headline-medium-weight: 600;
+      --text-headline-medium-line-height: 1.25;
+      --text-headline-small-size: 16px;
+      --text-headline-small-weight: 600;
+      --text-headline-small-line-height: 1.25;
+      --text-body-large-size: 16px;
+      --text-body-large-weight: 400;
+      --text-body-large-line-height: 1.5;
+      --text-body-medium-size: 14px;
+      --text-body-medium-weight: 400;
+      --text-body-medium-line-height: 1.5;
+      --text-body-small-size: 12px;
+      --text-body-small-weight: 400;
+      --text-body-small-line-height: 1.5;
+      --text-label-large-size: 14px;
+      --text-label-large-weight: 500;
+      --text-label-large-line-height: 1.5;
+      --text-label-small-size: 12px;
+      --text-label-small-weight: 500;
+      --text-label-small-line-height: 1.5;
+      --text-section-header-size: 12px;
+      --text-section-header-weight: 600;
+      --text-section-header-line-height: 1.25;
+      --text-section-header-letter-spacing: 0.5px;
+      --text-micro-size: 8px;
+      --text-micro-weight: 400;
+      --text-micro-line-height: 1.5;
+    }
+
+    [data-theme="light"], :root {
+      --color-primary: #1E40AF;
+      --color-on-primary: #FFFFFF;
+      --color-primary-container: #DBEAFE;
+      --color-on-primary-container: #1E3A8A;
+      --color-primary-fixed: #EFF6FF;
+      --color-tertiary: #6D28D9;
+      --color-error: #B91C1C;
+      --color-on-error: #FFFFFF;
+      --color-error-container: #FEE2E2;
+      --color-surface: #FFFFFF;
+      --color-on-surface: #111827;
+      --color-on-surface-variant: #374151;
+      --color-surface-container-low: #F9FAFB;
+      --color-surface-container: #F3F4F6;
+      --color-surface-container-high: #E5E7EB;
+      --color-outline: #D1D5DB;
+      --color-outline-variant: #E5E7EB;
+      --color-shadow: #000000;
+      --color-scrim: #000000;
+      --color-on-surface-muted: #6B7280;
+      --color-on-surface-disabled: #9CA3AF;
+      --color-warning: #B45309;
+      --color-on-warning: #FFFFFF;
+      --color-warning-container: #FEF3C7;
+      --color-on-warning-container: #B45309;
+      --color-success: #047857;
+      --color-on-success: #FFFFFF;
+      --color-success-container: #D1FAE5;
+      --color-on-success-container: #047857;
+      --color-info: #0E7490;
+      --color-on-info: #FFFFFF;
+      --color-info-container: #CFFAFE;
+      --color-on-info-container: #0E7490;
+      --color-link: #2563EB;
+      --color-link-hover: #1E40AF;
+      --color-text-tertiary: #4B5563;
+    }
+
+    [data-theme="dark"] {
+      --color-primary: #14B8A6;
+      --color-on-primary: #FFFFFF;
+      --color-primary-container: #153D47;
+      --color-on-primary-container: #2DD4BF;
+      --color-primary-fixed: #122E35;
+      --color-tertiary: #A78BFA;
+      --color-error: #F87171;
+      --color-on-error: #FFFFFF;
+      --color-error-container: #450A0A;
+      --color-surface: #111827;
+      --color-on-surface: #F9FAFB;
+      --color-on-surface-variant: #E5E7EB;
+      --color-surface-container-low: #111827;
+      --color-surface-container: #1F2937;
+      --color-surface-container-high: #1F2937;
+      --color-outline: #374151;
+      --color-outline-variant: #374151;
+      --color-shadow: #000000;
+      --color-scrim: #000000;
+      --color-on-surface-muted: #6B7280;
+      --color-on-surface-disabled: #4B5563;
+      --color-warning: #FBBF24;
+      --color-on-warning: #111827;
+      --color-warning-container: #451A03;
+      --color-on-warning-container: #FBBF24;
+      --color-success: #10B981;
+      --color-on-success: #111827;
+      --color-success-container: #14532D;
+      --color-on-success-container: #4ADE80;
+      --color-info: #60A5FA;
+      --color-on-info: #111827;
+      --color-info-container: #083344;
+      --color-on-info-container: #67E8F9;
+      --color-link: #60A5FA;
+      --color-link-hover: #3B82F6;
+      --color-text-tertiary: #9CA3AF;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       ANNOTATION COLOURS (not tokens — fixed brand value from Dart)
+       #FF5722 deep-orange stroke, 20% fill; #2196F3 moving highlight
+    ════════════════════════════════════════════════════════════ */
+    :root {
+      --annotation-stroke: #FF5722;
+      --annotation-fill: rgba(255, 87, 34, 0.20);
+      --annotation-moving-stroke: #2196F3;
+      --annotation-moving-fill: rgba(33, 150, 243, 0.20);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       RESET & PAGE
+    ════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      font-size: 14px;
+      background: var(--color-surface-container);
+      color: var(--color-on-surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-xl);
+      padding: var(--spacing-xl) var(--spacing-md);
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       PAGE HEADER
+    ════════════════════════════════════════════════════════════ */
+    .page-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    .page-header h1 {
+      font-size: var(--text-headline-medium-size);
+      font-weight: var(--text-headline-medium-weight);
+      line-height: var(--text-headline-medium-line-height);
+      color: var(--color-on-surface);
+    }
+    .page-header p {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+    }
+    .theme-toggle {
+      cursor: pointer;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border: var(--line-weight-standard) solid var(--color-outline);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-on-surface-variant);
+      font-family: var(--font-family);
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .theme-toggle:hover {
+      background: var(--color-primary-container);
+      border-color: var(--color-primary);
+      color: var(--color-on-primary-container);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       SECTION WRAPPER
+    ════════════════════════════════════════════════════════════ */
+    .state-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-sm);
+      width: 100%;
+      max-width: 740px;
+    }
+    .state-section h2 {
+      font-size: var(--text-section-header-size);
+      font-weight: var(--text-section-header-weight);
+      line-height: var(--text-section-header-line-height);
+      letter-spacing: var(--text-section-header-letter-spacing);
+      text-transform: uppercase;
+      color: var(--color-on-surface-muted);
+      align-self: flex-start;
+    }
+    .state-note {
+      align-self: flex-start;
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+      line-height: var(--text-body-small-line-height);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       WIDGET SHELL
+    ════════════════════════════════════════════════════════════ */
+    .widget {
+      width: 100%;
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline-variant);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 var(--elevation-low)px 3px rgba(0,0,0,0.10);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       MOCK TAB STRIP  (dev harness — not part of widget)
+    ════════════════════════════════════════════════════════════ */
+    .tab-strip {
+      height: 32px;
+      background: var(--color-surface-container-high);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 var(--spacing-sm);
+      gap: var(--spacing-xs);
+      flex-shrink: 0;
+    }
+    .tab {
+      height: 28px;
+      padding: 0 var(--spacing-sm);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-surface);
+      border: var(--line-weight-emphasis) solid var(--color-primary);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-on-surface);
+      white-space: nowrap;
+      max-width: 220px;
+      overflow: hidden;
+    }
+    .tab-color-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: #66FF7F;  /* Visualization type colour from WindowIdentity */
+      flex-shrink: 0;
+    }
+    .tab-close {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      font-size: 9px;
+      color: var(--color-on-surface-muted);
+      flex-shrink: 0;
+      margin-left: 2px;
+    }
+    .tab-close:hover {
+      background: var(--color-surface-container);
+    }
+    .tab-label {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 11px;
+    }
+    .tab-strip-actions {
+      margin-left: auto;
+      align-self: center;
+      display: flex;
+      gap: var(--spacing-xs);
+    }
+    .tab-strip-btn {
+      padding: 3px var(--spacing-xs);
+      font-size: 10px;
+      color: var(--color-on-surface-muted);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      background: transparent;
+      font-family: var(--font-family);
+    }
+    .tab-strip-btn:hover {
+      background: var(--color-surface-container);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TOOLBAR  (48px, 3-zone layout)
+    ════════════════════════════════════════════════════════════ */
+    .toolbar {
+      height: 48px;
+      background: var(--color-surface);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--spacing-sm);
+      gap: var(--spacing-sm);
+      flex-shrink: 0;
+    }
+    .toolbar-zone {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+    .toolbar-spacer { flex: 1; }
+
+    /* ── Toolbar button — secondary (outlined) ── */
+    .tbtn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      border: var(--line-weight-standard) solid var(--color-primary);
+      background: transparent;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--icon-size-sm);
+      cursor: pointer;
+      transition: background 0.15s ease;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .tbtn:hover:not(.tbtn--disabled):not(.tbtn--active) {
+      background: var(--color-primary-container);
+    }
+    .tbtn:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    /* ── Toolbar button — primary (filled, tool active) ── */
+    .tbtn--active {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border-color: var(--color-primary);
+    }
+    .tbtn--active:hover {
+      background: var(--color-on-primary-container);
+      border-color: var(--color-on-primary-container);
+    }
+
+    /* ── Toolbar button — disabled ── */
+    .tbtn--disabled {
+      border-color: var(--color-outline);
+      color: var(--color-on-surface-disabled);
+      cursor: default;
+    }
+
+    /* ── Tooltip ── */
+    .tbtn::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-on-surface);
+      color: var(--color-surface);
+      font-size: 10px;
+      white-space: nowrap;
+      padding: 3px var(--spacing-xs);
+      border-radius: var(--radius-sm);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 100;
+    }
+    .tbtn:hover::after { opacity: 1; }
+
+    /* ════════════════════════════════════════════════════════════
+       BODY AREA
+    ════════════════════════════════════════════════════════════ */
+    .body {
+      flex: 1;
+      min-height: 380px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Loading state ── */
+    .state-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--color-outline-variant);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .spinner-label {
+      font-size: var(--text-body-medium-size);
+      color: var(--color-on-surface-muted);
+    }
+
+    /* ── Empty state ── */
+    .state-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-sm);
+      max-width: 280px;
+      text-align: center;
+    }
+    .state-empty .body-icon {
+      font-size: var(--icon-size-lg);
+      color: var(--color-on-surface-disabled);
+    }
+    .state-empty .body-message {
+      font-size: var(--text-body-medium-size);
+      font-weight: var(--text-body-medium-weight);
+      color: var(--color-on-surface-muted);
+    }
+    .state-empty .body-detail {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-disabled);
+    }
+
+    /* ── Error state ── */
+    .state-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-sm);
+      max-width: 280px;
+      text-align: center;
+    }
+    .state-error .body-icon {
+      font-size: var(--icon-size-lg);
+      color: var(--color-error);
+    }
+    .state-error .body-message {
+      font-size: var(--text-body-medium-size);
+      font-weight: 500;
+      color: var(--color-error);
+    }
+    .state-error .body-detail {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-disabled);
+    }
+    .btn-retry {
+      margin-top: var(--spacing-sm);
+      padding: var(--button-padding-v) var(--button-padding-h);
+      border: var(--button-border-width) solid var(--color-error);
+      border-radius: var(--button-border-radius);
+      background: transparent;
+      color: var(--color-error);
+      font-family: var(--font-family);
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-retry:hover {
+      background: var(--color-error-container);
+    }
+
+    /* ── Active state: canvas ── */
+    .state-active {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      /* Viz containers always force a neutral background per design rules */
+      background: var(--color-surface-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* The image sits inside a clipped viewport */
+    .canvas-viewport {
+      position: relative;
+      width: 520px;
+      height: 390px;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    /* Simulated PNG image using an SVG placeholder that mimics UMAP scatter */
+    .canvas-image {
+      width: 520px;
+      height: 390px;
+      display: block;
+      position: relative;
+    }
+
+    /* Annotation overlay: absolutely-positioned on top of the image */
+    .annotation-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* Zoom percentage badge */
+    .zoom-badge {
+      position: absolute;
+      bottom: var(--spacing-sm);
+      right: var(--spacing-sm);
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-sm);
+      padding: 2px var(--spacing-sm);
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       ANNOTATION CALLOUTS (active state demo)
+    ════════════════════════════════════════════════════════════ */
+
+    /* Annotation drawn on SVG canvas — see inline SVG */
+
+    /* ════════════════════════════════════════════════════════════
+       TOOL REFERENCE GRID
+    ════════════════════════════════════════════════════════════ */
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--spacing-md);
+      width: 100%;
+      max-width: 740px;
+    }
+    .tool-card {
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline-variant);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+    }
+    .tool-card .tool-icon {
+      font-size: var(--icon-size-sm);
+      color: var(--color-primary);
+    }
+    .tool-card .tool-name {
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      color: var(--color-on-surface);
+    }
+    .tool-card .tool-desc {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════
+       PAGE HEADER
+  ══════════════════════════════════════════════════ -->
+  <div class="page-header">
+    <h1>PNG Viewer — Styled Mock</h1>
+    <p>Themed rendering of all 4 body states. FontAwesome 6 Solid. Tercen design tokens.</p>
+    <button class="theme-toggle" onclick="
+      const html = document.documentElement;
+      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      this.textContent = html.getAttribute('data-theme') === 'dark' ? '\u2600 Light mode' : '\u263E Dark mode';
+    ">&#9790; Dark mode</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 1: LOADING
+  ══════════════════════════════════════════════════ -->
+  <div class="state-section">
+    <h2>State 1 — Loading</h2>
+
+    <div class="widget">
+      <!-- Dev harness tab strip -->
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-color-dot"></div>
+          <span class="tab-label">PNG Viewer</span>
+          <div class="tab-close"><i class="fa-solid fa-xmark" style="font-size:8px;"></i></div>
+        </div>
+        <div class="tab-strip-actions">
+          <button class="tab-strip-btn">&#9790; Toggle Theme</button>
+        </div>
+      </div>
+
+      <!-- Toolbar: all buttons disabled -->
+      <div class="toolbar">
+        <!-- LEFT: drawing tools -->
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Polygon"><i class="fa-solid fa-draw-polygon"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Rectangle"><i class="fa-solid fa-square"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Circle"><i class="fa-solid fa-circle"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Arrow"><i class="fa-solid fa-arrow-right"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Freehand"><i class="fa-solid fa-pencil"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Text"><i class="fa-solid fa-font"></i></button>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
+        <!-- CENTRE: actions -->
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Clear All"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Send to Chat"><i class="fa-solid fa-paper-plane"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Save to Project"><i class="fa-solid fa-floppy-disk"></i></button>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
+        <!-- RIGHT: zoom -->
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Fit to Window"><i class="fa-solid fa-expand"></i></button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="body">
+        <div class="state-loading">
+          <div class="spinner"></div>
+          <span class="spinner-label">Loading image...</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="state-note">
+      All 12 toolbar buttons are disabled (no active image). Spinner: 28px diameter, 3px stroke,
+      primary colour track on outline-variant track. Message: body-medium, on-surface-muted.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 2: EMPTY
+  ══════════════════════════════════════════════════ -->
+  <div class="state-section">
+    <h2>State 2 — Empty</h2>
+
+    <div class="widget">
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-color-dot"></div>
+          <span class="tab-label">PNG Viewer</span>
+          <div class="tab-close"><i class="fa-solid fa-xmark" style="font-size:8px;"></i></div>
+        </div>
+        <div class="tab-strip-actions">
+          <button class="tab-strip-btn">&#9790; Toggle Theme</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Polygon"><i class="fa-solid fa-draw-polygon"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Rectangle"><i class="fa-solid fa-square"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Circle"><i class="fa-solid fa-circle"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Arrow"><i class="fa-solid fa-arrow-right"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Freehand"><i class="fa-solid fa-pencil"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Text"><i class="fa-solid fa-font"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Clear All"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Send to Chat"><i class="fa-solid fa-paper-plane"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Save to Project"><i class="fa-solid fa-floppy-disk"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Fit to Window"><i class="fa-solid fa-expand"></i></button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="state-empty">
+          <i class="fa-solid fa-image body-icon"></i>
+          <span class="body-message">No image loaded</span>
+          <span class="body-detail">Open a PNG from the File Navigator or a step output.</span>
+          <!-- No action button: onEmptyAction is null in Dart HomeScreen -->
+        </div>
+      </div>
+    </div>
+
+    <p class="state-note">
+      Icon: fa-image 32px, on-surface-disabled. Primary message: body-medium, on-surface-muted.
+      Detail: body-small, on-surface-disabled. No action button (Dart wires no onEmptyAction callback).
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 3: ACTIVE — no tool, no annotations
+  ══════════════════════════════════════════════════ -->
+  <div class="state-section">
+    <h2>State 3a — Active (pan mode, no annotations)</h2>
+
+    <div class="widget" style="min-height: 500px;">
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-color-dot"></div>
+          <span class="tab-label">View UMAP vs. clusters.png</span>
+          <div class="tab-close"><i class="fa-solid fa-xmark" style="font-size:8px;"></i></div>
+        </div>
+        <div class="tab-strip-actions">
+          <button class="tab-strip-btn">&#9790; Toggle Theme</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <!-- LEFT: all drawing tools enabled, none active -->
+        <div class="toolbar-zone">
+          <button class="tbtn" data-tooltip="Polygon"><i class="fa-solid fa-draw-polygon"></i></button>
+          <button class="tbtn" data-tooltip="Rectangle"><i class="fa-solid fa-square"></i></button>
+          <button class="tbtn" data-tooltip="Circle"><i class="fa-solid fa-circle"></i></button>
+          <button class="tbtn" data-tooltip="Arrow"><i class="fa-solid fa-arrow-right"></i></button>
+          <button class="tbtn" data-tooltip="Freehand"><i class="fa-solid fa-pencil"></i></button>
+          <button class="tbtn" data-tooltip="Text"><i class="fa-solid fa-font"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <!-- CENTRE: trash + send disabled (no annotations yet) -->
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Clear All"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Send to Chat"><i class="fa-solid fa-paper-plane"></i></button>
+          <button class="tbtn" data-tooltip="Save to Project"><i class="fa-solid fa-floppy-disk"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <!-- RIGHT: zoom enabled -->
+        <div class="toolbar-zone">
+          <button class="tbtn" data-tooltip="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button class="tbtn" data-tooltip="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <button class="tbtn" data-tooltip="Fit to Window"><i class="fa-solid fa-expand"></i></button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="state-active">
+          <!-- Simulated PNG image: SVG scatter plot with no annotations -->
+          <div class="canvas-viewport" style="cursor:grab;">
+            <svg class="canvas-image" viewBox="0 0 520 390" xmlns="http://www.w3.org/2000/svg">
+              <!-- Canvas background (always white for viz containers) -->
+              <rect width="520" height="390" fill="#FFFFFF"/>
+              <!-- Simulated UMAP scatter — cluster A (blue) -->
+              <g opacity="0.85">
+                <circle cx="80" cy="110" r="5" fill="#3B82F6"/>
+                <circle cx="95" cy="125" r="5" fill="#3B82F6"/>
+                <circle cx="105" cy="105" r="5" fill="#3B82F6"/>
+                <circle cx="115" cy="120" r="5" fill="#3B82F6"/>
+                <circle cx="90" cy="100" r="5" fill="#3B82F6"/>
+                <circle cx="70" cy="130" r="5" fill="#3B82F6"/>
+                <circle cx="125" cy="115" r="5" fill="#3B82F6"/>
+                <circle cx="100" cy="140" r="5" fill="#3B82F6"/>
+              </g>
+              <!-- Cluster B (green) -->
+              <g opacity="0.85">
+                <circle cx="280" cy="200" r="5" fill="#10B981"/>
+                <circle cx="295" cy="215" r="5" fill="#10B981"/>
+                <circle cx="265" cy="220" r="5" fill="#10B981"/>
+                <circle cx="310" cy="205" r="5" fill="#10B981"/>
+                <circle cx="285" cy="230" r="5" fill="#10B981"/>
+                <circle cx="270" cy="195" r="5" fill="#10B981"/>
+                <circle cx="300" cy="225" r="5" fill="#10B981"/>
+                <circle cx="255" cy="210" r="5" fill="#10B981"/>
+              </g>
+              <!-- Cluster C (orange) -->
+              <g opacity="0.85">
+                <circle cx="420" cy="290" r="5" fill="#F97316"/>
+                <circle cx="405" cy="305" r="5" fill="#F97316"/>
+                <circle cx="435" cy="275" r="5" fill="#F97316"/>
+                <circle cx="450" cy="295" r="5" fill="#F97316"/>
+                <circle cx="415" cy="315" r="5" fill="#F97316"/>
+                <circle cx="440" cy="310" r="5" fill="#F97316"/>
+                <circle cx="425" cy="280" r="5" fill="#F97316"/>
+                <circle cx="460" cy="300" r="5" fill="#F97316"/>
+              </g>
+              <!-- Cluster D (purple) -->
+              <g opacity="0.85">
+                <circle cx="160" cy="300" r="5" fill="#8B5CF6"/>
+                <circle cx="175" cy="285" r="5" fill="#8B5CF6"/>
+                <circle cx="145" cy="315" r="5" fill="#8B5CF6"/>
+                <circle cx="180" cy="305" r="5" fill="#8B5CF6"/>
+                <circle cx="165" cy="320" r="5" fill="#8B5CF6"/>
+              </g>
+              <!-- Axis labels -->
+              <text x="260" y="380" font-family="Fira Sans,sans-serif" font-size="11" fill="#9CA3AF" text-anchor="middle">UMAP 1</text>
+              <text x="12" y="200" font-family="Fira Sans,sans-serif" font-size="11" fill="#9CA3AF" text-anchor="middle" transform="rotate(-90,12,200)">UMAP 2</text>
+              <!-- Legend -->
+              <rect x="380" y="30" width="10" height="10" fill="#3B82F6" rx="2"/>
+              <text x="396" y="40" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster A</text>
+              <rect x="380" y="48" width="10" height="10" fill="#10B981" rx="2"/>
+              <text x="396" y="58" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster B</text>
+              <rect x="380" y="66" width="10" height="10" fill="#F97316" rx="2"/>
+              <text x="396" y="76" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster C</text>
+              <rect x="380" y="84" width="10" height="10" fill="#8B5CF6" rx="2"/>
+              <text x="396" y="94" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster D</text>
+            </svg>
+          </div>
+          <div class="zoom-badge">75%</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="state-note">
+      Canvas background: surface-container (neutral grey). Image always white background (viz rule).
+      Cursor is "grab" in pan mode. Trash and Send to Chat disabled — no annotations.
+      Save to Project enabled whenever contentState == active.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 3b: ACTIVE — Rectangle tool active, annotations present
+  ══════════════════════════════════════════════════ -->
+  <div class="state-section">
+    <h2>State 3b — Active (Rectangle tool ON, annotations drawn)</h2>
+
+    <div class="widget" style="min-height: 500px;">
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-color-dot"></div>
+          <span class="tab-label">View UMAP vs. clusters.png</span>
+          <div class="tab-close"><i class="fa-solid fa-xmark" style="font-size:8px;"></i></div>
+        </div>
+        <div class="tab-strip-actions">
+          <button class="tab-strip-btn">&#9790; Toggle Theme</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-zone">
+          <button class="tbtn" data-tooltip="Polygon"><i class="fa-solid fa-draw-polygon"></i></button>
+          <!-- Rectangle: active (primary filled) -->
+          <button class="tbtn tbtn--active" data-tooltip="Rectangle"><i class="fa-solid fa-square"></i></button>
+          <button class="tbtn" data-tooltip="Circle"><i class="fa-solid fa-circle"></i></button>
+          <button class="tbtn" data-tooltip="Arrow"><i class="fa-solid fa-arrow-right"></i></button>
+          <button class="tbtn" data-tooltip="Freehand"><i class="fa-solid fa-pencil"></i></button>
+          <button class="tbtn" data-tooltip="Text"><i class="fa-solid fa-font"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <!-- CENTRE: all enabled (annotations exist) -->
+        <div class="toolbar-zone">
+          <button class="tbtn" data-tooltip="Clear All"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="tbtn" data-tooltip="Send to Chat"><i class="fa-solid fa-paper-plane"></i></button>
+          <button class="tbtn" data-tooltip="Save to Project"><i class="fa-solid fa-floppy-disk"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-zone">
+          <button class="tbtn" data-tooltip="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button class="tbtn" data-tooltip="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <button class="tbtn" data-tooltip="Fit to Window"><i class="fa-solid fa-expand"></i></button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="state-active">
+          <div class="canvas-viewport" style="cursor:crosshair;">
+            <svg class="canvas-image" viewBox="0 0 520 390" xmlns="http://www.w3.org/2000/svg">
+              <rect width="520" height="390" fill="#FFFFFF"/>
+              <!-- Scatter clusters (same as above) -->
+              <g opacity="0.85">
+                <circle cx="80" cy="110" r="5" fill="#3B82F6"/>
+                <circle cx="95" cy="125" r="5" fill="#3B82F6"/>
+                <circle cx="105" cy="105" r="5" fill="#3B82F6"/>
+                <circle cx="115" cy="120" r="5" fill="#3B82F6"/>
+                <circle cx="90" cy="100" r="5" fill="#3B82F6"/>
+                <circle cx="70" cy="130" r="5" fill="#3B82F6"/>
+                <circle cx="125" cy="115" r="5" fill="#3B82F6"/>
+                <circle cx="100" cy="140" r="5" fill="#3B82F6"/>
+              </g>
+              <g opacity="0.85">
+                <circle cx="280" cy="200" r="5" fill="#10B981"/>
+                <circle cx="295" cy="215" r="5" fill="#10B981"/>
+                <circle cx="265" cy="220" r="5" fill="#10B981"/>
+                <circle cx="310" cy="205" r="5" fill="#10B981"/>
+                <circle cx="285" cy="230" r="5" fill="#10B981"/>
+                <circle cx="270" cy="195" r="5" fill="#10B981"/>
+                <circle cx="300" cy="225" r="5" fill="#10B981"/>
+                <circle cx="255" cy="210" r="5" fill="#10B981"/>
+              </g>
+              <g opacity="0.85">
+                <circle cx="420" cy="290" r="5" fill="#F97316"/>
+                <circle cx="405" cy="305" r="5" fill="#F97316"/>
+                <circle cx="435" cy="275" r="5" fill="#F97316"/>
+                <circle cx="450" cy="295" r="5" fill="#F97316"/>
+                <circle cx="415" cy="315" r="5" fill="#F97316"/>
+                <circle cx="440" cy="310" r="5" fill="#F97316"/>
+                <circle cx="425" cy="280" r="5" fill="#F97316"/>
+                <circle cx="460" cy="300" r="5" fill="#F97316"/>
+              </g>
+              <g opacity="0.85">
+                <circle cx="160" cy="300" r="5" fill="#8B5CF6"/>
+                <circle cx="175" cy="285" r="5" fill="#8B5CF6"/>
+                <circle cx="145" cy="315" r="5" fill="#8B5CF6"/>
+                <circle cx="180" cy="305" r="5" fill="#8B5CF6"/>
+                <circle cx="165" cy="320" r="5" fill="#8B5CF6"/>
+              </g>
+              <text x="260" y="380" font-family="Fira Sans,sans-serif" font-size="11" fill="#9CA3AF" text-anchor="middle">UMAP 1</text>
+              <text x="12" y="200" font-family="Fira Sans,sans-serif" font-size="11" fill="#9CA3AF" text-anchor="middle" transform="rotate(-90,12,200)">UMAP 2</text>
+              <rect x="380" y="30" width="10" height="10" fill="#3B82F6" rx="2"/>
+              <text x="396" y="40" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster A</text>
+              <rect x="380" y="48" width="10" height="10" fill="#10B981" rx="2"/>
+              <text x="396" y="58" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster B</text>
+              <rect x="380" y="66" width="10" height="10" fill="#F97316" rx="2"/>
+              <text x="396" y="76" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster C</text>
+              <rect x="380" y="84" width="10" height="10" fill="#8B5CF6" rx="2"/>
+              <text x="396" y="94" font-family="Fira Sans,sans-serif" font-size="10" fill="#6B7280">Cluster D</text>
+
+              <!-- ── ANNOTATIONS ── -->
+              <!-- Rectangle annotation around Cluster A -->
+              <rect x="58" y="88" width="82" height="66"
+                    fill="rgba(255,87,34,0.20)"
+                    stroke="#FF5722"
+                    stroke-width="2"
+                    stroke-linejoin="round"/>
+
+              <!-- Circle annotation around Cluster B -->
+              <circle cx="283" cy="213" r="45"
+                      fill="rgba(255,87,34,0.20)"
+                      stroke="#FF5722"
+                      stroke-width="2"/>
+
+              <!-- Arrow annotation pointing to Cluster C -->
+              <line x1="360" y1="250" x2="410" y2="285"
+                    stroke="#FF5722" stroke-width="2" stroke-linecap="round"/>
+              <polygon points="410,285 398,275 405,263"
+                       fill="#FF5722"/>
+
+              <!-- Polygon annotation around Cluster D -->
+              <polygon points="140,275 185,268 198,305 170,335 138,322"
+                       fill="rgba(255,87,34,0.20)"
+                       stroke="#FF5722"
+                       stroke-width="2"
+                       stroke-linejoin="round"/>
+
+              <!-- Freehand scribble near bottom-left -->
+              <polyline points="30,355 45,340 60,352 75,338 90,350"
+                        fill="none"
+                        stroke="#FF5722"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"/>
+
+              <!-- Text annotation -->
+              <text x="60" y="80" font-family="Fira Sans,sans-serif"
+                    font-size="13" font-weight="600"
+                    fill="#FF5722">Cluster A</text>
+            </svg>
+          </div>
+          <div class="zoom-badge">75%</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="state-note">
+      Rectangle tool active: filled primary button. Cursor: crosshair.
+      Annotations: stroke #FF5722, fill rgba(255,87,34,0.20), stroke-width 2px.
+      All 6 annotation types shown: rectangle, circle, arrow, polygon, freehand, text.
+      Trash + Send to Chat enabled (annotations exist).
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 4: ERROR
+  ══════════════════════════════════════════════════ -->
+  <div class="state-section">
+    <h2>State 4 — Error</h2>
+
+    <div class="widget">
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-color-dot"></div>
+          <span class="tab-label">PNG Viewer</span>
+          <div class="tab-close"><i class="fa-solid fa-xmark" style="font-size:8px;"></i></div>
+        </div>
+        <div class="tab-strip-actions">
+          <button class="tab-strip-btn">&#9790; Toggle Theme</button>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Polygon"><i class="fa-solid fa-draw-polygon"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Rectangle"><i class="fa-solid fa-square"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Circle"><i class="fa-solid fa-circle"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Arrow"><i class="fa-solid fa-arrow-right"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Freehand"><i class="fa-solid fa-pencil"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Text"><i class="fa-solid fa-font"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Clear All"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Send to Chat"><i class="fa-solid fa-paper-plane"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Save to Project"><i class="fa-solid fa-floppy-disk"></i></button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-zone">
+          <button class="tbtn tbtn--disabled" data-tooltip="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <button class="tbtn tbtn--disabled" data-tooltip="Fit to Window"><i class="fa-solid fa-expand"></i></button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="state-error">
+          <i class="fa-solid fa-circle-exclamation body-icon"></i>
+          <span class="body-message">Something went wrong</span>
+          <span class="body-detail">Failed to fetch image: Network request failed (resourceId: umap-clusters-001)</span>
+          <button class="btn-retry">Retry</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="state-note">
+      Icon: fa-circle-exclamation 32px, error colour. Primary message: body-medium 500, error colour.
+      Detail: body-small, on-surface-disabled. Retry button: outlined, error border + text, error-container hover.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       TOOL REFERENCE
+  ══════════════════════════════════════════════════ -->
+  <div class="state-section">
+    <h2>Drawing Tool Reference</h2>
+    <div class="tool-grid">
+      <div class="tool-card">
+        <i class="fa-solid fa-draw-polygon tool-icon"></i>
+        <span class="tool-name">Polygon</span>
+        <span class="tool-desc">Click vertices. Click near first vertex (or double-click) to close.</span>
+      </div>
+      <div class="tool-card">
+        <i class="fa-solid fa-square tool-icon"></i>
+        <span class="tool-name">Rectangle</span>
+        <span class="tool-desc">Drag to define bounding box. Release to commit.</span>
+      </div>
+      <div class="tool-card">
+        <i class="fa-solid fa-circle tool-icon"></i>
+        <span class="tool-name">Circle</span>
+        <span class="tool-desc">Drag from centre. Radius = drag distance.</span>
+      </div>
+      <div class="tool-card">
+        <i class="fa-solid fa-arrow-right tool-icon"></i>
+        <span class="tool-name">Arrow</span>
+        <span class="tool-desc">Drag tail to head. Filled arrowhead rendered at endpoint.</span>
+      </div>
+      <div class="tool-card">
+        <i class="fa-solid fa-pencil tool-icon"></i>
+        <span class="tool-name">Freehand</span>
+        <span class="tool-desc">Drag to trace a free-form path. All sampled points stored.</span>
+      </div>
+      <div class="tool-card">
+        <i class="fa-solid fa-font tool-icon"></i>
+        <span class="tool-name">Text</span>
+        <span class="tool-desc">Click to place. Inline input appears. Press Enter or click away to confirm.</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

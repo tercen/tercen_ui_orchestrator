@@ -1,0 +1,12 @@
+*_local*
+.claude/*
+!.claude/skills/
+!.claude/agents/
+_feedback/
+_issues/
+.dart_tool/
+.flutter-plugins-dependencies
+*.cache.dill.track.dill
+pubspec.lock
+.playwright-mcp/
+build/

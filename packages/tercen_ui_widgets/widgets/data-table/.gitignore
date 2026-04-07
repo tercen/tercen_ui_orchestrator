@@ -1,0 +1,22 @@
+# Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+!build/web/
+.flutter-plugins-dependencies
+
+# Local review/build artifacts
+_local/
+_research/
+_review/
+_mock/sdui-gaps.md
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

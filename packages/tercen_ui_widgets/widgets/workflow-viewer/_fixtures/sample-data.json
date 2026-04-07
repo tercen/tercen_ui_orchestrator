@@ -1,0 +1,522 @@
+{
+  "_comment": "Fixture data extracted from mock_data_service.dart. Four workflows used in development.",
+
+  "workflows": [
+    {
+      "_name": "crabs",
+      "id": "f062cb164c337a519d8cf050c2f323f2",
+      "name": "Crabs Workflow",
+      "projectId": "b8bf50d6a3865a60a0bc0dd4e352ebcb",
+      "steps": [
+        {
+          "id": "ts-crabs",
+          "name": "Crabs Data",
+          "groupId": "",
+          "kind": "tableStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-heatmap",
+          "name": "Heatmap",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-multi-pairwise",
+          "name": "Multi Pairwise",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-pca",
+          "name": "PCA",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-multi-pc-view",
+          "name": "Multi Pairwise PC view",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        }
+      ],
+      "links": [
+        { "inputStepId": "ds-heatmap",       "outputStepId": "ts-crabs" },
+        { "inputStepId": "ds-multi-pairwise", "outputStepId": "ts-crabs" },
+        { "inputStepId": "ds-pca",            "outputStepId": "ts-crabs" },
+        { "inputStepId": "ds-multi-pc-view",  "outputStepId": "ds-pca" }
+      ]
+    },
+
+    {
+      "_name": "cluster",
+      "_description": "Cluster Interpretation — group step from Flow Immunophenotyping. 11 steps, deep fan-out, InStep entry point.",
+      "id": "4acc795d-f726-4538-8f3f-d3682b4c80c4",
+      "name": "Cluster Interpretation",
+      "projectId": "6056012f5d0da9ea7fe076190c3244b4",
+      "steps": [
+        {
+          "id": "b7f8d18e",
+          "name": "Input",
+          "groupId": "4acc795d",
+          "kind": "inStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "d9faca40",
+          "name": "Marker Enrichment Score",
+          "groupId": "4acc795d",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "89e2c483",
+          "name": "Enrichment Heatmap",
+          "groupId": "4acc795d",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "50ba414c",
+          "name": "Ordered Enrichment Heatmap",
+          "groupId": "4acc795d",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "7ee10b97",
+          "name": "View",
+          "groupId": "4acc795d",
+          "kind": "viewStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "6418bff0",
+          "name": "Cluster Markers",
+          "groupId": "4acc795d",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "1405ab2c",
+          "name": "View",
+          "groupId": "4acc795d",
+          "kind": "viewStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "56ccde5c",
+          "name": "Cluster Profiles",
+          "groupId": "4acc795d",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "cf80bb7e",
+          "name": "Output",
+          "groupId": "4acc795d",
+          "kind": "outStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "fb1eb205",
+          "name": "View",
+          "groupId": "4acc795d",
+          "kind": "viewStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "67df0de4",
+          "name": "Marker expression per cluster",
+          "groupId": "4acc795d",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        }
+      ],
+      "links": [
+        { "inputStepId": "d9faca40", "outputStepId": "b7f8d18e" },
+        { "inputStepId": "89e2c483", "outputStepId": "d9faca40" },
+        { "inputStepId": "50ba414c", "outputStepId": "89e2c483" },
+        { "inputStepId": "7ee10b97", "outputStepId": "50ba414c" },
+        { "inputStepId": "6418bff0", "outputStepId": "50ba414c" },
+        { "inputStepId": "1405ab2c", "outputStepId": "6418bff0" },
+        { "inputStepId": "56ccde5c", "outputStepId": "6418bff0" },
+        { "inputStepId": "cf80bb7e", "outputStepId": "56ccde5c" },
+        { "inputStepId": "fb1eb205", "outputStepId": "56ccde5c" },
+        { "inputStepId": "67df0de4", "outputStepId": "d9faca40" }
+      ]
+    },
+
+    {
+      "_name": "test22",
+      "_description": "test 22 — 22 steps, 2 entrypoints, 8-way fan-out from PCA, 1 join, 1 melt, 3 views. Active workflow in development.",
+      "id": "333e3ae3f7953437b6431c61f802eea5",
+      "name": "test 22",
+      "projectId": "martin-english-personal",
+      "steps": [
+        {
+          "id": "1c782532",
+          "name": "Cell Ranger Data",
+          "groupId": "",
+          "kind": "tableStep",
+          "state": "done",
+          "description": "",
+          "rectangle": { "x": 40.0, "y": 100.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "3cbbfaa7",
+          "name": "README.md",
+          "groupId": "",
+          "kind": "tableStep",
+          "state": "done",
+          "description": "",
+          "rectangle": { "x": 760.0, "y": 100.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "c45b2c6d",
+          "name": "QC step",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": "",
+          "rectangle": { "x": 40.0, "y": 160.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "b576ee55",
+          "name": "QC filters and normalization",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": "",
+          "rectangle": { "x": 40.0, "y": 220.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "cbc89c44",
+          "name": "Find variable features",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": "",
+          "rectangle": { "x": 40.0, "y": 280.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "571e2a12",
+          "name": "PCA on 2K most variable genes",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": "",
+          "rectangle": { "x": 40.0, "y": 340.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "c8c16d44",
+          "name": "View PCA Results",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "running",
+          "description": "",
+          "rectangle": { "x": 40.0, "y": 400.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "ca1777ef",
+          "name": "SNN Graph Clustering",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 220.0, "y": 400.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "a1b9e796",
+          "name": "Data step",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 400.0, "y": 400.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "d707d3b1",
+          "name": "Data step 1",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 580.0, "y": 400.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "e79df6d6",
+          "name": "Data step 2",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 760.0, "y": 400.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "fd8e47f4",
+          "name": "Data step 3",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 940.0, "y": 400.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "c1aac962",
+          "name": "Data step 4",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 1120.0, "y": 400.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "3cae27c9",
+          "name": "View 3",
+          "groupId": "",
+          "kind": "viewStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 40.0, "y": 460.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "2a1cf509",
+          "name": "View clusters",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 220.0, "y": 460.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "bf643020",
+          "name": "Differential analysis - find markers",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 400.0, "y": 460.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "6279eddd",
+          "name": "View Differentially Expressed Markers",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 400.0, "y": 520.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "6b29c369",
+          "name": "Join",
+          "groupId": "",
+          "kind": "joinStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 580.0, "y": 520.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "e0c6c7a6",
+          "name": "Gather",
+          "groupId": "",
+          "kind": "meltStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 580.0, "y": 580.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "1f581e6c",
+          "name": "Data step 5",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 580.0, "y": 640.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "f57359f8",
+          "name": "View 5",
+          "groupId": "",
+          "kind": "viewStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 580.0, "y": 700.0, "width": 120.0, "height": 55.0 }
+        },
+        {
+          "id": "d0f092e2",
+          "name": "View 4",
+          "groupId": "",
+          "kind": "viewStep",
+          "state": "init",
+          "description": "",
+          "rectangle": { "x": 940.0, "y": 460.0, "width": 120.0, "height": 55.0 }
+        }
+      ],
+      "links": [
+        { "inputStepId": "c45b2c6d",  "outputStepId": "1c782532" },
+        { "inputStepId": "b576ee55",  "outputStepId": "c45b2c6d" },
+        { "inputStepId": "cbc89c44",  "outputStepId": "b576ee55" },
+        { "inputStepId": "571e2a12",  "outputStepId": "cbc89c44" },
+        { "inputStepId": "c8c16d44",  "outputStepId": "571e2a12" },
+        { "inputStepId": "ca1777ef",  "outputStepId": "571e2a12" },
+        { "inputStepId": "a1b9e796",  "outputStepId": "571e2a12" },
+        { "inputStepId": "d707d3b1",  "outputStepId": "571e2a12" },
+        { "inputStepId": "e79df6d6",  "outputStepId": "571e2a12" },
+        { "inputStepId": "fd8e47f4",  "outputStepId": "571e2a12" },
+        { "inputStepId": "c1aac962",  "outputStepId": "571e2a12" },
+        { "inputStepId": "3cae27c9",  "outputStepId": "c8c16d44" },
+        { "inputStepId": "2a1cf509",  "outputStepId": "ca1777ef" },
+        { "inputStepId": "bf643020",  "outputStepId": "ca1777ef" },
+        { "inputStepId": "6279eddd",  "outputStepId": "bf643020" },
+        { "inputStepId": "6b29c369",  "outputStepId": "bf643020" },
+        { "inputStepId": "6b29c369",  "outputStepId": "3cbbfaa7" },
+        { "inputStepId": "e0c6c7a6",  "outputStepId": "6b29c369" },
+        { "inputStepId": "1f581e6c",  "outputStepId": "e0c6c7a6" },
+        { "inputStepId": "f57359f8",  "outputStepId": "1f581e6c" },
+        { "inputStepId": "d0f092e2",  "outputStepId": "e79df6d6" }
+      ]
+    },
+
+    {
+      "_name": "rnaseq",
+      "_description": "RNAseq Data Connector — 11 steps, 3 source chains merging through 2 JoinSteps.",
+      "id": "2cdf2d2d4f0adbadc5f95636b10e2cd9",
+      "name": "RNAseq Data Connector",
+      "projectId": "2cdf2d2d4f0adbadc5f95636b10e6b08",
+      "steps": [
+        {
+          "id": "ts-gds5037",
+          "name": "GDS5037_full.soft",
+          "groupId": "",
+          "kind": "tableStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-csv-import-1",
+          "name": "CSV Import",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ms-gather",
+          "name": "Gather",
+          "groupId": "",
+          "kind": "meltStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-median",
+          "name": "Median Expression Per Gene",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ts-metadata",
+          "name": "Sample_Metadata.csv",
+          "groupId": "",
+          "kind": "tableStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-csv-import-2",
+          "name": "CSV Import",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "js-join-1",
+          "name": "Join",
+          "groupId": "",
+          "kind": "joinStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ts-hallmark",
+          "name": "hallmark_pathways.gmt",
+          "groupId": "",
+          "kind": "tableStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "ds-parse-gmt",
+          "name": "Parse GMT Hallmark",
+          "groupId": "",
+          "kind": "dataStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "js-join-2",
+          "name": "Join",
+          "groupId": "",
+          "kind": "joinStep",
+          "state": "done",
+          "description": ""
+        },
+        {
+          "id": "os-output",
+          "name": "Output",
+          "groupId": "",
+          "kind": "outStep",
+          "state": "done",
+          "description": ""
+        }
+      ],
+      "links": [
+        { "inputStepId": "ds-csv-import-1", "outputStepId": "ts-gds5037" },
+        { "inputStepId": "ms-gather",       "outputStepId": "ds-csv-import-1" },
+        { "inputStepId": "ds-median",       "outputStepId": "ms-gather" },
+        { "inputStepId": "ds-csv-import-2", "outputStepId": "ts-metadata" },
+        { "inputStepId": "js-join-1",       "outputStepId": "ds-median" },
+        { "inputStepId": "js-join-1",       "outputStepId": "ds-csv-import-2" },
+        { "inputStepId": "ds-parse-gmt",    "outputStepId": "ts-hallmark" },
+        { "inputStepId": "js-join-2",       "outputStepId": "js-join-1" },
+        { "inputStepId": "js-join-2",       "outputStepId": "ds-parse-gmt" },
+        { "inputStepId": "os-output",       "outputStepId": "js-join-2" }
+      ]
+    }
+  ],
+
+  "stepKinds": [
+    "workflow", "groupStep", "tableStep", "joinStep",
+    "dataStep", "viewStep", "inStep", "outStep", "meltStep",
+    "exportStep", "wizardStep"
+  ],
+
+  "stepStates": [
+    "init", "pending", "runningDependent", "running",
+    "done", "failed", "canceled"
+  ]
+}

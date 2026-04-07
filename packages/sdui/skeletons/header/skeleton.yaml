@@ -1,0 +1,4 @@
+kind: header
+label: Header Widget
+description: Frame-level chrome bar. Brand mark slot on left, user avatar with dropdown on right. 36px height.
+design_reference: _local/header-functional-spec.md

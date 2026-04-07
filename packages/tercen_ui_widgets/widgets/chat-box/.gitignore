@@ -1,0 +1,14 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+pubspec.lock
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Build — keep build/web/ tracked for Tercen deployment
+build/
+!build/web/
+!build/web/**

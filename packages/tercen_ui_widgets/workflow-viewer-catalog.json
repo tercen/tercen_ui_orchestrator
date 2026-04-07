@@ -1,0 +1,262 @@
+{
+  "widgets": [
+    {
+      "metadata": {
+        "type": "WorkflowViewer",
+        "kind": "window",
+        "tier": 2,
+        "typeColor": "#EC4899",
+        "tabLabel": "Workflow",
+        "description": "Interactive directed graph viewer for Tercen workflows. Displays pipeline steps as shaped nodes with data-flow connectors, state-coloured icons, zoom/pan, and path highlighting. Toolbar provides context-sensitive Run/Stop/Reset button and step search. Use when the user wants to visualise, navigate, or control execution of a workflow.",
+        "emittedEvents": [
+          "window.intent",
+          "workflow.selection",
+          "workflow.openStep",
+          "workflow.runWorkflow",
+          "workflow.stopWorkflow",
+          "workflow.resetWorkflow",
+          "workflow.runStep",
+          "workflow.stopStep",
+          "workflow.resetStep"
+        ],
+        "inboundEvents": [
+          "window.{{widgetId}}.command",
+          "workflow.stepStateChanged",
+          "workflow.workflowUpdated"
+        ],
+        "handlesIntent": {
+          "intent": "openWorkflow",
+          "propsMap": {
+            "workflowId": "workflowId",
+            "workflowName": "workflowName"
+          },
+          "windowTitle": "Workflow: {{workflowName}}",
+          "windowSize": "large"
+        },
+        "state": {
+          "publishTo": ["workflow.selection"],
+          "selection": {
+            "channel": "workflow.selection",
+            "matchField": "nodeId",
+            "payloadField": "nodeId",
+            "multi": false
+          }
+        },
+        "props": {
+          "workflowId": { "type": "string", "required": true },
+          "workflowName": { "type": "string" }
+        },
+        "domain": "workflow",
+        "capabilities": ["browse", "search", "select", "navigate", "execute"],
+        "selectionMode": "single",
+        "dataSource": "workflowService.getWorkflowGraph"
+      },
+      "template": {
+        "type": "Column",
+        "id": "{{widgetId}}-root",
+        "props": { "crossAxisAlignment": "stretch" },
+        "children": [
+          {
+            "_comment": "PromptRequired gate — requires workflowId from intent",
+            "type": "PromptRequired",
+            "id": "{{widgetId}}-prompt",
+            "props": {
+              "fields": [
+                { "name": "workflowId", "label": "Workflow ID" }
+              ]
+            },
+            "children": [
+              {
+                "type": "EventScope",
+                "id": "{{widgetId}}-search-scope",
+                "props": {
+                  "channel": "input.{{widgetId}}-search.changed",
+                  "scopeKey": "search",
+                  "defaultPayload": { "value": "" }
+                },
+                "children": [
+              {
+                "_comment": "Toolbar — action button + search",
+                "type": "Container",
+                "id": "{{widgetId}}-toolbar",
+                "props": {
+                  "color": "surface",
+                  "padding": 8,
+                  "height": 48
+                },
+                "children": [
+                  {
+                    "type": "Row",
+                    "id": "{{widgetId}}-toolbar-row",
+                    "props": { "crossAxisAlignment": "center" },
+                    "children": [
+                      {
+                        "_comment": "Context-sensitive Run/Stop/Reset button — listens to graph selection",
+                        "type": "WorkflowActionButton",
+                        "id": "{{widgetId}}-action-btn",
+                        "props": {
+                          "selectionChannel": "workflow.{{widgetId}}.selection",
+                          "workflowId": "{{props.workflowId}}",
+                          "runWorkflowChannel": "workflow.runWorkflow",
+                          "stopWorkflowChannel": "workflow.stopWorkflow",
+                          "resetWorkflowChannel": "workflow.resetWorkflow",
+                          "runStepChannel": "workflow.runStep",
+                          "stopStepChannel": "workflow.stopStep",
+                          "resetStepChannel": "workflow.resetStep"
+                        }
+                      },
+                      { "type": "Spacer", "id": "{{widgetId}}-tb-spacer" },
+                      {
+                        "_comment": "Search field — publishes input.<id>.changed on keystroke",
+                        "type": "TextField",
+                        "id": "{{widgetId}}-search",
+                        "props": {
+                          "hint": "Search steps\u2026",
+                          "prefixIcon": "search"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Divider",
+                "id": "{{widgetId}}-toolbar-div",
+                "props": { "color": "outlineVariant" }
+              },
+              {
+                "_comment": "Body — DataSource fetches workflow graph",
+                "type": "Expanded",
+                "id": "{{widgetId}}-body",
+                "children": [
+                  {
+                    "type": "DataSource",
+                    "id": "{{widgetId}}-ds",
+                    "props": {
+                      "service": "workflowService",
+                      "method": "getWorkflowGraph",
+                      "args": ["{{props.workflowId}}"],
+                      "refreshOn": "workflow.workflowUpdated"
+                    },
+                    "children": [
+                      {
+                        "_comment": "Loading state",
+                        "type": "Conditional",
+                        "id": "{{widgetId}}-loading",
+                        "props": { "visible": "{{loading}}" },
+                        "children": [
+                          {
+                            "type": "Center",
+                            "id": "{{widgetId}}-loading-center",
+                            "children": [
+                              {
+                                "type": "Column",
+                                "id": "{{widgetId}}-loading-col",
+                                "props": { "mainAxisAlignment": "center", "mainAxisSize": "min" },
+                                "children": [
+                                  {
+                                    "type": "LoadingIndicator",
+                                    "id": "{{widgetId}}-spinner",
+                                    "props": { "variant": "spinner" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-loading-gap", "props": { "height": 12 } },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-loading-text",
+                                    "props": {
+                                      "text": "Loading workflow\u2026",
+                                      "textStyle": "bodyMedium",
+                                      "color": "onSurfaceMuted"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "_comment": "Error state",
+                        "type": "Conditional",
+                        "id": "{{widgetId}}-error",
+                        "props": { "visible": "{{error}}" },
+                        "children": [
+                          {
+                            "type": "Center",
+                            "id": "{{widgetId}}-err-center",
+                            "children": [
+                              {
+                                "type": "Column",
+                                "id": "{{widgetId}}-err-col",
+                                "props": { "mainAxisAlignment": "center", "crossAxisAlignment": "center" },
+                                "children": [
+                                  {
+                                    "type": "Icon",
+                                    "id": "{{widgetId}}-err-icon",
+                                    "props": { "icon": "triangle-exclamation", "size": 32, "color": "error" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-err-g1", "props": { "height": 12 } },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-err-title",
+                                    "props": { "text": "Something went wrong", "textStyle": "bodyMedium", "color": "error" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-err-g2", "props": { "height": 4 } },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-err-msg",
+                                    "props": { "text": "{{errorMessage}}", "textStyle": "bodySmall", "color": "onSurfaceMuted" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-err-g3", "props": { "height": 16 } },
+                                  {
+                                    "type": "SecondaryButton",
+                                    "id": "{{widgetId}}-retry-btn",
+                                    "props": {
+                                      "text": "Retry",
+                                      "channel": "workflow.workflowUpdated"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "_comment": "Ready state — render directed graph",
+                        "type": "Conditional",
+                        "id": "{{widgetId}}-ready",
+                        "props": { "visible": "{{ready}}" },
+                        "children": [
+                          {
+                            "type": "Expanded",
+                            "id": "{{widgetId}}-graph-exp",
+                            "children": [
+                              {
+                                "type": "DirectedGraph",
+                                "id": "{{widgetId}}-graph",
+                                "props": {
+                                  "nodes": "{{data.nodes}}",
+                                  "edges": "{{data.edges}}",
+                                  "channel": "workflow.{{widgetId}}.selection",
+                                  "doubleTapChannel": "workflow.{{widgetId}}.openStep",
+                                  "searchQuery": "{{search.value}}"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

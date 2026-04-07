@@ -953,23 +953,33 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   Future<void> _autoLoadCatalog() async {
     try {
       Map<String, dynamic>? catalog;
+      String? catalogBaseUrl;
 
       if (_serverUrl.isNotEmpty) {
         // WebSocket mode — server proxies the catalog
         catalog = await _fetchCatalogFromServer();
+        if (catalog != null) {
+          final httpUrl = _serverUrl
+              .replaceFirst('ws://', 'http://')
+              .replaceFirst('wss://', 'https://');
+          catalogBaseUrl = httpUrl;
+        }
       }
       if (catalog == null) {
         // Fetch directly from GitHub (single source of truth)
-        catalog = await _fetchCatalogFromGitHub();
+        final result = await _fetchCatalogFromGitHub();
+        catalog = result?.catalog;
+        catalogBaseUrl = result?.baseUrl;
       }
 
       if (catalog == null) return;
 
       final widgets = catalog['widgets'] as List? ?? [];
       if (widgets.isNotEmpty) {
+        _sduiContext.renderContext.catalogBaseUrl = catalogBaseUrl;
         _sduiContext.registry.loadCatalog(catalog);
         _loadedCatalog = catalog;
-        debugPrint('[catalog] Loaded ${widgets.length} widget(s)');
+        debugPrint('[catalog] Loaded ${widgets.length} widget(s), baseUrl=$catalogBaseUrl');
         _openHomeWindows(catalog);
       } else {
         debugPrint('[catalog] Empty catalog — no widgets');
@@ -997,7 +1007,8 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   }
 
   /// Fetch catalog.json directly from GitHub using orchestrator.config.json.
-  Future<Map<String, dynamic>?> _fetchCatalogFromGitHub() async {
+  /// Returns both the parsed catalog and the base URL for resolving relative assets.
+  Future<({Map<String, dynamic> catalog, String baseUrl})?> _fetchCatalogFromGitHub() async {
     // Load config asset
     final configStr = await rootBundle.loadString('orchestrator.config.json');
     final config = jsonDecode(configStr) as Map<String, dynamic>;
@@ -1022,16 +1033,18 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       debugPrint('[catalog] Invalid repo URL: $repo');
       return null;
     }
+    final baseUrl = 'https://raw.githubusercontent.com/'
+        '${segments[0]}/${segments[1]}/$ref';
     final cacheBust = DateTime.now().millisecondsSinceEpoch;
-    final rawUrl = 'https://raw.githubusercontent.com/'
-        '${segments[0]}/${segments[1]}/$ref/$catalogFile?cb=$cacheBust';
+    final rawUrl = '$baseUrl/$catalogFile?cb=$cacheBust';
     debugPrint('[catalog] Fetching $rawUrl');
 
     final httpClient = io_http.HttpBrowserClient();
     final response = await httpClient.get(rawUrl);
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body as String) as Map<String, dynamic>;
+      final catalog = jsonDecode(response.body as String) as Map<String, dynamic>;
+      return (catalog: catalog, baseUrl: baseUrl);
     }
     debugPrint('[catalog] GitHub returned ${response.statusCode}');
     return null;

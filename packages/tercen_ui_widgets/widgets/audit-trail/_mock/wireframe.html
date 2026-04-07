@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Trail — Wireframe</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 13px;
+      background: #f0f0f0;
+      color: #222;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* ── Window frame ─────────────────────────────────────── */
+    .window {
+      width: 960px;
+      min-height: 640px;
+      border: 2px solid #444;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Mock tab bar ─────────────────────────────────────── */
+    .tab-bar {
+      height: 32px;
+      border-bottom: 2px solid #444;
+      background: #e8e8e8;
+      display: flex;
+      align-items: stretch;
+      padding: 0 8px;
+      gap: 4px;
+    }
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 14px;
+      border-bottom: 3px solid #333;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tab-dot {
+      width: 8px; height: 8px;
+      background: #888;
+      border-radius: 2px;
+    }
+    .tab-bar-spacer { flex: 1; }
+    .mock-badge {
+      align-self: center;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #888;
+      border: 1px dashed #888;
+      padding: 1px 5px;
+    }
+
+    /* ── Toolbar ──────────────────────────────────────────── */
+    .toolbar {
+      height: 48px;
+      border-bottom: 1px solid #bbb;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+    }
+    .toolbar-btn {
+      width: 36px; height: 36px;
+      border: 1.5px solid #999;
+      border-radius: 6px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #555;
+      cursor: pointer;
+    }
+    .toolbar-search {
+      width: 220px; height: 36px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      color: #aaa;
+      font-size: 12px;
+    }
+    .toolbar-btn-primary {
+      width: 36px; height: 36px;
+      border-radius: 6px;
+      background: #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #fff;
+      cursor: pointer;
+    }
+    .toolbar-label {
+      font-size: 10px;
+      color: #888;
+      align-self: center;
+    }
+
+    /* ── Body ─────────────────────────────────────────────── */
+    .body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Event list (left ~55%) ───────────────────────────── */
+    .event-list {
+      flex: 1;
+      border-right: 1px solid #bbb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Table header */
+    .tbl-header {
+      height: 30px;
+      background: #ebebeb;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      align-items: stretch;
+      flex-shrink: 0;
+    }
+    .tbl-cell {
+      padding: 0 4px;
+      display: flex;
+      align-items: center;
+      border-right: 1px solid #ddd;
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .tbl-cell.chk  { width: 32px; justify-content: center; flex-shrink: 0; }
+    .tbl-cell.date { width: 130px; flex-shrink: 0; }
+    .tbl-cell.type { width: 84px;  flex-shrink: 0; }
+    .tbl-cell.user { width: 110px; flex-shrink: 0; }
+    .tbl-cell.action { width: 160px; flex-shrink: 0; }
+    .tbl-cell.target { flex: 1; }
+    .tbl-cell.team   { width: 110px; flex-shrink: 0; }
+    .tbl-cell.project { width: 140px; flex-shrink: 0; }
+
+    .filter-icon {
+      margin-left: 3px;
+      font-size: 9px;
+      color: #aaa;
+    }
+    .resize-handle {
+      width: 4px;
+      background: #ddd;
+      flex-shrink: 0;
+      align-self: stretch;
+      cursor: col-resize;
+    }
+
+    /* Rows */
+    .tbl-rows {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .tbl-row {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+    }
+    .tbl-row:nth-child(even) { background: #fafafa; }
+    .tbl-row.selected { background: #dbeafe; }
+    .tbl-row.multi-selected { background: #eff6ff; }
+    .tbl-row .tbl-cell { font-size: 12px; font-weight: 400; color: #333; }
+    .tbl-row .tbl-cell.user { color: #555; }
+    .tbl-row .tbl-cell.date { color: #888; font-size: 11px; }
+    .link-cell {
+      color: #444;
+      text-decoration: underline;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Type chips */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+      border: 1px solid transparent;
+    }
+    .chip-create  { background: #e0f0e8; border-color: #b8d8c4; color: #2a5e3a; }
+    .chip-update  { background: #e0eef7; border-color: #b8d4e8; color: #1a4a6e; }
+    .chip-delete  { background: #fce8e8; border-color: #e8b8b8; color: #6e1a1a; }
+    .chip-run     { background: #e0eef7; border-color: #b8d4e8; color: #1a4a6e; }
+    .chip-done    { background: #e0f0e8; border-color: #b8d8c4; color: #2a5e3a; }
+    .chip-fail    { background: #fce8e8; border-color: #e8b8b8; color: #6e1a1a; }
+    .chip-cancel  { background: #fef7e0; border-color: #e8d8a0; color: #6e4a0a; }
+
+    /* Load-more footer */
+    .load-more-row {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 11px;
+      border-top: 1px solid #eee;
+    }
+
+    /* ── Detail panel (right ~45%) ────────────────────────── */
+    .detail-panel {
+      width: 360px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 12px;
+      gap: 0;
+      background: #fff;
+    }
+    .detail-section {
+      padding: 6px 0;
+    }
+    .detail-section + .detail-section {
+      border-top: 1px solid #e0e0e0;
+    }
+    .detail-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #999;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .detail-value {
+      font-size: 12px;
+      color: #333;
+    }
+    .detail-meta-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+    .detail-meta-key {
+      width: 80px;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: #999;
+    }
+    .detail-meta-val {
+      font-size: 11px;
+      color: #333;
+      word-break: break-all;
+    }
+    .detail-link {
+      font-size: 12px;
+      color: #444;
+      text-decoration: underline;
+    }
+    .detail-error-box {
+      background: #fce8e8;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 11px;
+      color: #7a1a1a;
+      border: 1px solid #e8b8b8;
+      margin-top: 6px;
+    }
+    .detail-no-selection {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #bbb;
+      font-size: 12px;
+    }
+
+    /* ── Body-state overlays ──────────────────────────────── */
+    .state-overlay {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #bbb;
+    }
+    .state-icon {
+      width: 48px; height: 48px;
+      border: 2px dashed #ccc;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: #ccc;
+    }
+    .state-message { font-size: 13px; color: #aaa; }
+    .state-detail  { font-size: 11px; color: #ccc; }
+  </style>
+</head>
+<body>
+
+<div class="window">
+
+  <!-- ── Mock tab bar ──────────────────────────────────────── -->
+  <div class="tab-bar">
+    <div class="tab">
+      <div class="tab-dot"></div>
+      Audit Trail
+    </div>
+    <div class="tab-bar-spacer"></div>
+    <div class="mock-badge">MOCK</div>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────── -->
+  <div class="toolbar">
+    <!-- Columns toggle -->
+    <div class="toolbar-btn" title="Columns">
+      <span>&#9783;</span>
+    </div>
+    <!-- Sort (newest first) -->
+    <div class="toolbar-btn" title="Sort: Newest first">
+      <span>&#8595;&#126;</span>
+    </div>
+    <!-- Export CSV -->
+    <div class="toolbar-btn" title="Export CSV">
+      <span>&#8599;</span>
+    </div>
+    <!-- Search -->
+    <div class="toolbar-search">
+      <span>&#128269;</span>
+      <span>Search events...</span>
+    </div>
+    <!-- Send to Chat (primary) -->
+    <div class="toolbar-btn-primary" title="Send to Chat">
+      <span>&#9993;</span>
+    </div>
+    <div class="toolbar-label">Send to Chat</div>
+  </div>
+
+  <!-- ── Active body: master-detail split ──────────────────── -->
+  <div class="body">
+
+    <!-- ── Event list ────────────────────────────── -->
+    <div class="event-list">
+
+      <!-- Header row -->
+      <div class="tbl-header">
+        <div class="tbl-cell chk">&#9744;</div>
+        <div class="tbl-cell date">Date <span class="filter-icon">&#9663;</span></div>
+        <div class="resize-handle"></div>
+        <div class="tbl-cell type">Type <span class="filter-icon">&#9663;</span></div>
+        <div class="resize-handle"></div>
+        <div class="tbl-cell user">User <span class="filter-icon">&#9663;</span></div>
+        <div class="resize-handle"></div>
+        <div class="tbl-cell action">Action <span class="filter-icon">&#9663;</span></div>
+        <div class="resize-handle"></div>
+        <div class="tbl-cell target">Target <span class="filter-icon">&#9663;</span></div>
+        <div class="resize-handle"></div>
+        <div class="tbl-cell team">Team <span class="filter-icon">&#9663;</span></div>
+        <div class="resize-handle"></div>
+        <div class="tbl-cell project">Project <span class="filter-icon">&#9663;</span></div>
+      </div>
+
+      <!-- Data rows -->
+      <div class="tbl-rows">
+
+        <!-- Row 1: selected -->
+        <div class="tbl-row selected">
+          <div class="tbl-cell chk">&#9746;</div>
+          <div class="tbl-cell date">2026-03-16 11:00</div>
+          <div class="tbl-cell type"><span class="chip chip-cancel">&#8856; Cancel</span></div>
+          <div class="tbl-cell user">faris.naji</div>
+          <div class="tbl-cell action">Task Cancelled</div>
+          <div class="tbl-cell target"><span class="link-cell">PCA Operator</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-15 10:30</div>
+          <div class="tbl-cell type"><span class="chip chip-delete">&#10006; Delete</span></div>
+          <div class="tbl-cell user">admin</div>
+          <div class="tbl-cell action">Deleted FileDocument</div>
+          <div class="tbl-cell target"><span class="link-cell">old_draft_report.md</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-14 16:20</div>
+          <div class="tbl-cell type"><span class="chip chip-fail">&#10007; Failed</span></div>
+          <div class="tbl-cell user">admin</div>
+          <div class="tbl-cell action">Task Failed</div>
+          <div class="tbl-cell target"><span class="link-cell">Clustering Operator</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-13 10:05</div>
+          <div class="tbl-cell type"><span class="chip chip-fail">&#10007; Failed</span></div>
+          <div class="tbl-cell user">martin.english</div>
+          <div class="tbl-cell action">Task Failed</div>
+          <div class="tbl-cell target"><span class="link-cell">Heatmap Operator</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 5 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-12 17:00</div>
+          <div class="tbl-cell type"><span class="chip chip-done">&#10003; Done</span></div>
+          <div class="tbl-cell user">admin</div>
+          <div class="tbl-cell action">Task Completed</div>
+          <div class="tbl-cell target"><span class="link-cell">Boxplot Operator</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 6 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-12 16:30</div>
+          <div class="tbl-cell type"><span class="chip chip-create">+ Create</span></div>
+          <div class="tbl-cell user">admin</div>
+          <div class="tbl-cell action">Created TableSchema</div>
+          <div class="tbl-cell target"><span class="link-cell">analysis_results_v2</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 7 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-11 14:18</div>
+          <div class="tbl-cell type"><span class="chip chip-done">&#10003; Done</span></div>
+          <div class="tbl-cell user">faris.naji</div>
+          <div class="tbl-cell action">Task Completed</div>
+          <div class="tbl-cell target"><span class="link-cell">PCA Operator</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 8 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-10 09:02</div>
+          <div class="tbl-cell type"><span class="chip chip-done">&#10003; Done</span></div>
+          <div class="tbl-cell user">admin</div>
+          <div class="tbl-cell action">Task Completed</div>
+          <div class="tbl-cell target"><span class="link-cell">Mean Operator</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 9 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-08 11:00</div>
+          <div class="tbl-cell type"><span class="chip chip-create">+ Create</span></div>
+          <div class="tbl-cell user">martin.english</div>
+          <div class="tbl-cell action">Created WebAppOperator</div>
+          <div class="tbl-cell target"><span class="link-cell">Immunophenotyping Viewer</span></div>
+          <div class="tbl-cell team">MartinLibrary</div>
+          <div class="tbl-cell project">immunophenotyping_v3…</div>
+        </div>
+
+        <!-- Row 10 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-06 14:22</div>
+          <div class="tbl-cell type"><span class="chip chip-create">+ Create</span></div>
+          <div class="tbl-cell user">admin</div>
+          <div class="tbl-cell action">Created FileDocument</div>
+          <div class="tbl-cell target"><span class="link-cell">pipeline_config.json</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 11 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-05 09:00</div>
+          <div class="tbl-cell type"><span class="chip chip-create">+ Create</span></div>
+          <div class="tbl-cell user">martin.english</div>
+          <div class="tbl-cell action">Created FileDocument</div>
+          <div class="tbl-cell target"><span class="link-cell">experiment_report.md</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 12 -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-03-04 14:20</div>
+          <div class="tbl-cell type"><span class="chip chip-create">+ Create</span></div>
+          <div class="tbl-cell user">admin</div>
+          <div class="tbl-cell action">Created Workflow</div>
+          <div class="tbl-cell target"><span class="link-cell">Analysis Pipeline</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 13: update -->
+        <div class="tbl-row">
+          <div class="tbl-cell chk">&#9744;</div>
+          <div class="tbl-cell date">2026-02-26 12:57</div>
+          <div class="tbl-cell type"><span class="chip chip-update">&#9998; Update</span></div>
+          <div class="tbl-cell user">faris.naji</div>
+          <div class="tbl-cell action">Updated Workflow</div>
+          <div class="tbl-cell target"><span class="link-cell">Crabs Workflow</span></div>
+          <div class="tbl-cell team">Team10Dec2025</div>
+          <div class="tbl-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Ellipsis hint -->
+        <div class="load-more-row">
+          + 13 more events — scroll to load
+        </div>
+      </div>
+    </div><!-- /event-list -->
+
+    <!-- ── Detail panel ──────────────────────────── -->
+    <div class="detail-panel">
+
+      <!-- Header: type chip + timestamp -->
+      <div class="detail-section">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="chip chip-cancel" style="font-size:11px; padding:3px 8px;">&#8856; Cancel</span>
+          <span style="font-size:11px; color:#999;">2026-03-16 11:00:00</span>
+        </div>
+      </div>
+
+      <!-- User -->
+      <div class="detail-section">
+        <div class="detail-label">User</div>
+        <div class="detail-value">faris.naji</div>
+      </div>
+
+      <!-- Scope -->
+      <div class="detail-section">
+        <div class="detail-label">Scope</div>
+        <div style="font-size:12px; display:flex; gap:4px; align-items:center;">
+          <span class="detail-link">Team10Dec2025</span>
+          <span style="color:#bbb;">&gt;</span>
+          <span class="detail-link">Standard Operator Test Workflow</span>
+        </div>
+      </div>
+
+      <!-- Action -->
+      <div class="detail-section">
+        <div class="detail-label">Action</div>
+        <div class="detail-value">Task Cancelled</div>
+      </div>
+
+      <!-- Target -->
+      <div class="detail-section">
+        <div class="detail-label">Target</div>
+        <div class="detail-link">PCA Operator</div>
+        <div style="font-size:11px; color:#aaa;">(Task)</div>
+        <div style="font-size:10px; color:#bbb; font-family:monospace; margin-top:2px;">ID: step-pca-002</div>
+      </div>
+
+      <!-- Task Timing -->
+      <div class="detail-section">
+        <div class="detail-label">Task Timing</div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Created</span>
+          <span class="detail-meta-val">2026-03-16T10:55:00Z</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Run</span>
+          <span class="detail-meta-val">2026-03-16T10:55:10Z</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Completed</span>
+          <span class="detail-meta-val">2026-03-16T11:00:00Z</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Duration</span>
+          <span class="detail-meta-val">4m 50s</span>
+        </div>
+      </div>
+
+      <!-- Metadata -->
+      <div class="detail-section">
+        <div class="detail-label">Metadata</div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">state</span>
+          <span class="detail-meta-val">CanceledState</span>
+        </div>
+      </div>
+
+      <!-- Record Info -->
+      <div class="detail-section">
+        <div class="detail-label">Record Info</div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Source</span>
+          <span class="detail-meta-val">task</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Public</span>
+          <span class="detail-meta-val">No</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Record ID</span>
+          <span class="detail-meta-val" style="font-family:monospace; font-size:10px;">task-26</span>
+        </div>
+      </div>
+
+    </div><!-- /detail-panel -->
+
+  </div><!-- /body -->
+
+</div><!-- /window -->
+
+</body>
+</html>

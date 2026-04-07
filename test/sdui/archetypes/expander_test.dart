@@ -8,7 +8,7 @@ import 'package:tercen_ui_orchestrator/sdui/archetypes/archetype_expander.dart';
 import 'package:tercen_ui_orchestrator/sdui/archetypes/skeleton_theme.dart';
 import 'package:tercen_ui_orchestrator/sdui/validator/template_validator.dart';
 
-const _catalogPath = '../tercen_ui_widgets/catalog.json';
+const _catalogPath = 'packages/tercen_ui_widgets/catalog.json';
 
 // ---------------------------------------------------------------------------
 // Fresh widget builders using SkeletonTheme
@@ -378,7 +378,7 @@ void main() {
   test('build catalog from scratch using formal specs', () {
     // Read backup for widgets we need to copy (compiled scope builders).
     // The backup was created before this migration.
-    final backupFile = File('../tercen_ui_widgets/catalog.json.bak');
+    final backupFile = File('packages/tercen_ui_widgets/catalog.json.bak');
     final sourceFile = backupFile.existsSync() ? backupFile : File(_catalogPath);
     if (!sourceFile.existsSync()) fail('No catalog source found');
     final originalCatalog =

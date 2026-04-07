@@ -1,0 +1,5 @@
+kind: window
+typeId: auditTrail
+typeColor: '#0D9488'
+label: Audit Trail
+window: 7

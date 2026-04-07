@@ -1,0 +1,11 @@
+{
+  "name": "Audit Trail",
+  "short_name": "AuditTrail",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0D9488",
+  "theme_color": "#0D9488",
+  "description": "Tercen Audit Trail — compliance log review",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}

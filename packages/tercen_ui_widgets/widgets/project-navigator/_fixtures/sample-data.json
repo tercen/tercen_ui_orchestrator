@@ -1,0 +1,499 @@
+{
+  "_comment": "Extracted from widgets/project-navigator/lib/implementations/services/mock_data_service.dart. Mirrors MockDataService.fetchTree() output.",
+  "_schema": {
+    "id": "string — unique node identifier",
+    "name": "string — display label",
+    "nodeType": "enum: team | project | folder | file | dataset | workflow",
+    "parentId": "string | null — parent node id",
+    "isLeaf": "boolean — leaf nodes have no children and no chevron",
+    "isPersonalTeam": "boolean — personal team is listed first and auto-expanded",
+    "isPublic": "boolean — project is publicly visible",
+    "githubUrl": "string | null — GitHub URL for git-backed projects",
+    "gitVersion": "string | null — git version tag (e.g. 'v2.3')",
+    "fileCategory": "enum: generic | zip | image — file sub-type for icon resolution",
+    "children": "array of TreeNode"
+  },
+  "tree": [
+    {
+      "id": "team-personal",
+      "name": "Personal",
+      "nodeType": "team",
+      "parentId": null,
+      "isLeaf": false,
+      "isPersonalTeam": true,
+      "isPublic": false,
+      "githubUrl": null,
+      "gitVersion": null,
+      "fileCategory": "generic",
+      "children": [
+        {
+          "id": "proj-immuno",
+          "name": "Immunophenotyping",
+          "nodeType": "project",
+          "parentId": "team-personal",
+          "isLeaf": false,
+          "isPersonalTeam": false,
+          "isPublic": true,
+          "githubUrl": "https://github.com/tercen/tercen_ui_widgets",
+          "gitVersion": "v2.3",
+          "fileCategory": "generic",
+          "children": [
+            {
+              "id": "file-readme",
+              "name": "README.md",
+              "nodeType": "file",
+              "parentId": "proj-immuno",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "file-omip",
+              "name": "omip69_1k_donor.zip",
+              "nodeType": "file",
+              "parentId": "proj-immuno",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "zip",
+              "children": []
+            },
+            {
+              "id": "ds-sample",
+              "name": "Sample_annotation.csv",
+              "nodeType": "dataset",
+              "parentId": "proj-immuno",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "ds-channels",
+              "name": "OMIP-069 - Channel Descriptions",
+              "nodeType": "dataset",
+              "parentId": "proj-immuno",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "wf-flow",
+              "name": "Flow Immunophenotyping",
+              "nodeType": "workflow",
+              "parentId": "proj-immuno",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "folder-reports",
+              "name": "reports",
+              "nodeType": "folder",
+              "parentId": "proj-immuno",
+              "isLeaf": false,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": [
+                {
+                  "id": "file-summary",
+                  "name": "analysis_summary.md",
+                  "nodeType": "file",
+                  "parentId": "folder-reports",
+                  "isLeaf": true,
+                  "isPersonalTeam": false,
+                  "isPublic": false,
+                  "githubUrl": null,
+                  "gitVersion": null,
+                  "fileCategory": "generic",
+                  "children": []
+                },
+                {
+                  "id": "file-heatmap",
+                  "name": "heatmap.png",
+                  "nodeType": "file",
+                  "parentId": "folder-reports",
+                  "isLeaf": true,
+                  "isPersonalTeam": false,
+                  "isPublic": false,
+                  "githubUrl": null,
+                  "gitVersion": null,
+                  "fileCategory": "image",
+                  "children": []
+                },
+                {
+                  "id": "file-export",
+                  "name": "results_export.csv",
+                  "nodeType": "file",
+                  "parentId": "folder-reports",
+                  "isLeaf": true,
+                  "isPersonalTeam": false,
+                  "isPublic": false,
+                  "githubUrl": null,
+                  "gitVersion": null,
+                  "fileCategory": "generic",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "proj-pca",
+          "name": "PCA Analysis",
+          "nodeType": "project",
+          "parentId": "team-personal",
+          "isLeaf": false,
+          "isPersonalTeam": false,
+          "isPublic": true,
+          "githubUrl": "https://github.com/tercen/tercen_ui_widgets",
+          "gitVersion": "v1.0",
+          "fileCategory": "generic",
+          "children": [
+            {
+              "id": "file-pca-data",
+              "name": "iris_dataset.csv",
+              "nodeType": "file",
+              "parentId": "proj-pca",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "ds-pca-table",
+              "name": "PCA Results",
+              "nodeType": "dataset",
+              "parentId": "proj-pca",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "wf-pca",
+              "name": "PCA Pipeline",
+              "nodeType": "workflow",
+              "parentId": "proj-pca",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "file-pca-plot",
+              "name": "scree_plot.png",
+              "nodeType": "file",
+              "parentId": "proj-pca",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "image",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "proj-preproc",
+          "name": "flow_preprocessing",
+          "nodeType": "project",
+          "parentId": "team-personal",
+          "isLeaf": false,
+          "isPersonalTeam": false,
+          "isPublic": false,
+          "githubUrl": "https://github.com/tercen/tercen_ui_widgets",
+          "gitVersion": "v2.3",
+          "fileCategory": "generic",
+          "children": [
+            {
+              "id": "folder-data",
+              "name": "data",
+              "nodeType": "folder",
+              "parentId": "proj-preproc",
+              "isLeaf": false,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": [
+                {
+                  "id": "file-fcs1",
+                  "name": "sample_001.fcs",
+                  "nodeType": "file",
+                  "parentId": "folder-data",
+                  "isLeaf": true,
+                  "isPersonalTeam": false,
+                  "isPublic": false,
+                  "githubUrl": null,
+                  "gitVersion": null,
+                  "fileCategory": "generic",
+                  "children": []
+                },
+                {
+                  "id": "file-fcs2",
+                  "name": "sample_002.fcs",
+                  "nodeType": "file",
+                  "parentId": "folder-data",
+                  "isLeaf": true,
+                  "isPersonalTeam": false,
+                  "isPublic": false,
+                  "githubUrl": null,
+                  "gitVersion": null,
+                  "fileCategory": "generic",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "file-preproc-readme",
+              "name": "README.md",
+              "nodeType": "file",
+              "parentId": "proj-preproc",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "wf-preproc",
+              "name": "Preprocessing Pipeline",
+              "nodeType": "workflow",
+              "parentId": "proj-preproc",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "team-alpha",
+      "name": "MartinLibrary",
+      "nodeType": "team",
+      "parentId": null,
+      "isLeaf": false,
+      "isPersonalTeam": false,
+      "isPublic": false,
+      "githubUrl": null,
+      "gitVersion": null,
+      "fileCategory": "generic",
+      "children": [
+        {
+          "id": "proj-shared1",
+          "name": "Shared Markers",
+          "nodeType": "project",
+          "parentId": "team-alpha",
+          "isLeaf": false,
+          "isPersonalTeam": false,
+          "isPublic": true,
+          "githubUrl": null,
+          "gitVersion": null,
+          "fileCategory": "generic",
+          "children": [
+            {
+              "id": "ds-markers",
+              "name": "Marker Panel v3",
+              "nodeType": "dataset",
+              "parentId": "proj-shared1",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            },
+            {
+              "id": "wf-markers",
+              "name": "Marker Analysis",
+              "nodeType": "workflow",
+              "parentId": "proj-shared1",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "proj-shared2",
+          "name": "Reference Data",
+          "nodeType": "project",
+          "parentId": "team-alpha",
+          "isLeaf": false,
+          "isPersonalTeam": false,
+          "isPublic": false,
+          "githubUrl": null,
+          "gitVersion": null,
+          "fileCategory": "generic",
+          "children": [
+            {
+              "id": "file-ref1",
+              "name": "human_cd_markers.csv",
+              "nodeType": "file",
+              "parentId": "proj-shared2",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "team-beta",
+      "name": "MyNewTeam",
+      "nodeType": "team",
+      "parentId": null,
+      "isLeaf": false,
+      "isPersonalTeam": false,
+      "isPublic": false,
+      "githubUrl": null,
+      "gitVersion": null,
+      "fileCategory": "generic",
+      "children": [
+        {
+          "id": "proj-beta1",
+          "name": "Experiment Q4",
+          "nodeType": "project",
+          "parentId": "team-beta",
+          "isLeaf": false,
+          "isPersonalTeam": false,
+          "isPublic": false,
+          "githubUrl": null,
+          "gitVersion": null,
+          "fileCategory": "generic",
+          "children": [
+            {
+              "id": "file-beta-zip",
+              "name": "raw_data_bundle.zip",
+              "nodeType": "file",
+              "parentId": "proj-beta1",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "zip",
+              "children": []
+            },
+            {
+              "id": "ds-beta-results",
+              "name": "Experiment Results",
+              "nodeType": "dataset",
+              "parentId": "proj-beta1",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "team-gamma",
+      "name": "Team10Dec2025",
+      "nodeType": "team",
+      "parentId": null,
+      "isLeaf": false,
+      "isPersonalTeam": false,
+      "isPublic": false,
+      "githubUrl": null,
+      "gitVersion": null,
+      "fileCategory": "generic",
+      "children": [
+        {
+          "id": "proj-gamma1",
+          "name": "Audit Review",
+          "nodeType": "project",
+          "parentId": "team-gamma",
+          "isLeaf": false,
+          "isPersonalTeam": false,
+          "isPublic": false,
+          "githubUrl": null,
+          "gitVersion": null,
+          "fileCategory": "generic",
+          "children": [
+            {
+              "id": "file-gamma-img",
+              "name": "overview_chart.png",
+              "nodeType": "file",
+              "parentId": "proj-gamma1",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "image",
+              "children": []
+            },
+            {
+              "id": "wf-gamma-audit",
+              "name": "Audit Workflow",
+              "nodeType": "workflow",
+              "parentId": "proj-gamma1",
+              "isLeaf": true,
+              "isPersonalTeam": false,
+              "isPublic": false,
+              "githubUrl": null,
+              "gitVersion": null,
+              "fileCategory": "generic",
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

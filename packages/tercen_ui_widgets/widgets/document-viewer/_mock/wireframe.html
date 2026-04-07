@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document Editor — Wireframe</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: monospace;
+      font-size: 12px;
+      background: #f0f0f0;
+      color: #222;
+      padding: 24px;
+    }
+
+    h1 { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+    h2 { font-size: 13px; font-weight: bold; margin: 20px 0 8px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+    p.note { font-size: 11px; color: #888; margin-bottom: 16px; }
+
+    /* ── Wireframe chrome ── */
+    .wf-widget {
+      background: #fff;
+      border: 2px solid #888;
+      display: flex;
+      flex-direction: column;
+      width: 720px;
+      height: 480px;
+      margin-bottom: 32px;
+    }
+
+    /* ── Tab strip: h=32 ── */
+    .wf-tab-strip {
+      height: 32px;
+      background: #ddd;
+      border-bottom: 1px solid #888;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 0 0 8px;
+      flex-shrink: 0;
+    }
+    .wf-tab {
+      height: 28px;
+      min-width: 100px;
+      max-width: 220px;
+      border: 1px solid #888;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      margin-right: 2px;
+      background: #fff;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .wf-tab.inactive {
+      background: transparent;
+      font-weight: normal;
+      color: #666;
+    }
+    .wf-tab-icon {
+      width: 8px; height: 8px;
+      background: #888;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .wf-tab-spacer { flex: 1; }
+    .wf-tab-toggle {
+      width: 24px; height: 24px;
+      border: 1px solid #888;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      margin-right: 8px; margin-bottom: 2px;
+      font-size: 11px; color: #555;
+    }
+
+    /* ── Toolbar: h=48 ── */
+    .wf-toolbar {
+      height: 48px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #bbb;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .wf-btn {
+      width: 32px; height: 32px;
+      border: 1px solid #888;
+      border-radius: 8px;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #555; flex-shrink: 0;
+    }
+    .wf-btn.primary {
+      background: #888;
+      color: #fff;
+      border-color: #888;
+    }
+    .wf-btn-group {
+      display: flex;
+      border: 1px solid #888;
+      border-radius: 8px;
+      overflow: hidden;
+      height: 32px;
+      flex-shrink: 0;
+    }
+    .wf-btn-group .seg {
+      width: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #555;
+      border-right: 1px solid #888;
+    }
+    .wf-btn-group .seg:last-child { border-right: none; }
+    .wf-btn-group .seg.active { background: #888; color: #fff; }
+
+    .wf-separator {
+      width: 1px; height: 24px;
+      background: #ccc;
+      margin: 0 2px;
+      flex-shrink: 0;
+    }
+    .wf-spacer { flex: 1; }
+
+    .wf-label {
+      font-size: 10px;
+      color: #888;
+      margin: 0 2px;
+      white-space: nowrap;
+    }
+
+    /* ── Divider ── */
+    .wf-divider {
+      height: 1px;
+      background: #ccc;
+      flex-shrink: 0;
+    }
+
+    /* ── Body ── */
+    .wf-body {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    /* Loading */
+    .wf-loading {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .wf-spinner {
+      width: 28px; height: 28px;
+      border: 3px solid #ccc;
+      border-top-color: #888;
+      border-radius: 50%;
+    }
+    .wf-loading-text { font-size: 12px; color: #888; }
+
+    /* Error */
+    .wf-error {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      max-width: 280px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .wf-error-icon {
+      width: 32px; height: 32px;
+      background: #eee;
+      border: 2px solid #aaa;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: #888;
+    }
+    .wf-error-title { font-size: 12px; color: #888; }
+    .wf-error-detail { font-size: 11px; color: #aaa; }
+    .wf-error-btn {
+      margin-top: 8px;
+      padding: 6px 16px;
+      border: 1px solid #888;
+      border-radius: 8px;
+      background: transparent;
+      font-size: 11px; color: #888;
+    }
+
+    /* Source editor */
+    .wf-source {
+      flex: 1;
+      background: #fafafa;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #333;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    /* Rendered editor */
+    .wf-rendered {
+      flex: 1;
+      background: #fff;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    .wf-rendered .block { margin-bottom: 12px; }
+    .wf-rendered .h1-block {
+      height: 24px; background: #ddd; border-radius: 3px; width: 60%;
+    }
+    .wf-rendered .h2-block {
+      height: 18px; background: #ddd; border-radius: 3px; width: 45%;
+    }
+    .wf-rendered .text-block {
+      height: 12px; background: #eee; border-radius: 2px;
+    }
+    .wf-rendered .text-block.short { width: 70%; }
+    .wf-rendered .text-block.shorter { width: 40%; }
+
+    /* Banners */
+    .wf-banner {
+      padding: 6px 16px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .wf-banner.success { background: #d1fae5; }
+    .wf-banner.error-banner { background: #fee2e2; }
+    .wf-banner-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: #888;
+      flex-shrink: 0;
+    }
+
+    /* Annotations */
+    .ann-row {
+      display: flex; align-items: flex-start; gap: 12px;
+      margin-bottom: 4px;
+    }
+    .ann-label {
+      width: 160px; flex-shrink: 0;
+      font-size: 11px; color: #555;
+      text-align: right; padding-top: 2px;
+    }
+    .ann-arrow {
+      font-size: 14px; color: #888; padding-top: 1px;
+    }
+    .ann-desc { font-size: 11px; color: #333; }
+
+    /* Dimension rulers */
+    .dim-label {
+      font-size: 10px; color: #888;
+      margin-left: 4px;
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .state-label {
+      font-size: 11px;
+      font-weight: bold;
+      color: #666;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Document Editor — Layout Wireframe</h1>
+<p class="note">Skeleton / annotation only. No design tokens applied. All dimensions in px from window_constants.dart &amp; app_spacing.dart.</p>
+
+<!-- ── DIMENSION ANNOTATIONS ── -->
+<h2>Layer Dimensions</h2>
+<div style="display:flex; flex-direction:column; gap:4px; margin-bottom:20px; padding:12px; background:#fff; border:1px solid #ccc; width:fit-content;">
+  <div class="ann-row"><span class="ann-label">Tab strip</span><span class="ann-arrow">→</span><span class="ann-desc">h=32px (tabStripHeight). Tabs: h=28px, r=6px top, maxW=220px</span></div>
+  <div class="ann-row"><span class="ann-label">Toolbar</span><span class="ann-arrow">→</span><span class="ann-desc">h=48px (headerHeight). Buttons: 32×32px, r=8px, icon=16px. Gap=8px (sm)</span></div>
+  <div class="ann-row"><span class="ann-label">Toolbar buttons</span><span class="ann-arrow">→</span><span class="ann-desc">Save (leading), Mode toggle (segmented 2), formatting groups, spacer, Print (trailing)</span></div>
+  <div class="ann-row"><span class="ann-label">Divider</span><span class="ann-arrow">→</span><span class="ann-desc">h=1px (lineSubtle). Separates toolbar from body</span></div>
+  <div class="ann-row"><span class="ann-label">Body</span><span class="ann-arrow">→</span><span class="ann-desc">Expanded (flex:1). Routes to loading / active / error state</span></div>
+  <div class="ann-row"><span class="ann-label">Min widget width</span><span class="ann-arrow">→</span><span class="ann-desc">208px (5×32 + 4×8 + 2×8)</span></div>
+  <div class="ann-row"><span class="ann-label">Body state centred</span><span class="ann-arrow">→</span><span class="ann-desc">maxWidth=280px for error/loading. Spinner=28×28px, stroke=3px</span></div>
+  <div class="ann-row"><span class="ann-label">Narrow threshold</span><span class="ann-arrow">→</span><span class="ann-desc">&lt;680px: formatting buttons collapse to single [Format] icon-only button</span></div>
+  <div class="ann-row"><span class="ann-label">Source editor</span><span class="ann-arrow">→</span><span class="ann-desc">monospace 14px, lh=1.6, pad=16px, no border, fill=surface</span></div>
+  <div class="ann-row"><span class="ann-label">Rendered editor</span><span class="ann-arrow">→</span><span class="ann-desc">flutter_markdown, pad=16px, fill=surface, selectable, links open _blank</span></div>
+  <div class="ann-row"><span class="ann-label">Banner</span><span class="ann-arrow">→</span><span class="ann-desc">Full width, py=6px px=16px, icon=14px + gap=8px + text=12px</span></div>
+</div>
+
+<!-- ── STATE 1: LOADING ── -->
+<h2>State 1 — Loading</h2>
+<div class="state-label">ContentState.loading</div>
+<div class="wf-widget">
+  <div class="wf-tab-strip">
+    <div class="wf-tab"><div class="wf-tab-icon"></div>analysis-report.md</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>notes.txt</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>pipeline-config.md</div>
+    <div class="wf-tab-spacer"></div>
+    <div class="wf-tab-toggle">☀</div>
+  </div>
+  <div class="wf-toolbar">
+    <div class="wf-btn" title="Save (floppy-disk)">💾</div>
+    <div class="wf-btn-group">
+      <div class="seg active" title="Source / Edit mode (fa-code)">{ }</div>
+      <div class="seg" title="Rendered / View mode (fa-book)">📖</div>
+    </div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Bold">B</div>
+    <div class="wf-btn" title="Italic">I</div>
+    <div class="wf-btn" title="Strikethrough">S̶</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="H1">H1</div>
+    <div class="wf-btn" title="H2">H2</div>
+    <div class="wf-btn" title="H3">H3</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Bullet list">•–</div>
+    <div class="wf-btn" title="Numbered list">1.</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Link">🔗</div>
+    <div class="wf-btn" title="Image">🖼</div>
+    <div class="wf-btn" title="Inline code">`·`</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Horizontal rule">—</div>
+    <div class="wf-spacer"></div>
+    <div class="wf-btn" title="Print">🖨</div>
+  </div>
+  <div class="wf-divider"></div>
+  <div class="wf-body">
+    <div class="wf-loading">
+      <div class="wf-spinner"></div>
+      <div class="wf-loading-text">Loading document...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STATE 2: ACTIVE / SOURCE MODE ── -->
+<h2>State 2a — Active / Source mode (markdown)</h2>
+<div class="state-label">ContentState.active + EditMode.source</div>
+<div class="wf-widget">
+  <div class="wf-tab-strip">
+    <div class="wf-tab"><div class="wf-tab-icon"></div>analysis-report.md</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>notes.txt</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>pipeline-config.md</div>
+    <div class="wf-tab-spacer"></div>
+    <div class="wf-tab-toggle">☀</div>
+  </div>
+  <div class="wf-toolbar">
+    <div class="wf-btn primary" title="Save (dirty = filled primary)">💾</div>
+    <div class="wf-btn-group">
+      <div class="seg active" title="Edit (active)">{ }</div>
+      <div class="seg" title="View">📖</div>
+    </div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Bold (active = primarySurface bg)">B</div>
+    <div class="wf-btn" title="Italic">I</div>
+    <div class="wf-btn" title="Strikethrough">S̶</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="H1">H1</div>
+    <div class="wf-btn" title="H2">H2</div>
+    <div class="wf-btn" title="H3">H3</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Bullet list">•–</div>
+    <div class="wf-btn" title="Numbered list">1.</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Link">🔗</div>
+    <div class="wf-btn" title="Image">🖼</div>
+    <div class="wf-btn" title="Inline code">`·`</div>
+    <div class="wf-separator"></div>
+    <div class="wf-btn" title="Horizontal rule">—</div>
+    <div class="wf-spacer"></div>
+    <div class="wf-btn" title="Print">🖨</div>
+  </div>
+  <div class="wf-divider"></div>
+  <div class="wf-body">
+    <div class="wf-source"># Analysis Report
+
+This report summarises the flow cytometry analysis performed on the **immunophenotyping** dataset.
+
+---
+
+## Marker Panel
+
+| Marker | Channel | Purpose |
+|--------|---------|---------|
+| CD3    | FITC    | T-cell  |
+
+## Results
+
+1. CD3+ T-cells (45.2%)
+2. CD19+ B-cells (12.8%)</div>
+  </div>
+</div>
+
+<!-- ── STATE 2b: ACTIVE / RENDERED MODE ── -->
+<h2>State 2b — Active / Rendered mode</h2>
+<div class="state-label">ContentState.active + EditMode.rendered</div>
+<div class="wf-widget">
+  <div class="wf-tab-strip">
+    <div class="wf-tab"><div class="wf-tab-icon"></div>analysis-report.md</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>notes.txt</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>pipeline-config.md</div>
+    <div class="wf-tab-spacer"></div>
+    <div class="wf-tab-toggle">☀</div>
+  </div>
+  <div class="wf-toolbar">
+    <div class="wf-btn" title="Save (clean = ghost)">💾</div>
+    <div class="wf-btn-group">
+      <div class="seg" title="Edit">{ }</div>
+      <div class="seg active" title="View (active)">📖</div>
+    </div>
+    <!-- No formatting controls in rendered mode -->
+    <div class="wf-spacer"></div>
+    <div class="wf-btn" title="Print">🖨</div>
+  </div>
+  <div class="wf-divider"></div>
+  <div class="wf-body">
+    <!-- Save success banner example -->
+    <div style="display:flex; flex-direction:column; width:100%;">
+      <div class="wf-banner success">
+        <div class="wf-banner-dot"></div>
+        Document saved
+      </div>
+      <div class="wf-rendered" style="flex:1;">
+        <div class="block h1-block"></div>
+        <div class="block text-block"></div>
+        <div class="block text-block short"></div>
+        <div class="block h2-block"></div>
+        <div class="block text-block"></div>
+        <div class="block text-block short"></div>
+        <div class="block text-block shorter"></div>
+        <div class="block h2-block" style="width:35%;"></div>
+        <div class="block text-block" style="width:55%;"></div>
+        <div class="block text-block short"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STATE 3: ERROR ── -->
+<h2>State 3 — Error</h2>
+<div class="state-label">ContentState.error</div>
+<div class="wf-widget">
+  <div class="wf-tab-strip">
+    <div class="wf-tab"><div class="wf-tab-icon"></div>analysis-report.md</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>notes.txt</div>
+    <div class="wf-tab inactive"><div class="wf-tab-icon"></div>pipeline-config.md</div>
+    <div class="wf-tab-spacer"></div>
+    <div class="wf-tab-toggle">☀</div>
+  </div>
+  <div class="wf-toolbar">
+    <div class="wf-btn" title="Save (disabled)">💾</div>
+    <div class="wf-spacer"></div>
+    <div class="wf-btn" title="Print">🖨</div>
+  </div>
+  <div class="wf-divider"></div>
+  <div class="wf-body">
+    <div class="wf-error">
+      <div class="wf-error-icon">✕</div>
+      <div class="wf-error-title">Something went wrong</div>
+      <div class="wf-error-detail">Document not found: doc-999</div>
+      <div class="wf-error-btn">Retry</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── NARROW: Collapsed toolbar ── -->
+<h2>Narrow variant (&lt;680px) — Format popover button</h2>
+<div class="state-label">Active + source + narrow toolbar</div>
+<div class="wf-widget" style="width:400px;">
+  <div class="wf-tab-strip">
+    <div class="wf-tab"><div class="wf-tab-icon"></div>analysis-report.md</div>
+    <div class="wf-tab-spacer"></div>
+    <div class="wf-tab-toggle">☀</div>
+  </div>
+  <div class="wf-toolbar">
+    <div class="wf-btn primary" title="Save">💾</div>
+    <div class="wf-btn-group">
+      <div class="seg active">{ }</div>
+      <div class="seg">📖</div>
+    </div>
+    <div class="wf-btn" title="Format popover (pen-to-square icon)">¶</div>
+    <div class="wf-spacer"></div>
+    <div class="wf-btn" title="Print">🖨</div>
+  </div>
+  <div class="wf-divider"></div>
+  <div class="wf-body">
+    <div class="wf-source"># Analysis Report
+Narrow view — format popover replaces inline buttons.</div>
+  </div>
+</div>
+
+</body>
+</html>

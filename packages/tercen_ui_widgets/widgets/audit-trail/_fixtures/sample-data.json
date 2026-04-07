@@ -1,0 +1,511 @@
+{
+  "scopes": [
+    {
+      "scopeType": "project",
+      "scopeId": "proj-std-op-test",
+      "scopeLabel": "Standard Operator Test Workflow"
+    },
+    {
+      "scopeType": "user",
+      "scopeId": "martin.english",
+      "scopeLabel": "martin.english"
+    },
+    {
+      "scopeType": "team",
+      "scopeId": "Team10Dec2025",
+      "scopeLabel": "Team10Dec2025"
+    }
+  ],
+  "events": [
+    {
+      "id": "act-1",
+      "source": "activity",
+      "timestamp": "2026-03-04T12:09:14Z",
+      "eventType": "create",
+      "objectKind": "Project",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "proj-std-op-test",
+      "targetName": "Standard Operator Test Workflow",
+      "isPublic": false,
+      "details": {
+        "id": "proj-std-op-test-abc123def456",
+        "name": "Standard Operator Test Workflow"
+      }
+    },
+    {
+      "id": "act-2",
+      "source": "activity",
+      "timestamp": "2026-02-15T09:30:00Z",
+      "eventType": "create",
+      "objectKind": "Project",
+      "userId": "martin.english",
+      "teamId": "MartinLibrary",
+      "projectId": "proj-immuno-v3",
+      "projectName": "immunophenotyping_v3_webapp_operator",
+      "targetId": "proj-immuno-v3",
+      "targetName": "immunophenotyping_v3_webapp_operator",
+      "isPublic": false,
+      "details": {
+        "id": "proj-immuno-v3-789ghi012jkl",
+        "name": "immunophenotyping_v3_webapp_operator"
+      }
+    },
+    {
+      "id": "act-3",
+      "source": "activity",
+      "timestamp": "2026-01-20T15:45:22Z",
+      "eventType": "create",
+      "objectKind": "Project",
+      "userId": "admin",
+      "teamId": "TestTeam10Dec2025",
+      "projectId": "proj-project1",
+      "projectName": "Project1",
+      "targetId": "proj-project1",
+      "targetName": "Project1",
+      "isPublic": false,
+      "details": {
+        "id": "proj-project1-345mno678pqr",
+        "name": "Project1"
+      }
+    },
+    {
+      "id": "act-4",
+      "source": "activity",
+      "timestamp": "2026-03-04T14:20:24Z",
+      "eventType": "create",
+      "objectKind": "Workflow",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "wf-crabs-001",
+      "targetName": "Crabs Workflow",
+      "isPublic": false,
+      "details": {
+        "id": "ec1e482ae7f2fdc0a1580c5e32215049",
+        "name": "Crabs Workflow"
+      }
+    },
+    {
+      "id": "act-5",
+      "source": "activity",
+      "timestamp": "2026-03-04T14:20:30Z",
+      "eventType": "create",
+      "objectKind": "Workflow",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "wf-analysis-002",
+      "targetName": "Analysis Pipeline",
+      "isPublic": false,
+      "details": {
+        "id": "wf-analysis-002-abc123",
+        "name": "Analysis Pipeline"
+      }
+    },
+    {
+      "id": "act-6",
+      "source": "activity",
+      "timestamp": "2026-02-15T10:00:00Z",
+      "eventType": "create",
+      "objectKind": "Workflow",
+      "userId": "martin.english",
+      "teamId": "MartinLibrary",
+      "projectId": "proj-immuno-v3",
+      "projectName": "immunophenotyping_v3_webapp_operator",
+      "targetId": "wf-flow-immuno-001",
+      "targetName": "Flow Immunophenotyping - PhenoGraph",
+      "isPublic": false,
+      "details": {
+        "id": "wf-flow-immuno-001-xyz789",
+        "name": "Flow Immunophenotyping - PhenoGraph"
+      }
+    },
+    {
+      "id": "act-7",
+      "source": "activity",
+      "timestamp": "2026-02-26T12:57:00Z",
+      "eventType": "update",
+      "objectKind": "Workflow",
+      "userId": "faris.naji",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "wf-crabs-001",
+      "targetName": "Crabs Workflow",
+      "isPublic": false,
+      "details": {
+        "id": "ec1e482ae7f2fdc0a1580c5e32215049",
+        "name": "Crabs Workflow"
+      }
+    },
+    {
+      "id": "act-8",
+      "source": "activity",
+      "timestamp": "2026-02-26T12:56:00Z",
+      "eventType": "update",
+      "objectKind": "Workflow",
+      "userId": "faris.naji",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "wf-analysis-002",
+      "targetName": "Analysis Pipeline",
+      "isPublic": false,
+      "details": {
+        "id": "wf-analysis-002-abc123",
+        "name": "Analysis Pipeline"
+      }
+    },
+    {
+      "id": "act-9",
+      "source": "activity",
+      "timestamp": "2026-03-10T08:15:00Z",
+      "eventType": "update",
+      "objectKind": "Workflow",
+      "userId": "martin.english",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "wf-crabs-001",
+      "targetName": "Crabs Workflow",
+      "isPublic": false,
+      "details": {
+        "id": "ec1e482ae7f2fdc0a1580c5e32215049",
+        "name": "Crabs Workflow"
+      }
+    },
+    {
+      "id": "act-10",
+      "source": "activity",
+      "timestamp": "2026-03-04T14:20:20Z",
+      "eventType": "create",
+      "objectKind": "TableSchema",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "ts-crabs-data-001",
+      "targetName": "Crabs Data",
+      "isPublic": false,
+      "details": {
+        "id": "ts-crabs-data-001-abc123",
+        "name": "Crabs Data"
+      }
+    },
+    {
+      "id": "act-11",
+      "source": "activity",
+      "timestamp": "2026-02-20T11:00:00Z",
+      "eventType": "create",
+      "objectKind": "TableSchema",
+      "userId": "martin.english",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "ts-kinase-data-002",
+      "targetName": "raw_kinase_data",
+      "isPublic": false,
+      "details": {
+        "id": "ts-kinase-data-002-def456",
+        "name": "raw_kinase_data"
+      }
+    },
+    {
+      "id": "act-12",
+      "source": "activity",
+      "timestamp": "2026-03-12T16:30:00Z",
+      "eventType": "create",
+      "objectKind": "TableSchema",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "ts-results-003",
+      "targetName": "analysis_results_v2",
+      "isPublic": false,
+      "details": {
+        "id": "ts-results-003-ghi789",
+        "name": "analysis_results_v2"
+      }
+    },
+    {
+      "id": "act-13",
+      "source": "activity",
+      "timestamp": "2026-03-05T09:00:00Z",
+      "eventType": "create",
+      "objectKind": "FileDocument",
+      "userId": "martin.english",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "fd-report-001",
+      "targetName": "experiment_report.md",
+      "isPublic": false,
+      "details": {
+        "id": "fd-report-001-jkl012",
+        "name": "experiment_report.md"
+      }
+    },
+    {
+      "id": "act-14",
+      "source": "activity",
+      "timestamp": "2026-03-06T14:22:00Z",
+      "eventType": "create",
+      "objectKind": "FileDocument",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "fd-config-002",
+      "targetName": "pipeline_config.json",
+      "isPublic": false,
+      "details": {
+        "id": "fd-config-002-mno345",
+        "name": "pipeline_config.json"
+      }
+    },
+    {
+      "id": "act-15",
+      "source": "activity",
+      "timestamp": "2026-03-15T10:30:00Z",
+      "eventType": "delete",
+      "objectKind": "FileDocument",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "fd-old-draft-003",
+      "targetName": "old_draft_report.md",
+      "isPublic": false,
+      "details": {
+        "id": "fd-old-draft-003-pqr678",
+        "name": "old_draft_report.md"
+      }
+    },
+    {
+      "id": "act-16",
+      "source": "activity",
+      "timestamp": "2026-03-03T16:00:00Z",
+      "eventType": "create",
+      "objectKind": "FolderDocument",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "fld-results-001",
+      "targetName": "Results",
+      "isPublic": false,
+      "details": {
+        "id": "fld-results-001-stu901",
+        "name": "Results"
+      }
+    },
+    {
+      "id": "act-17",
+      "source": "activity",
+      "timestamp": "2026-03-03T16:05:00Z",
+      "eventType": "create",
+      "objectKind": "FolderDocument",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "fld-data-002",
+      "targetName": "Data",
+      "isPublic": false,
+      "details": {
+        "id": "fld-data-002-vwx234",
+        "name": "Data"
+      }
+    },
+    {
+      "id": "act-18",
+      "source": "activity",
+      "timestamp": "2026-03-08T11:00:00Z",
+      "eventType": "create",
+      "objectKind": "WebAppOperator",
+      "userId": "martin.english",
+      "teamId": "MartinLibrary",
+      "projectId": "proj-immuno-v3",
+      "projectName": "immunophenotyping_v3_webapp_operator",
+      "targetId": "wao-immuno-001",
+      "targetName": "Immunophenotyping Viewer",
+      "isPublic": false,
+      "details": {
+        "id": "wao-immuno-001-yza567",
+        "name": "Immunophenotyping Viewer"
+      }
+    },
+    {
+      "id": "task-19",
+      "source": "task",
+      "timestamp": "2026-03-10T09:00:00Z",
+      "eventType": "run",
+      "objectKind": "Task",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-mean-001",
+      "targetName": "Mean Operator",
+      "isPublic": false,
+      "details": {
+        "state": "RunningState",
+        "createdDate": "2026-03-10T08:59:50Z",
+        "runDate": "2026-03-10T09:00:00Z"
+      }
+    },
+    {
+      "id": "task-20",
+      "source": "task",
+      "timestamp": "2026-03-10T09:02:34Z",
+      "eventType": "complete",
+      "objectKind": "Task",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-mean-001",
+      "targetName": "Mean Operator",
+      "isPublic": false,
+      "details": {
+        "state": "DoneState",
+        "createdDate": "2026-03-10T08:59:50Z",
+        "runDate": "2026-03-10T09:00:00Z",
+        "completedDate": "2026-03-10T09:02:34Z",
+        "duration": "154.0"
+      }
+    },
+    {
+      "id": "task-21",
+      "source": "task",
+      "timestamp": "2026-03-11T14:15:00Z",
+      "eventType": "run",
+      "objectKind": "Task",
+      "userId": "faris.naji",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-pca-002",
+      "targetName": "PCA Operator",
+      "isPublic": false,
+      "details": {
+        "state": "RunningState",
+        "createdDate": "2026-03-11T14:14:50Z",
+        "runDate": "2026-03-11T14:15:00Z"
+      }
+    },
+    {
+      "id": "task-22",
+      "source": "task",
+      "timestamp": "2026-03-11T14:18:12Z",
+      "eventType": "complete",
+      "objectKind": "Task",
+      "userId": "faris.naji",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-pca-002",
+      "targetName": "PCA Operator",
+      "isPublic": false,
+      "details": {
+        "state": "DoneState",
+        "createdDate": "2026-03-11T14:14:50Z",
+        "runDate": "2026-03-11T14:15:00Z",
+        "completedDate": "2026-03-11T14:18:12Z",
+        "duration": "192.0"
+      }
+    },
+    {
+      "id": "task-23",
+      "source": "task",
+      "timestamp": "2026-03-12T17:00:45Z",
+      "eventType": "complete",
+      "objectKind": "Task",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-boxplot-003",
+      "targetName": "Boxplot Operator",
+      "isPublic": false,
+      "details": {
+        "state": "DoneState",
+        "createdDate": "2026-03-12T16:58:00Z",
+        "runDate": "2026-03-12T16:58:10Z",
+        "completedDate": "2026-03-12T17:00:45Z",
+        "duration": "155.0"
+      }
+    },
+    {
+      "id": "task-24",
+      "source": "task",
+      "timestamp": "2026-03-13T10:05:00Z",
+      "eventType": "fail",
+      "objectKind": "Task",
+      "userId": "martin.english",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-heatmap-004",
+      "targetName": "Heatmap Operator",
+      "isPublic": false,
+      "details": {
+        "state": "FailedState",
+        "createdDate": "2026-03-13T10:00:00Z",
+        "runDate": "2026-03-13T10:00:10Z",
+        "completedDate": "2026-03-13T10:05:00Z",
+        "duration": "290.0",
+        "error": "OutOfMemoryError: insufficient memory for data matrix (2.1GB required, 1.5GB available)"
+      }
+    },
+    {
+      "id": "task-25",
+      "source": "task",
+      "timestamp": "2026-03-14T16:20:00Z",
+      "eventType": "fail",
+      "objectKind": "Task",
+      "userId": "admin",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-cluster-005",
+      "targetName": "Clustering Operator",
+      "isPublic": false,
+      "details": {
+        "state": "FailedState",
+        "createdDate": "2026-03-14T16:15:00Z",
+        "runDate": "2026-03-14T16:15:05Z",
+        "completedDate": "2026-03-14T16:20:00Z",
+        "duration": "295.0",
+        "error": "RuntimeError: convergence not reached after 1000 iterations"
+      }
+    },
+    {
+      "id": "task-26",
+      "source": "task",
+      "timestamp": "2026-03-16T11:00:00Z",
+      "eventType": "cancel",
+      "objectKind": "Task",
+      "userId": "faris.naji",
+      "teamId": "Team10Dec2025",
+      "projectId": "proj-std-op-test",
+      "projectName": "Standard Operator Test Workflow",
+      "targetId": "step-pca-002",
+      "targetName": "PCA Operator",
+      "isPublic": false,
+      "details": {
+        "state": "CanceledState",
+        "createdDate": "2026-03-16T10:55:00Z",
+        "runDate": "2026-03-16T10:55:10Z",
+        "completedDate": "2026-03-16T11:00:00Z",
+        "duration": "290.0"
+      }
+    }
+  ]
+}

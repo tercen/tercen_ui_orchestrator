@@ -1,0 +1,389 @@
+{
+  "widgets": [
+    {
+      "metadata": {
+        "type": "DataTable",
+        "kind": "window",
+        "tier": 2,
+        "typeColor": "#F59E0B",
+        "tabLabel": "Data",
+        "description": "Tabular data viewing and annotation window for Tercen datasets. Displays TableSchema, ComputedTableSchema, and CubeQueryTableSchema in a scrollable grid with column sorting, search highlighting, go-to-row, cell editing (annotation mode), and CSV export. Use when the user wants to inspect, search, or annotate data produced by a workflow step or uploaded as a file.",
+        "emittedEvents": [
+          "window.intent",
+          "system.selection.table",
+          "system.data.annotationSaved",
+          "dt.{{widgetId}}.sort",
+          "dt.{{widgetId}}.edit",
+          "dt.{{widgetId}}.export"
+        ],
+        "inboundEvents": [
+          "window.{{widgetId}}.command",
+          "system.data.tableUpdated"
+        ],
+        "handlesIntent": {
+          "intent": "openResource",
+          "propsMap": {
+            "tableId": "resourceId",
+            "tableName": "resourceName",
+            "tableKind": "resourceKind"
+          },
+          "windowTitle": "{{resourceName}}",
+          "windowSize": "large"
+        },
+        "state": {
+          "publishTo": ["system.selection.table"],
+          "selection": {
+            "channel": "system.selection.table",
+            "matchField": "tableId",
+            "payloadField": "tableId",
+            "multi": false
+          }
+        },
+        "props": {
+          "tableId": { "type": "string", "required": true },
+          "tableName": { "type": "string" },
+          "tableKind": { "type": "string" }
+        },
+        "domain": "data",
+        "capabilities": ["browse", "search", "sort", "annotate", "export"],
+        "selectionMode": "single",
+        "dataSource": "tableSchemaService.select"
+      },
+      "template": {
+        "type": "Column",
+        "id": "{{widgetId}}-root",
+        "props": { "crossAxisAlignment": "stretch" },
+        "children": [
+          {
+            "_comment": "PromptRequired gate — requires tableId from intent",
+            "type": "PromptRequired",
+            "id": "{{widgetId}}-prompt",
+            "props": {
+              "fields": [
+                { "name": "tableId", "label": "Table ID" }
+              ]
+            },
+            "children": [
+              {
+                "_comment": "Toolbar — always visible above body states",
+                "type": "Container",
+                "id": "{{widgetId}}-toolbar",
+                "props": {
+                  "color": "surface",
+                  "padding": 8
+                },
+                "children": [
+                  {
+                    "type": "Row",
+                    "id": "{{widgetId}}-toolbar-row",
+                    "props": { "crossAxisAlignment": "center" },
+                    "children": [
+                      {
+                        "_comment": "Info popover — table metadata panel",
+                        "type": "Popover",
+                        "id": "{{widgetId}}-info-btn",
+                        "props": {
+                          "icon": "circle-info",
+                          "tooltip": "Table info",
+                          "variant": "toolbar-secondary",
+                          "width": 320,
+                          "title": "Table Info"
+                        },
+                        "children": [
+                          {
+                            "type": "Column",
+                            "id": "{{widgetId}}-info-content",
+                            "props": { "crossAxisAlignment": "stretch" },
+                            "children": [
+                              {
+                                "type": "Row",
+                                "id": "{{widgetId}}-info-name",
+                                "children": [
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-name-lbl",
+                                    "props": { "text": "Name", "textStyle": "labelSmall", "color": "onSurfaceMuted" }
+                                  },
+                                  { "type": "Spacer", "id": "{{widgetId}}-info-name-sp" },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-name-val",
+                                    "props": { "text": "{{props.tableName}}", "textStyle": "bodySmall", "color": "onSurface" }
+                                  }
+                                ]
+                              },
+                              { "type": "SizedBox", "id": "{{widgetId}}-info-g1", "props": { "height": 8 } },
+                              {
+                                "type": "Row",
+                                "id": "{{widgetId}}-info-id",
+                                "props": { "crossAxisAlignment": "center" },
+                                "children": [
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-id-lbl",
+                                    "props": { "text": "ID", "textStyle": "labelSmall", "color": "onSurfaceMuted" }
+                                  },
+                                  { "type": "Spacer", "id": "{{widgetId}}-info-id-sp" },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-id-val",
+                                    "props": { "text": "{{props.tableId}}", "textStyle": "bodySmall", "color": "onSurface" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-info-id-gap", "props": { "width": 4 } },
+                                  {
+                                    "type": "ClipboardCopy",
+                                    "id": "{{widgetId}}-info-copy",
+                                    "props": { "text": "{{props.tableId}}", "tooltip": "Copy ID" }
+                                  }
+                                ]
+                              },
+                              { "type": "SizedBox", "id": "{{widgetId}}-info-g2", "props": { "height": 8 } },
+                              {
+                                "type": "Row",
+                                "id": "{{widgetId}}-info-kind",
+                                "children": [
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-kind-lbl",
+                                    "props": { "text": "Kind", "textStyle": "labelSmall", "color": "onSurfaceMuted" }
+                                  },
+                                  { "type": "Spacer", "id": "{{widgetId}}-info-kind-sp" },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-kind-val",
+                                    "props": { "text": "{{props.tableKind}}", "textStyle": "bodySmall", "color": "onSurface" }
+                                  }
+                                ]
+                              },
+                              { "type": "SizedBox", "id": "{{widgetId}}-info-g3", "props": { "height": 8 } },
+                              {
+                                "type": "Row",
+                                "id": "{{widgetId}}-info-rows",
+                                "children": [
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-rows-lbl",
+                                    "props": { "text": "Rows", "textStyle": "labelSmall", "color": "onSurfaceMuted" }
+                                  },
+                                  { "type": "Spacer", "id": "{{widgetId}}-info-rows-sp" },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-rows-val",
+                                    "props": { "text": "{{data.nRows}}", "textStyle": "bodySmall", "color": "onSurface" }
+                                  }
+                                ]
+                              },
+                              { "type": "SizedBox", "id": "{{widgetId}}-info-g4", "props": { "height": 8 } },
+                              {
+                                "type": "Row",
+                                "id": "{{widgetId}}-info-cols",
+                                "children": [
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-cols-lbl",
+                                    "props": { "text": "Columns", "textStyle": "labelSmall", "color": "onSurfaceMuted" }
+                                  },
+                                  { "type": "Spacer", "id": "{{widgetId}}-info-cols-sp" },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-info-cols-val",
+                                    "props": { "text": "{{data.columnCount}}", "textStyle": "bodySmall", "color": "onSurface" }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      { "type": "SizedBox", "id": "{{widgetId}}-tb-g1", "props": { "width": 4 } },
+                      {
+                        "_comment": "Download CSV — publishes to export channel",
+                        "type": "IconButton",
+                        "id": "{{widgetId}}-download-btn",
+                        "props": {
+                          "icon": "download",
+                          "tooltip": "Download CSV",
+                          "variant": "toolbar-secondary",
+                          "channel": "dt.{{widgetId}}.export"
+                        }
+                      },
+                      { "type": "SizedBox", "id": "{{widgetId}}-tb-g2", "props": { "width": 4 } },
+                      {
+                        "_comment": "Annotation toggle — off=secondary, on=primary filled. Publishes input.<id>.changed {value: bool}",
+                        "type": "ToggleButton",
+                        "id": "{{widgetId}}-annotate-btn",
+                        "props": {
+                          "icon": "pen-to-square",
+                          "tooltip": "Annotation mode",
+                          "value": false
+                        }
+                      },
+                      { "type": "Spacer", "id": "{{widgetId}}-tb-spacer" },
+                      {
+                        "_comment": "Go-to-row input — publishes input.<id>.submitted on Enter",
+                        "type": "TextField",
+                        "id": "{{widgetId}}-goto-input",
+                        "props": {
+                          "placeholder": "Row",
+                          "width": 72,
+                          "textStyle": "bodySmall"
+                        }
+                      },
+                      { "type": "SizedBox", "id": "{{widgetId}}-tb-g3", "props": { "width": 8 } },
+                      {
+                        "_comment": "Search field — publishes input.<id>.changed on keystroke",
+                        "type": "TextField",
+                        "id": "{{widgetId}}-search-input",
+                        "props": {
+                          "placeholder": "Search\u2026",
+                          "icon": "magnifying-glass",
+                          "width": 200,
+                          "textStyle": "bodySmall"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Divider",
+                "id": "{{widgetId}}-toolbar-div",
+                "props": { "height": 1, "color": "outlineVariant" }
+              },
+              {
+                "_comment": "Body — DataSource fetches table data",
+                "type": "Expanded",
+                "id": "{{widgetId}}-body",
+                "children": [
+                  {
+                    "type": "DataSource",
+                    "id": "{{widgetId}}-ds",
+                    "props": {
+                      "service": "tableSchemaService",
+                      "method": "select",
+                      "args": ["{{props.tableId}}", [], 0, 100],
+                      "refreshOn": "system.data.tableUpdated"
+                    },
+                    "children": [
+                      {
+                        "_comment": "Loading state",
+                        "type": "Conditional",
+                        "id": "{{widgetId}}-loading",
+                        "props": { "visible": "{{loading}}" },
+                        "children": [
+                          {
+                            "type": "Center",
+                            "id": "{{widgetId}}-loading-center",
+                            "children": [
+                              {
+                                "type": "Column",
+                                "id": "{{widgetId}}-loading-col",
+                                "props": { "mainAxisAlignment": "center", "mainAxisSize": "min" },
+                                "children": [
+                                  {
+                                    "type": "LoadingIndicator",
+                                    "id": "{{widgetId}}-spinner",
+                                    "props": { "variant": "spinner" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-loading-gap", "props": { "height": 12 } },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-loading-text",
+                                    "props": {
+                                      "text": "Loading table\u2026",
+                                      "textStyle": "bodyMedium",
+                                      "color": "onSurfaceMuted"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "_comment": "Error state",
+                        "type": "Conditional",
+                        "id": "{{widgetId}}-error",
+                        "props": { "visible": "{{error}}" },
+                        "children": [
+                          {
+                            "type": "Center",
+                            "id": "{{widgetId}}-err-center",
+                            "children": [
+                              {
+                                "type": "Column",
+                                "id": "{{widgetId}}-err-col",
+                                "props": { "mainAxisAlignment": "center", "crossAxisAlignment": "center" },
+                                "children": [
+                                  {
+                                    "type": "Icon",
+                                    "id": "{{widgetId}}-err-icon",
+                                    "props": { "icon": "triangle-exclamation", "size": 32, "color": "error" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-err-g1", "props": { "height": 12 } },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-err-title",
+                                    "props": { "text": "Something went wrong", "textStyle": "bodyMedium", "color": "error" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-err-g2", "props": { "height": 4 } },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-err-msg",
+                                    "props": { "text": "{{errorMessage}}", "textStyle": "bodySmall", "color": "onSurfaceMuted" }
+                                  },
+                                  { "type": "SizedBox", "id": "{{widgetId}}-err-g3", "props": { "height": 16 } },
+                                  {
+                                    "type": "SecondaryButton",
+                                    "id": "{{widgetId}}-retry-btn",
+                                    "props": {
+                                      "text": "Retry",
+                                      "channel": "ds.{{widgetId}}-ds.refresh"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "_comment": "Ready state — render DataTable grid",
+                        "type": "Conditional",
+                        "id": "{{widgetId}}-ready",
+                        "props": { "visible": "{{ready}}" },
+                        "children": [
+                          {
+                            "type": "Expanded",
+                            "id": "{{widgetId}}-grid-exp",
+                            "children": [
+                              {
+                                "type": "DataTable",
+                                "id": "{{widgetId}}-grid",
+                                "props": {
+                                  "columns": "{{data.columns}}",
+                                  "nRows": "{{data.nRows}}",
+                                  "maxRows": 100,
+                                  "showRowNumbers": true,
+                                  "sortable": true,
+                                  "sortChannel": "dt.{{widgetId}}.sort",
+                                  "editable": false,
+                                  "editChannel": "dt.{{widgetId}}.edit"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

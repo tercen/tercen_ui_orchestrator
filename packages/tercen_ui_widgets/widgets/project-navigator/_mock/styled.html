@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Navigator — Styled Mock</title>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Embedded tercen-tokens.css (auto-generated — do not edit) ────── */
+
+    :root {
+      --font-family: 'Fira Sans', sans-serif;
+
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+      --spacing-xxl: 48px;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+
+      --elevation-none: 0;
+      --elevation-low: 1;
+      --elevation-medium: 4;
+      --elevation-high: 8;
+
+      --line-weight-subtle: 1px;
+      --line-weight-standard: 1.5px;
+      --line-weight-emphasis: 2px;
+
+      --control-height-sm: 28px;
+      --control-height-md: 36px;
+      --control-height-lg: 44px;
+
+      --button-padding-h: 16px;
+      --button-padding-v: 8px;
+      --button-border-radius: 8px;
+      --button-border-width: 1.5px;
+
+      --icon-size-sm: 16px;
+      --icon-size-md: 24px;
+      --icon-size-lg: 32px;
+
+      --text-body-medium-size: 14px;
+      --text-body-medium-weight: 400;
+      --text-body-medium-line-height: 1.5;
+      --text-body-small-size: 12px;
+      --text-body-small-weight: 400;
+      --text-body-small-line-height: 1.5;
+      --text-label-large-size: 14px;
+      --text-label-large-weight: 500;
+      --text-label-small-size: 12px;
+      --text-label-small-weight: 500;
+    }
+
+    [data-theme="light"], :root {
+      --color-primary: #1E40AF;
+      --color-on-primary: #FFFFFF;
+      --color-primary-container: #DBEAFE;
+      --color-on-primary-container: #1E3A8A;
+      --color-primary-fixed: #EFF6FF;
+      --color-tertiary: #6D28D9;
+      --color-error: #B91C1C;
+      --color-on-error: #FFFFFF;
+      --color-error-container: #FEE2E2;
+      --color-surface: #FFFFFF;
+      --color-on-surface: #111827;
+      --color-on-surface-variant: #374151;
+      --color-surface-container-low: #F9FAFB;
+      --color-surface-container: #F3F4F6;
+      --color-surface-container-high: #E5E7EB;
+      --color-outline: #D1D5DB;
+      --color-outline-variant: #E5E7EB;
+      --color-on-surface-muted: #6B7280;
+      --color-on-surface-disabled: #9CA3AF;
+      --color-warning: #B45309;
+      --color-on-warning: #FFFFFF;
+      --color-warning-container: #FEF3C7;
+      --color-success: #047857;
+      --color-on-success: #FFFFFF;
+      --color-success-container: #D1FAE5;
+      --color-info: #0E7490;
+      --color-on-info: #FFFFFF;
+      --color-info-container: #CFFAFE;
+      --color-link: #2563EB;
+      --color-text-tertiary: #4B5563;
+    }
+
+    [data-theme="dark"] {
+      --color-primary: #14B8A6;
+      --color-on-primary: #FFFFFF;
+      --color-primary-container: #153D47;
+      --color-on-primary-container: #2DD4BF;
+      --color-primary-fixed: #122E35;
+      --color-tertiary: #A78BFA;
+      --color-error: #F87171;
+      --color-on-error: #FFFFFF;
+      --color-error-container: #450A0A;
+      --color-surface: #111827;
+      --color-on-surface: #F9FAFB;
+      --color-on-surface-variant: #E5E7EB;
+      --color-surface-container-low: #111827;
+      --color-surface-container: #1F2937;
+      --color-surface-container-high: #1F2937;
+      --color-outline: #374151;
+      --color-outline-variant: #374151;
+      --color-on-surface-muted: #6B7280;
+      --color-on-surface-disabled: #4B5563;
+      --color-warning: #FBBF24;
+      --color-on-warning: #111827;
+      --color-warning-container: #451A03;
+      --color-success: #10B981;
+      --color-on-success: #111827;
+      --color-success-container: #14532D;
+      --color-info: #60A5FA;
+      --color-on-info: #111827;
+      --color-info-container: #083344;
+      --color-link: #60A5FA;
+      --color-text-tertiary: #9CA3AF;
+    }
+
+    /* ── End tercen-tokens.css ────────────────────────────────────────── */
+
+    /* ── Widget layout tokens ─────────────────────────────────────────── */
+    :root {
+      --toolbar-height: 48px;
+      --toolbar-btn-size: 32px;
+      --toolbar-btn-icon: var(--icon-size-sm);
+      --toolbar-gap: var(--spacing-sm);
+      --tree-indent: 20px;
+      --tree-row-py: 3px;
+      --tree-chevron-size: 16px;
+      --tree-icon-size: 14px;
+      --body-icon-size: 32px;
+      --body-max-width: 280px;
+      --spinner-size: 28px;
+      --spinner-stroke: 3px;
+      --color-type-yellow: #F59E0B;
+    }
+
+    /* ── Reset ────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      font-size: var(--text-body-medium-size);
+      font-weight: var(--text-body-medium-weight);
+      line-height: var(--text-body-medium-line-height);
+      color: var(--color-on-surface);
+      background: var(--color-surface-container);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       CONVENIENCE BAR — Dev-only frame. NOT part of widget design.
+       The orchestrator provides the tab strip and pane chrome.
+       ══════════════════════════════════════════════════════════════════ */
+    .convenience-bar {
+      height: 32px;
+      background: #2D2D2D;
+      display: flex;
+      align-items: center;
+      padding: 0 var(--spacing-sm);
+      gap: var(--spacing-sm);
+      flex-shrink: 0;
+      font-size: 11px;
+      color: #AAAAAA;
+      user-select: none;
+    }
+    .convenience-bar .tab-mock {
+      height: 24px;
+      padding: 0 var(--spacing-sm);
+      background: var(--color-surface);
+      border-radius: 4px 4px 0 0;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+    .convenience-bar .tab-type-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: var(--color-type-yellow);
+    }
+    .convenience-bar .tab-text {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-on-surface);
+    }
+    .convenience-bar .spacer { flex: 1; }
+    .convenience-bar .conv-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #777;
+      margin-right: 4px;
+    }
+    .convenience-bar button {
+      padding: 2px 8px;
+      border: 1px solid #555;
+      border-radius: 3px;
+      background: #3A3A3A;
+      color: #CCC;
+      font-family: var(--font-family);
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .convenience-bar button:hover { background: #4A4A4A; }
+    .convenience-bar button.active {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border-color: var(--color-primary);
+    }
+    .convenience-bar .theme-toggle {
+      padding: 2px 6px;
+      font-size: 12px;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       WIDGET — Everything below is the actual widget design.
+       ══════════════════════════════════════════════════════════════════ */
+    .window-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      background: var(--color-surface);
+      overflow: hidden;
+    }
+
+    .page-wrap {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── Custom tooltip (replaces native title — matches Flutter grey) ─ */
+    [data-tooltip] {
+      position: relative;
+    }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 8px;
+      background: #616161;
+      color: #FFFFFF;
+      font-size: var(--text-body-small-size);
+      font-weight: var(--text-label-small-weight);
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 150ms ease;
+      z-index: 300;
+    }
+    [data-tooltip]:hover::after {
+      opacity: 1;
+    }
+
+    /* ── Toolbar ─────────────────────────────────────────────────────── */
+    .toolbar {
+      height: var(--toolbar-height);
+      padding: 0 var(--spacing-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--toolbar-gap);
+      flex-shrink: 0;
+    }
+    .toolbar-divider {
+      height: var(--line-weight-subtle);
+      background: var(--color-outline);
+      opacity: 0.5;
+    }
+
+    .toolbar-btn {
+      width: var(--toolbar-btn-size);
+      height: var(--toolbar-btn-size);
+      border-radius: var(--button-border-radius);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--toolbar-btn-icon);
+      transition: background 150ms ease, color 150ms ease;
+      position: relative;
+    }
+
+    /* Primary */
+    .toolbar-btn.primary {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+    }
+    .toolbar-btn.primary:hover:not(:disabled) {
+      background: var(--color-on-primary-container);
+    }
+    .toolbar-btn.primary:disabled {
+      background: var(--color-surface-container-high);
+      color: var(--color-on-surface-disabled);
+      cursor: default;
+    }
+
+    /* Secondary — SduiTheme master: window.toolbarButtonBorderWidth = 1px */
+    .toolbar-btn.secondary {
+      background: transparent;
+      color: var(--color-primary);
+      border: 1px solid var(--color-primary);
+    }
+    .toolbar-btn.secondary:hover:not(:disabled) {
+      background: var(--color-primary-container);
+    }
+    .toolbar-btn.secondary:disabled {
+      background: transparent;
+      color: var(--color-on-surface-disabled);
+      border-color: var(--color-outline);
+      cursor: default;
+    }
+
+    /* Filter button (secondary) */
+    /* Filter button — SduiTheme master: window.toolbarButtonBorderWidth = 1px */
+    .filter-btn {
+      width: var(--toolbar-btn-size);
+      height: var(--toolbar-btn-size);
+      border-radius: var(--button-border-radius);
+      border: 1px solid var(--color-primary);
+      background: transparent;
+      color: var(--color-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-body-medium-size);
+      font-weight: var(--text-body-medium-weight);
+      font-family: var(--font-family);
+      transition: background 150ms ease;
+      position: relative;
+    }
+    .filter-btn:hover { background: var(--color-primary-container); }
+
+    /* Filter dropdown popup */
+    .filter-dropdown {
+      position: absolute;
+      top: calc(var(--toolbar-btn-size) + 4px);
+      left: 0;
+      min-width: 48px;
+      max-width: 56px;
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      padding: var(--spacing-xs) 0;
+    }
+    .filter-dropdown.open { display: flex; }
+    .filter-item {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: var(--text-body-medium-size);
+      font-family: var(--font-family);
+      color: var(--color-on-surface-variant);
+      transition: background 100ms ease;
+      padding: 0 var(--spacing-sm);
+    }
+    .filter-item:hover { background: var(--color-surface-container); }
+    .filter-item.active { color: var(--color-primary); }
+    /* Dropdown icons use same colors as tree type icons */
+    .filter-item .fi-icon-file { color: var(--color-on-surface-variant); }
+    .filter-item .fi-icon-dataset { color: var(--color-warning); }
+    .filter-item .fi-icon-workflow { color: var(--color-info); }
+    /* Active item: override to primary */
+    .filter-item.active .fi-icon-file,
+    .filter-item.active .fi-icon-dataset,
+    .filter-item.active .fi-icon-workflow { color: var(--color-primary); }
+
+    /* Search field */
+    .search-wrapper {
+      flex: 1;
+      max-width: 440px;
+      min-width: var(--toolbar-btn-size);
+      position: relative;
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-on-surface-muted);
+      font-size: var(--icon-size-sm);
+      pointer-events: none;
+    }
+    .search-field {
+      width: 100%;
+      height: var(--toolbar-btn-size);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--button-border-radius);
+      background: var(--color-surface);
+      color: var(--color-on-surface);
+      font-family: var(--font-family);
+      font-size: var(--text-body-medium-size);
+      padding: 0 var(--spacing-sm);
+      padding-left: 36px;
+      outline: none;
+      transition: border-color 150ms ease;
+    }
+    .search-field:focus {
+      border-color: var(--color-primary);
+      border-width: var(--line-weight-emphasis);
+      padding-left: 35px;
+    }
+    .search-field::placeholder { color: var(--color-on-surface-muted); }
+
+    /* ── Tree view ───────────────────────────────────────────────────── */
+    .tree-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--spacing-xs) 0;
+    }
+
+    .tree-row {
+      display: flex;
+      align-items: center;
+      padding: var(--tree-row-py) var(--spacing-sm) var(--tree-row-py) 0;
+      cursor: pointer;
+      transition: background 100ms ease;
+      user-select: none;
+    }
+    .tree-row:hover { background: var(--color-surface-container); }
+    .tree-row.selected {
+      background: var(--color-primary-fixed);
+      border-left: var(--line-weight-emphasis) solid var(--color-primary);
+    }
+    .tree-row .node-name {
+      font-size: var(--text-body-medium-size);
+      font-weight: var(--text-body-medium-weight);
+      color: var(--color-on-surface);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tree-row.selected .node-name { font-weight: 600; }
+
+    .chevron {
+      width: var(--tree-chevron-size);
+      height: var(--tree-chevron-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--color-on-surface-muted);
+      flex-shrink: 0;
+    }
+    .type-icon {
+      width: var(--tree-icon-size);
+      height: var(--tree-icon-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: var(--tree-icon-size);
+      margin: 0 var(--spacing-sm) 0 var(--spacing-xs);
+    }
+    .type-icon.team     { color: var(--color-primary); }
+    .type-icon.project  { color: var(--color-primary); }
+    .type-icon.folder   { color: var(--color-on-primary-container); }
+    .type-icon.file     { color: var(--color-on-surface-variant); }
+    .type-icon.dataset  { color: var(--color-warning); }
+    .type-icon.workflow { color: var(--color-info); }
+
+    /* Project indicators */
+    .git-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 6px;
+      background: var(--color-surface-container-high);
+      border-radius: var(--radius-sm);
+      margin-left: var(--spacing-sm);
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+    }
+    .git-chip i { font-size: 12px; }
+    .public-icon {
+      margin-left: var(--spacing-sm);
+      font-size: 12px;
+      color: var(--color-on-surface-muted);
+    }
+
+    /* ── Body states ─────────────────────────────────────────────────── */
+    .body-state {
+      flex: 1;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .body-state.active { display: flex; flex-direction: column; }
+    .body-state.active.tree-state { display: flex; flex-direction: column; align-items: stretch; }
+
+    .body-state-inner {
+      text-align: center;
+      max-width: var(--body-max-width);
+    }
+    .spinner {
+      width: var(--spinner-size);
+      height: var(--spinner-size);
+      border: var(--spinner-stroke) solid var(--color-outline-variant);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .body-state .message { font-size: var(--text-body-medium-size); color: var(--color-on-surface-muted); }
+    .body-state .detail { font-size: var(--text-body-small-size); color: var(--color-on-surface-disabled); margin-top: var(--spacing-xs); }
+    .body-state .state-icon { font-size: var(--body-icon-size); color: var(--color-on-surface-disabled); margin-bottom: var(--spacing-sm); }
+    .body-state .error-icon { font-size: var(--body-icon-size); color: var(--color-error); margin-bottom: var(--spacing-sm); }
+    .body-state .error-title { font-size: var(--text-body-medium-size); color: var(--color-error); }
+    .body-state .error-detail { font-size: var(--text-body-small-size); color: var(--color-on-surface-disabled); margin-top: var(--spacing-xs); }
+
+    .btn-outline {
+      margin-top: var(--spacing-md);
+      padding: var(--button-padding-v) var(--button-padding-h);
+      border: var(--line-weight-standard) solid var(--color-primary);
+      border-radius: var(--button-border-radius);
+      background: transparent;
+      color: var(--color-primary);
+      font-family: var(--font-family);
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      cursor: pointer;
+    }
+    .btn-outline:hover { background: var(--color-primary-fixed); }
+    .btn-outline.error { border-color: var(--color-error); color: var(--color-error); }
+    .btn-outline.error:hover { background: var(--color-error-container); }
+
+    /* ── EventBus console (bottom bar) ────────────────────────────────── */
+    .event-log {
+      height: 24px;
+      background: #1E1E1E;
+      color: #8C8C8C;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 0 var(--spacing-sm);
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .event-log .event-channel { color: #569CD6; }
+    .event-log .event-payload { color: #CE9178; }
+
+    /* ── EventBus toast (appears when event has no visible UI change) ── */
+    .event-toast {
+      position: fixed;
+      bottom: 40px;
+      left: var(--spacing-lg);
+      right: var(--spacing-lg);
+      background: #374151;
+      border-radius: var(--radius-md);
+      padding: var(--spacing-sm) var(--spacing-md);
+      display: none;
+      align-items: center;
+      gap: var(--spacing-sm);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 200;
+      animation: slideUp 200ms ease-out;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .event-toast.visible { display: flex; }
+    .event-toast .et-icon {
+      color: #569CD6;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .event-toast .et-channel {
+      color: #4EC9B0;
+      font-weight: 600;
+    }
+    .event-toast .et-payload {
+      color: #CE9178;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- ═══ CONVENIENCE BAR — Dev only, not part of widget ═══════════════ -->
+  <div class="convenience-bar">
+    <div class="tab-mock">
+      <div class="tab-type-dot"></div>
+      <span class="tab-text">Navigator</span>
+    </div>
+    <div class="spacer"></div>
+    <span class="conv-label">State</span>
+    <button class="active" onclick="switchState('active', this)">Active</button>
+    <button onclick="switchState('loading', this)">Loading</button>
+    <button onclick="switchState('empty', this)">Empty</button>
+    <button onclick="switchState('error', this)">Error</button>
+    <span style="margin:0 4px; color:#555">|</span>
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <i class="fa-solid fa-moon" id="theme-icon"></i>
+    </button>
+  </div>
+
+  <!-- ═══ WIDGET START ═════════════════════════════════════════════════ -->
+  <div class="window-container">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="toolbar-btn primary" data-tooltip="Upload" disabled onclick="onUpload()">
+        <i class="fa-solid fa-upload"></i>
+      </button>
+      <button class="toolbar-btn primary" data-tooltip="Download" disabled onclick="onDownload()">
+        <i class="fa-solid fa-download"></i>
+      </button>
+      <button class="toolbar-btn secondary" data-tooltip="Teams" disabled onclick="onTeam()">
+        <i class="fa-solid fa-user-group"></i>
+      </button>
+      <div style="position:relative">
+        <button class="filter-btn" data-tooltip="Filter" id="filterBtn" onclick="toggleFilterDropdown(event)">
+          <span id="filterLabel">All</span>
+        </button>
+        <div class="filter-dropdown" id="filterDropdown">
+          <div class="filter-item active" data-filter="all" data-tooltip="All" onclick="setTypeFilter('all')">All</div>
+          <div class="filter-item" data-filter="file" data-tooltip="File" onclick="setTypeFilter('file')"><i class="fa-regular fa-file fi-icon-file"></i></div>
+          <div class="filter-item" data-filter="dataset" data-tooltip="Data Set" onclick="setTypeFilter('dataset')"><i class="fa-solid fa-table fi-icon-dataset"></i></div>
+          <div class="filter-item" data-filter="workflow" data-tooltip="Workflow" onclick="setTypeFilter('workflow')"><i class="fa-solid fa-sitemap fi-icon-workflow"></i></div>
+        </div>
+      </div>
+      <div class="search-wrapper">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" class="search-field" placeholder="Search..." id="searchField" oninput="onSearchInput(this.value)">
+      </div>
+    </div>
+    <div class="toolbar-divider"></div>
+
+    <!-- Body: Active (tree) -->
+    <div class="body-state active tree-state" id="state-active">
+      <div class="tree-body" id="tree"></div>
+    </div>
+
+    <!-- Body: Loading -->
+    <div class="body-state" id="state-loading">
+      <div class="body-state-inner">
+        <div class="spinner"></div>
+        <div class="message">Loading projects...</div>
+      </div>
+    </div>
+
+    <!-- Body: Empty -->
+    <div class="body-state" id="state-empty">
+      <div class="body-state-inner">
+        <div class="state-icon"><i class="fa-solid fa-folder-open"></i></div>
+        <div class="message">No projects yet</div>
+        <div class="detail">Ask the AI to create a project</div>
+      </div>
+    </div>
+
+    <!-- Body: Error -->
+    <div class="body-state" id="state-error">
+      <div class="body-state-inner">
+        <div class="error-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+        <div class="error-title">Something went wrong</div>
+        <div class="error-detail">Could not connect to Tercen. Check your network.</div>
+        <button class="btn-outline error">Retry</button>
+      </div>
+    </div>
+
+  </div>
+  <!-- ═══ WIDGET END ═══════════════════════════════════════════════════ -->
+
+  <!-- EventBus log bar -->
+  <div class="event-log" id="eventLog">
+    <span style="color:#555">EventBus &gt;</span>
+  </div>
+
+</div>
+
+<!-- EventBus toast -->
+<div class="event-toast" id="eventToast"></div>
+
+<script>
+// ── Mock data (matches Flutter MockDataService exactly) ──────────────
+const mockTree = [
+  {
+    id: 'team-personal', name: 'Personal', type: 'team', isPersonal: true,
+    children: [
+      {
+        id: 'proj-immuno', name: 'Immunophenotyping', type: 'project',
+        isPublic: true, githubUrl: 'https://github.com/tercen/tercen_ui_widgets', gitVersion: 'v2.3',
+        children: [
+          { id: 'file-readme', name: 'README.md', type: 'file', fileCategory: 'generic' },
+          { id: 'file-omip', name: 'omip69_1k_donor.zip', type: 'file', fileCategory: 'zip' },
+          { id: 'ds-sample', name: 'Sample_annotation.csv', type: 'dataset' },
+          { id: 'ds-channels', name: 'OMIP-069 - Channel Descriptions', type: 'dataset' },
+          { id: 'wf-flow', name: 'Flow Immunophenotyping', type: 'workflow' },
+          {
+            id: 'folder-reports', name: 'reports', type: 'folder',
+            children: [
+              { id: 'file-summary', name: 'analysis_summary.md', type: 'file', fileCategory: 'generic' },
+              { id: 'file-heatmap', name: 'heatmap.png', type: 'file', fileCategory: 'image' },
+              { id: 'file-export', name: 'results_export.csv', type: 'file', fileCategory: 'generic' },
+            ]
+          },
+        ]
+      },
+      {
+        id: 'proj-pca', name: 'PCA Analysis', type: 'project',
+        isPublic: true, githubUrl: 'https://github.com/tercen/tercen_ui_widgets', gitVersion: 'v1.0',
+        children: [
+          { id: 'file-pca-data', name: 'iris_dataset.csv', type: 'file', fileCategory: 'generic' },
+          { id: 'ds-pca-table', name: 'PCA Results', type: 'dataset' },
+          { id: 'wf-pca', name: 'PCA Pipeline', type: 'workflow' },
+          { id: 'file-pca-plot', name: 'scree_plot.png', type: 'file', fileCategory: 'image' },
+        ]
+      },
+      {
+        id: 'proj-preproc', name: 'flow_preprocessing', type: 'project',
+        githubUrl: 'https://github.com/tercen/tercen_ui_widgets', gitVersion: 'v2.3',
+        children: [
+          {
+            id: 'folder-data', name: 'data', type: 'folder',
+            children: [
+              { id: 'file-fcs1', name: 'sample_001.fcs', type: 'file', fileCategory: 'generic' },
+              { id: 'file-fcs2', name: 'sample_002.fcs', type: 'file', fileCategory: 'generic' },
+            ]
+          },
+          { id: 'file-preproc-readme', name: 'README.md', type: 'file', fileCategory: 'generic' },
+          { id: 'wf-preproc', name: 'Preprocessing Pipeline', type: 'workflow' },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'team-alpha', name: 'MartinLibrary', type: 'team',
+    children: [
+      { id: 'proj-shared1', name: 'Shared Markers', type: 'project', isPublic: true,
+        children: [
+          { id: 'ds-markers', name: 'Marker Panel v3', type: 'dataset' },
+          { id: 'wf-markers', name: 'Marker Analysis', type: 'workflow' },
+        ]
+      },
+      { id: 'proj-shared2', name: 'Reference Data', type: 'project',
+        children: [
+          { id: 'file-ref1', name: 'human_cd_markers.csv', type: 'file', fileCategory: 'generic' },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'team-beta', name: 'MyNewTeam', type: 'team',
+    children: [
+      { id: 'proj-beta1', name: 'Experiment Q4', type: 'project',
+        children: [
+          { id: 'file-beta-zip', name: 'raw_data_bundle.zip', type: 'file', fileCategory: 'zip' },
+          { id: 'ds-beta-results', name: 'Experiment Results', type: 'dataset' },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'team-gamma', name: 'Team10Dec2025', type: 'team',
+    children: [
+      { id: 'proj-gamma1', name: 'Audit Review', type: 'project',
+        children: [
+          { id: 'file-gamma-img', name: 'overview_chart.png', type: 'file', fileCategory: 'image' },
+          { id: 'wf-gamma-audit', name: 'Audit Workflow', type: 'workflow' },
+        ]
+      },
+    ]
+  },
+];
+
+// ── State ────────────────────────────────────────────────────────────
+const expanded = new Set(['team-personal']);
+let selectedId = null;
+let typeFilter = 'all'; // all, file, dataset, workflow
+let searchText = '';
+
+// ── Sort order (matches Flutter _sortPriority) ──────────────────────
+// README first, then workflows, datasets, files, folders
+function sortPriority(node) {
+  if (node.type === 'file' && node.name.toLowerCase() === 'readme.md') return 0;
+  if (node.type === 'workflow') return 1;
+  if (node.type === 'dataset') return 2;
+  if (node.type === 'file') return 3;
+  if (node.type === 'folder') return 4;
+  return 5; // team, project
+}
+
+function sortChildren(children) {
+  if (!children) return [];
+  return [...children].sort((a, b) => {
+    const pa = sortPriority(a);
+    const pb = sortPriority(b);
+    if (pa !== pb) return pa - pb;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
+// ── Icons (matches Flutter: regular for files, solid for project folders) ─
+function getTypeIcon(node) {
+  switch (node.type) {
+    case 'team':     return 'fa-solid fa-user-group';
+    case 'project':  return 'fa-solid fa-folder';      // solid
+    case 'folder':   return 'fa-regular fa-folder-open'; // regular (line)
+    case 'workflow': return 'fa-solid fa-sitemap';
+    case 'dataset':  return 'fa-solid fa-table';
+    case 'file':
+      switch (node.fileCategory) {
+        case 'zip':   return 'fa-regular fa-file-zipper';  // regular (line)
+        case 'image': return 'fa-regular fa-image';         // regular (line)
+        default:      return 'fa-regular fa-file';          // regular (line)
+      }
+    default: return 'fa-regular fa-file';
+  }
+}
+
+function isLeaf(node) {
+  return !node.children || node.children.length === 0;
+}
+
+// ── Filtering (matches Flutter provider logic) ───────────────────────
+function nodeMatchesTypeFilter(node) {
+  if (typeFilter === 'all') return true;
+  if (typeFilter === 'file') return node.type === 'file';
+  if (typeFilter === 'dataset') return node.type === 'dataset';
+  if (typeFilter === 'workflow') return node.type === 'workflow';
+  return false;
+}
+
+function nodeMatchesSearch(node) {
+  if (!searchText) return true;
+  return node.name.toLowerCase().includes(searchText.toLowerCase());
+}
+
+// Filter tree: branch nodes kept if they have matching descendants
+function filterNodes(nodes) {
+  const result = [];
+  for (const node of nodes) {
+    if (isLeaf(node)) {
+      // Leaf: must match both type filter and text search
+      const matchesType = nodeMatchesTypeFilter(node);
+      const matchesText = nodeMatchesSearch(node);
+      if (matchesType && matchesText) {
+        result.push({ ...node });
+      }
+    } else {
+      // Branch: include if it has filtered children
+      const filteredChildren = node.children ? filterNodes(node.children) : [];
+      // Also include if the branch name matches search (and no type filter, or type is 'all')
+      const branchMatchesText = searchText && nodeMatchesSearch(node);
+      if (filteredChildren.length > 0 || branchMatchesText) {
+        result.push({ ...node, children: filteredChildren.length > 0 ? filteredChildren : node.children });
+      }
+    }
+  }
+  return result;
+}
+
+// Auto-expand nodes with search matches
+function collectExpandedForSearch(nodes, parentIds) {
+  for (const node of nodes) {
+    if (!isLeaf(node) && node.children) {
+      const hasMatch = filterNodes(node.children).length > 0;
+      if (hasMatch && (searchText || typeFilter !== 'all')) {
+        parentIds.add(node.id);
+      }
+      collectExpandedForSearch(node.children, parentIds);
+    }
+  }
+}
+
+// ── Render tree ──────────────────────────────────────────────────────
+function renderTree() {
+  const container = document.getElementById('tree');
+  container.innerHTML = '';
+
+  // Determine effective expanded set
+  const effectiveExpanded = new Set(expanded);
+  if (searchText || typeFilter !== 'all') {
+    collectExpandedForSearch(mockTree, effectiveExpanded);
+  }
+
+  const filteredTree = (searchText || typeFilter !== 'all') ? filterNodes(mockTree) : mockTree;
+
+  filteredTree.forEach(node => renderNode(container, node, 0, effectiveExpanded));
+}
+
+function renderNode(container, node, depth, effectiveExpanded) {
+  const isExp = effectiveExpanded.has(node.id);
+  const row = document.createElement('div');
+  row.className = 'tree-row' + (selectedId === node.id ? ' selected' : '');
+  row.style.paddingLeft = (4 + depth * 20) + 'px';
+
+  // Chevron
+  const chevron = document.createElement('span');
+  chevron.className = 'chevron';
+  if (!isLeaf(node)) {
+    chevron.innerHTML = isExp
+      ? '<i class="fa-solid fa-chevron-down"></i>'
+      : '<i class="fa-solid fa-chevron-right"></i>';
+    chevron.onclick = (e) => { e.stopPropagation(); toggleExpand(node.id); };
+  }
+  row.appendChild(chevron);
+
+  // Type icon
+  const icon = document.createElement('span');
+  icon.className = 'type-icon ' + node.type;
+  icon.innerHTML = '<i class="' + getTypeIcon(node) + '"></i>';
+  row.appendChild(icon);
+
+  // Name
+  const name = document.createElement('span');
+  name.className = 'node-name';
+  name.textContent = node.name;
+  row.appendChild(name);
+
+  // Project indicators
+  if (node.type === 'project') {
+    if (node.githubUrl && node.gitVersion) {
+      const chip = document.createElement('span');
+      chip.className = 'git-chip';
+      chip.setAttribute('data-tooltip', node.githubUrl);
+      chip.innerHTML = '<i class="fa-brands fa-github"></i>' + node.gitVersion;
+      row.appendChild(chip);
+    }
+    if (node.isPublic) {
+      const pub = document.createElement('span');
+      pub.className = 'public-icon';
+      pub.setAttribute('data-tooltip', 'Public');
+      pub.innerHTML = '<i class="fa-solid fa-globe"></i>';
+      row.appendChild(pub);
+    }
+  }
+
+  // Click: branch toggles + selects; leaf selects
+  row.onclick = () => {
+    if (!isLeaf(node)) toggleExpand(node.id);
+    selectNode(node);
+  };
+  // Double-click: leaf emits openViewer
+  if (isLeaf(node)) {
+    row.ondblclick = () => emitEvent('navigator.openViewer', { nodeId: node.id, nodeType: node.type });
+  }
+
+  container.appendChild(row);
+
+  // Sorted children
+  if (isExp && node.children) {
+    const sorted = sortChildren(node.children);
+    // Apply filtering to sorted children if active
+    const effective = (searchText || typeFilter !== 'all') ? filterNodes(sorted) : sorted;
+    effective.forEach(child => renderNode(container, child, depth + 1, effectiveExpanded));
+  }
+}
+
+function toggleExpand(id) {
+  if (expanded.has(id)) expanded.delete(id);
+  else expanded.add(id);
+  renderTree();
+}
+
+function selectNode(node) {
+  selectedId = node.id;
+  renderTree();
+  updateToolbarState();
+  // Emit focusChanged for non-team nodes
+  if (node.type !== 'team') {
+    emitEvent('navigator.focusChanged', {
+      nodeId: node.id, nodeType: node.type, nodeName: node.name
+    });
+  }
+}
+
+function updateToolbarState() {
+  const node = findNode(selectedId, mockTree);
+  const btns = document.querySelectorAll('.toolbar-btn');
+  btns[0].disabled = !(node && (node.type === 'project' || node.type === 'folder'));
+  btns[1].disabled = !(node && (node.type === 'file' || node.type === 'dataset'));
+  btns[2].disabled = !(node && node.type === 'team');
+}
+
+function findNode(id, nodes) {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    if (n.children) {
+      const found = findNode(id, n.children);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// ── Filter dropdown ──────────────────────────────────────────────────
+function toggleFilterDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('filterDropdown').classList.toggle('open');
+}
+
+function setTypeFilter(filter) {
+  typeFilter = filter;
+  document.getElementById('filterDropdown').classList.remove('open');
+  // Update button display
+  const label = document.getElementById('filterLabel');
+  const items = document.querySelectorAll('.filter-item');
+  items.forEach(it => it.classList.toggle('active', it.dataset.filter === filter));
+  if (filter === 'all') {
+    label.innerHTML = 'All';
+  } else {
+    const iconMap = { file: 'fa-regular fa-file', dataset: 'fa-solid fa-table', workflow: 'fa-solid fa-sitemap' };
+    label.innerHTML = '<i class="' + iconMap[filter] + '" style="font-size:14px"></i>';
+  }
+  renderTree();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', () => {
+  document.getElementById('filterDropdown').classList.remove('open');
+});
+
+// ── Search ───────────────────────────────────────────────────────────
+function onSearchInput(value) {
+  searchText = value;
+  renderTree();
+}
+
+// ── Expected EventBus signals (from spec section 13) ────────────────
+// These are the events the navigator MUST emit per the functional spec.
+// The toast shows actual emitted events so you can verify correctness.
+const EXPECTED_EVENTS = {
+  'navigator.focusChanged': {
+    trigger: 'Single-click on project, folder, or file/dataset/workflow',
+    payload: '{nodeId, nodeType, nodeName, nodePath}',
+  },
+  'navigator.openViewer': {
+    trigger: 'Double-click on file/dataset/workflow (leaf node)',
+    payload: '{nodeId, nodeType}',
+  },
+  'navigator.openTeamWidget': {
+    trigger: 'Toolbar Team button (when team selected)',
+    payload: '{teamId}',
+  },
+  'navigator.downloadFile': {
+    trigger: 'Toolbar Download button (when file/dataset selected)',
+    payload: '{fileId}',
+  },
+  'navigator.contentChanged': {
+    trigger: 'After upload completes',
+    payload: '(none)',
+  },
+};
+
+// ── Toolbar actions ──────────────────────────────────────────────────
+function onUpload() {
+  const node = findNode(selectedId, mockTree);
+  if (node) emitEvent('navigator.upload', { targetId: node.id, targetType: node.type });
+}
+function onDownload() {
+  const node = findNode(selectedId, mockTree);
+  if (node) emitEvent('navigator.downloadFile', { fileId: node.id });
+}
+function onTeam() {
+  const node = findNode(selectedId, mockTree);
+  if (node) emitEvent('navigator.openTeamWidget', { teamId: node.id });
+}
+
+// ── EventBus (log bar + toast for non-visible events) ────────────────
+let eventToastTimer = null;
+function emitEvent(channel, payload) {
+  // Update bottom log bar
+  const log = document.getElementById('eventLog');
+  const payloadStr = JSON.stringify(payload);
+  log.innerHTML = '<span style="color:#555">EventBus &gt; </span>' +
+    '<span class="event-channel">' + channel + '</span> ' +
+    '<span class="event-payload">' + payloadStr + '</span>';
+  console.log('[EventBus]', channel, payload);
+
+  // Show toast with validation info
+  const toast = document.getElementById('eventToast');
+  const expected = EXPECTED_EVENTS[channel];
+  const validIcon = expected ? '✓' : '⚠';
+  const validColor = expected ? '#4EC9B0' : '#F87171';
+  const expectedPayload = expected ? expected.payload : 'UNKNOWN EVENT';
+  const trigger = expected ? expected.trigger : '';
+  toast.innerHTML =
+    '<span class="et-icon" style="color:' + validColor + '">' + validIcon + '</span>' +
+    '<span class="et-channel">' + channel + '</span>' +
+    '<span class="et-payload">' + payloadStr + '</span>' +
+    '<span style="color:#777;font-size:10px;margin-left:auto;white-space:nowrap">expects: ' + expectedPayload + '</span>';
+  toast.classList.add('visible');
+  clearTimeout(eventToastTimer);
+  eventToastTimer = setTimeout(() => toast.classList.remove('visible'), 4000);
+}
+
+// ── State switching ──────────────────────────────────────────────────
+function switchState(state, btn) {
+  document.querySelectorAll('.body-state').forEach(el => el.classList.remove('active'));
+  document.getElementById('state-' + state).classList.add('active');
+  document.querySelectorAll('.convenience-bar button:not(.theme-toggle)').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// ── Theme toggle ─────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('theme-icon').className = isDark ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+renderTree();
+</script>
+
+</body>
+</html>

@@ -12,7 +12,7 @@ void main() {
     registerBuiltinWidgets(registry);
 
     // Also load catalog templates.
-    final catalogFile = File('../tercen_ui_widgets/catalog.json');
+    final catalogFile = File('packages/tercen_ui_widgets/catalog.json');
     if (catalogFile.existsSync()) {
       final catalogJson =
           jsonDecode(catalogFile.readAsStringSync()) as Map<String, dynamic>;

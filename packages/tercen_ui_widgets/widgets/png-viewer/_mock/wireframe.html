@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PNG Viewer — Wireframe</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      font-size: 13px;
+      background: #d0d0d0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding: 32px 16px;
+      min-height: 100vh;
+    }
+
+    h1 { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 0; }
+    h2 { font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+    /* ── Widget shell ── */
+    .widget {
+      width: 700px;
+      background: #fff;
+      border: 1.5px dashed #888;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Mock tab strip (dev harness — not part of widget) ── */
+    .tab-strip {
+      height: 32px;
+      background: #e8e8e8;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      align-items: flex-end;
+      padding: 0 8px;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .tab {
+      height: 28px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1.5px solid #aaa;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      background: #fff;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .tab-icon {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: #aaa;
+      border: 1px solid #888;
+      flex-shrink: 0;
+    }
+    .tab-close {
+      width: 11px;
+      height: 11px;
+      border-radius: 2px;
+      border: 1px solid #aaa;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px;
+      color: #888;
+    }
+    .tab-strip-action {
+      margin-left: auto;
+      align-self: center;
+      font-size: 10px;
+      color: #777;
+      padding: 2px 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      height: 48px;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 8px;
+      flex-shrink: 0;
+      background: #fafafa;
+    }
+    .toolbar-zone {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toolbar-spacer { flex: 1; }
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: #ddd;
+    }
+
+    /* ── Toolbar button ── */
+    .btn {
+      width: 32px;
+      height: 32px;
+      border: 1.5px solid #aaa;
+      border-radius: 8px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #555;
+      cursor: default;
+      flex-shrink: 0;
+    }
+    .btn.active {
+      background: #555;
+      border-color: #555;
+      color: #fff;
+    }
+    .btn.disabled {
+      border-color: #ddd;
+      color: #ccc;
+    }
+    .btn-label {
+      font-size: 9px;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .btn-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Body ── */
+    .body {
+      flex: 1;
+      min-height: 400px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Body state: loading */
+    .state-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #888;
+      border-radius: 50%;
+    }
+
+    /* Body state: empty */
+    .state-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      max-width: 280px;
+      text-align: center;
+    }
+    .state-empty .icon-placeholder {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      color: #bbb;
+    }
+    .state-empty .action-btn {
+      margin-top: 8px;
+      padding: 6px 16px;
+      border: 1.5px solid #888;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    /* Body state: active */
+    .state-active {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: #ebebeb;
+    }
+    .canvas-bg {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .image-placeholder {
+      width: 420px;
+      height: 315px;
+      border: 1.5px dashed #999;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .image-placeholder-label {
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+    }
+    /* Annotation overlays on active canvas */
+    .annotation-rect {
+      position: absolute;
+      border: 2px dashed #999;
+      background: rgba(150,150,150,0.12);
+    }
+    .annotation-text {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      border-bottom: 1.5px dashed #999;
+    }
+    .annotation-circle {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px dashed #999;
+      background: rgba(150,150,150,0.12);
+    }
+    /* Zoom indicator */
+    .zoom-indicator {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      color: #666;
+    }
+
+    /* Body state: error */
+    .state-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      max-width: 280px;
+      text-align: center;
+    }
+    .state-error .icon-placeholder {
+      width: 32px;
+      height: 32px;
+      border: 2px solid #ccc;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      color: #bbb;
+    }
+    .state-error .retry-btn {
+      margin-top: 8px;
+      padding: 6px 16px;
+      border: 1.5px solid #888;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    /* ── Layout labels ── */
+    .zone-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #999;
+      padding: 0 4px;
+    }
+
+    /* ── Section wrappers ── */
+    .section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .section-note {
+      font-size: 11px;
+      color: #777;
+      margin-top: 6px;
+      max-width: 700px;
+      text-align: center;
+    }
+
+    /* ── Annotation legend ── */
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 10px;
+      color: #666;
+      border: 1px dashed #ccc;
+      padding: 8px 16px;
+      border-radius: 4px;
+      max-width: 700px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 4px; }
+    .legend-swatch {
+      width: 14px; height: 14px;
+      border: 1.5px dashed #888;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="section">
+    <h1>PNG Viewer — Layout Wireframe</h1>
+    <p class="section-note">All 4 content states shown. Boxes are structural placeholders — no colour tokens applied.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 1: LOADING
+  ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>State 1 — Loading</h2>
+    <div class="widget">
+      <!-- Dev harness tab strip (not part of widget) -->
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-icon"></div>
+          PNG Viewer
+          <div class="tab-close">✕</div>
+        </div>
+        <div class="tab-strip-action">☾ Toggle Theme</div>
+      </div>
+
+      <!-- Toolbar: all buttons disabled (no image yet) -->
+      <div class="toolbar">
+        <span class="zone-label">draw</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>⬠</span></div>
+          <div class="btn disabled"><span>▭</span></div>
+          <div class="btn disabled"><span>○</span></div>
+          <div class="btn disabled"><span>→</span></div>
+          <div class="btn disabled"><span>✎</span></div>
+          <div class="btn disabled"><span>T</span></div>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
+        <span class="zone-label">actions</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>🗑</span></div>
+          <div class="btn disabled"><span>✉</span></div>
+          <div class="btn disabled"><span>💾</span></div>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
+        <span class="zone-label">zoom</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>🔍+</span></div>
+          <div class="btn disabled"><span>🔍−</span></div>
+          <div class="btn disabled"><span>⤢</span></div>
+        </div>
+      </div>
+
+      <!-- Body: loading state -->
+      <div class="body">
+        <div class="state-loading">
+          <div class="spinner"></div>
+          <span style="color:#aaa;font-size:12px;">Loading image...</span>
+        </div>
+      </div>
+    </div>
+    <p class="section-note">All toolbar buttons disabled. Spinner (28px, 3px stroke) centred in body. Message below spinner.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 2: EMPTY
+  ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>State 2 — Empty</h2>
+    <div class="widget">
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-icon"></div>
+          PNG Viewer
+          <div class="tab-close">✕</div>
+        </div>
+        <div class="tab-strip-action">☾ Toggle Theme</div>
+      </div>
+
+      <div class="toolbar">
+        <span class="zone-label">draw</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>⬠</span></div>
+          <div class="btn disabled"><span>▭</span></div>
+          <div class="btn disabled"><span>○</span></div>
+          <div class="btn disabled"><span>→</span></div>
+          <div class="btn disabled"><span>✎</span></div>
+          <div class="btn disabled"><span>T</span></div>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <span class="zone-label">actions</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>🗑</span></div>
+          <div class="btn disabled"><span>✉</span></div>
+          <div class="btn disabled"><span>💾</span></div>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <span class="zone-label">zoom</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>🔍+</span></div>
+          <div class="btn disabled"><span>🔍−</span></div>
+          <div class="btn disabled"><span>⤢</span></div>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="state-empty">
+          <div class="icon-placeholder">🖼</div>
+          <span style="color:#aaa;font-size:13px;font-weight:500;">No image loaded</span>
+          <span style="color:#bbb;font-size:11px;">Open a PNG from the File Navigator or a step output.</span>
+          <!-- No action button in empty state (no onEmptyAction wired) -->
+        </div>
+      </div>
+    </div>
+    <p class="section-note">Icon (fa-image, 32px) + primary message + detail text. Max width 280px. No action button (no onEmptyAction callback in Dart).</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 3: ACTIVE
+  ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>State 3 — Active (image loaded, tool selected)</h2>
+    <div class="widget" style="height:520px;">
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-icon"></div>
+          View UMAP vs. clusters.png
+          <div class="tab-close">✕</div>
+        </div>
+        <div class="tab-strip-action">☾ Toggle Theme</div>
+      </div>
+
+      <div class="toolbar">
+        <!-- LEFT: drawing tools — rectangle is active -->
+        <span class="zone-label">draw</span>
+        <div class="toolbar-zone">
+          <div class="btn"><span>⬠</span></div>
+          <div class="btn active"><span>▭</span></div>
+          <div class="btn"><span>○</span></div>
+          <div class="btn"><span>→</span></div>
+          <div class="btn"><span>✎</span></div>
+          <div class="btn"><span>T</span></div>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
+        <!-- CENTRE: actions — trash + send enabled (have annotations) -->
+        <span class="zone-label">actions</span>
+        <div class="toolbar-zone">
+          <div class="btn"><span>🗑</span></div>
+          <div class="btn"><span>✉</span></div>
+          <div class="btn"><span>💾</span></div>
+        </div>
+
+        <div class="toolbar-spacer"></div>
+
+        <!-- RIGHT: zoom controls — all enabled -->
+        <span class="zone-label">zoom</span>
+        <div class="toolbar-zone">
+          <div class="btn"><span>🔍+</span></div>
+          <div class="btn"><span>🔍−</span></div>
+          <div class="btn"><span>⤢</span></div>
+        </div>
+      </div>
+
+      <!-- Body: active canvas -->
+      <div class="body">
+        <div class="state-active">
+          <div class="canvas-bg">
+            <div class="image-placeholder">
+              <!-- Simulated annotations -->
+              <div class="annotation-rect" style="left:30px;top:30px;width:120px;height:80px;"></div>
+              <div class="annotation-circle" style="left:200px;top:120px;width:70px;height:70px;"></div>
+              <div class="annotation-text" style="left:100px;top:200px;">Cluster A</div>
+              <div class="image-placeholder-label">
+                PNG Image<br/>
+                <span style="font-size:9px;">1200 × 900 px</span><br/>
+                <span style="font-size:9px;color:#bbb;">(pannable / zoomable)</span>
+              </div>
+            </div>
+          </div>
+          <div class="zoom-indicator">75%</div>
+        </div>
+      </div>
+    </div>
+    <p class="section-note">
+      Canvas fills remaining body height. Image centred with pan/zoom transform.
+      Annotation overlay drawn on top (CustomPaint). Zoom % indicator bottom-right.
+      Rectangle tool active (filled primary style). Trash + Send enabled when annotations exist.
+      Save to Project always enabled when active.
+    </p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       STATE 4: ERROR
+  ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>State 4 — Error</h2>
+    <div class="widget">
+      <div class="tab-strip">
+        <div class="tab">
+          <div class="tab-icon"></div>
+          PNG Viewer
+          <div class="tab-close">✕</div>
+        </div>
+        <div class="tab-strip-action">☾ Toggle Theme</div>
+      </div>
+
+      <div class="toolbar">
+        <span class="zone-label">draw</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>⬠</span></div>
+          <div class="btn disabled"><span>▭</span></div>
+          <div class="btn disabled"><span>○</span></div>
+          <div class="btn disabled"><span>→</span></div>
+          <div class="btn disabled"><span>✎</span></div>
+          <div class="btn disabled"><span>T</span></div>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <span class="zone-label">actions</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>🗑</span></div>
+          <div class="btn disabled"><span>✉</span></div>
+          <div class="btn disabled"><span>💾</span></div>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <span class="zone-label">zoom</span>
+        <div class="toolbar-zone">
+          <div class="btn disabled"><span>🔍+</span></div>
+          <div class="btn disabled"><span>🔍−</span></div>
+          <div class="btn disabled"><span>⤢</span></div>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="state-error">
+          <div class="icon-placeholder">⚠</div>
+          <span style="color:#aaa;font-size:13px;font-weight:500;">Something went wrong</span>
+          <span style="color:#bbb;font-size:11px;">Failed to fetch image: Network request failed (resourceId: umap-clusters-001)</span>
+          <div class="retry-btn">Retry</div>
+        </div>
+      </div>
+    </div>
+    <p class="section-note">Error icon (32px circle) + "Something went wrong" + detail message + Retry outlined button. All toolbar buttons disabled.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       ANNOTATION LEGEND
+  ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <h2>Drawing Tools Reference</h2>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="border-radius:0;"></div> Rectangle — drag to draw</div>
+      <div class="legend-item"><div class="legend-swatch" style="border-radius:50%;"></div> Circle — drag from centre</div>
+      <div class="legend-item"><div class="legend-swatch" style="border-top:none;border-left:none;border-right:none;"></div> Arrow — drag tail → head</div>
+      <div class="legend-item"><div class="legend-swatch" style="clip-path:polygon(50% 0%,100% 100%,0% 100%);border:none;background:#999;"></div> Polygon — click vertices, double-click or close to finish</div>
+      <div class="legend-item"><div class="legend-swatch" style="border:none;border-bottom:1.5px dashed #888;border-radius:0;"></div> Freehand — drag to draw</div>
+      <div class="legend-item" style="font-size:11px;font-weight:600;color:#888;">T  Text — click to place, Enter to confirm</div>
+    </div>
+    <p class="section-note">
+      Annotation stroke colour: #FF5722 (deep orange). Fill: 20% opacity same hue.
+      Moving annotation highlighted in #2196F3 (blue). Cursor changes to grab/move/crosshair based on mode.
+    </p>
+  </div>
+
+</body>
+</html>

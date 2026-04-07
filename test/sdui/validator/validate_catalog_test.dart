@@ -12,7 +12,7 @@ void main() {
   late Map<String, dynamic> catalogJson;
 
   setUpAll(() {
-    final catalogFile = File('../tercen_ui_widgets/catalog.json');
+    final catalogFile = File('packages/tercen_ui_widgets/catalog.json');
     if (!catalogFile.existsSync()) {
       fail('catalog.json not found at ${catalogFile.path}');
     }
@@ -74,7 +74,7 @@ void main() {
   });
 
   test('validate catalog2.json (experimentation catalog)', () {
-    final catalog2File = File('../tercen_ui_widgets/catalog2.json');
+    final catalog2File = File('packages/tercen_ui_widgets/catalog2.json');
     if (!catalog2File.existsSync()) {
       // ignore: avoid_print
       print('catalog2.json not found — skipping');

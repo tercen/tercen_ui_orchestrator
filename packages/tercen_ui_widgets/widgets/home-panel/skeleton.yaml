@@ -1,0 +1,5 @@
+kind: window
+typeId: homePanel
+typeColor: multi
+label: Home
+window: 0

@@ -207,6 +207,13 @@
             </list>
           </value>
         </entry>
+        <entry key="sci_tercen_context">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/git/sci_tercen_client-f179666ecb9a978e51ff94cbed7e37d118f554b7/sci_tercen_context/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="sci_tercen_model">
           <value>
             <list>
@@ -217,7 +224,7 @@
         <entry key="sdui">
           <value>
             <list>
-              <option value="$PROJECT_DIR$/../sdui/lib" />
+              <option value="$PROJECT_DIR$/packages/sdui/lib" />
             </list>
           </value>
         </entry>
@@ -369,6 +376,7 @@
       <root url="file://$USER_HOME$/.pub-cache/git/sci_tercen_client-f179666ecb9a978e51ff94cbed7e37d118f554b7/sci_base/lib" />
       <root url="file://$USER_HOME$/.pub-cache/git/sci_tercen_client-f179666ecb9a978e51ff94cbed7e37d118f554b7/sci_http_client/lib" />
       <root url="file://$USER_HOME$/.pub-cache/git/sci_tercen_client-f179666ecb9a978e51ff94cbed7e37d118f554b7/sci_tercen_client/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/git/sci_tercen_client-f179666ecb9a978e51ff94cbed7e37d118f554b7/sci_tercen_context/lib" />
       <root url="file://$USER_HOME$/.pub-cache/git/sci_tercen_client-f179666ecb9a978e51ff94cbed7e37d118f554b7/sci_tercen_model/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/async-2.11.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/async-2.13.0/lib" />
@@ -418,7 +426,7 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/web_socket-1.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/web_socket_channel-2.4.5/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/web_socket_channel-3.0.3/lib" />
-      <root url="file://$PROJECT_DIR$/../sdui/lib" />
+      <root url="file://$PROJECT_DIR$/packages/sdui/lib" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

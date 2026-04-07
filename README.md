@@ -23,10 +23,11 @@ The orchestrator supports two AI backends:
         │  MCP servers      │                         │  tercenctl MCP       │
         └──────────────────┘                         └──────────────────────┘
 
-Sibling repos:
-  ../sdui                  — SDUI framework (renderer, registry, EventBus, theme)
-  ../tercen-style          — Design tokens (tokens.json)
-  ../tercen_ui_widgets     — Widget library (catalog.json templates)
+Packages (monorepo):
+  packages/sdui              — SDUI framework (renderer, registry, EventBus, theme)
+  packages/tercen_ui_widgets — Widget library (catalog.json templates)
+External:
+  ../tercen-style            — Design tokens (tokens.json)
 ```
 
 | | Dev mode (Claude Code) | Production mode (Agent) |
@@ -71,8 +72,8 @@ flutter pub get
 # Dart server (dev mode only)
 cd server && dart pub get && cd ..
 
-# SDUI package (sibling repo)
-cd ../sdui && flutter pub get && cd -
+# SDUI package (monorepo)
+cd packages/sdui && flutter pub get && cd -
 ```
 
 ### 2a. Dev mode — Claude Code (WebSocket)
@@ -333,10 +334,11 @@ tercen_ui_orchestrator/
 ├── SDUI_CATALOG_AUTHORING_GUIDE.md  — Tier 2 JSON template authoring
 └── README.md                        — This file
 
-Sibling repos:
-../sdui/                             — SDUI framework package
+Monorepo packages:
+packages/sdui/                             — SDUI framework package
+packages/tercen_ui_widgets/catalog.json    — Widget library templates
+External:
 ../tercen-style/tokens.json          — Design tokens (single source of truth)
-../tercen_ui_widgets/catalog.json    — Widget library templates
 ../sci/tercen_agent/                 — Agent operator (TypeScript, Claude Agent SDK)
 ../sci/Dockerfile_tercen_agent       — Multi-stage Docker build for the agent
 ```

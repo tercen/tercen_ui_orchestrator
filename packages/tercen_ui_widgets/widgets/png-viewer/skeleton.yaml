@@ -1,0 +1,4 @@
+kind: window
+label: PNG Viewer
+description: PNG image viewer and annotation tool for the Tercen LLM platform.
+design_reference: _references/window-design.md

@@ -1,0 +1,96 @@
+{
+  "_comment": "Mock data fixture for png-viewer. Mirrors the shape produced by MockDataService / ImageModel.",
+
+  "loadImageEvent": {
+    "type": "loadImage",
+    "sourceWidgetId": "mock-frame",
+    "data": {
+      "resourceType": "stepOutput",
+      "resourceId": "umap-clusters-001"
+    }
+  },
+
+  "imageModel": {
+    "resourceId": "umap-clusters-001",
+    "resourceType": "stepOutput",
+    "name": "View UMAP vs. clusters.png",
+    "width": 1200,
+    "height": 900,
+    "imageBytesBase64": "(binary PNG — loaded from assets/data/View UMAP vs. clusters.png at runtime)"
+  },
+
+  "annotations": [
+    {
+      "type": "rectangle",
+      "points": [
+        { "x": 180.0, "y": 140.0 },
+        { "x": 420.0, "y": 310.0 }
+      ]
+    },
+    {
+      "type": "circle",
+      "points": [
+        { "x": 680.0, "y": 480.0 }
+      ],
+      "radius": 75.0
+    },
+    {
+      "type": "arrow",
+      "points": [
+        { "x": 520.0, "y": 200.0 },
+        { "x": 650.0, "y": 330.0 }
+      ]
+    },
+    {
+      "type": "polygon",
+      "points": [
+        { "x": 800.0, "y": 600.0 },
+        { "x": 900.0, "y": 560.0 },
+        { "x": 960.0, "y": 650.0 },
+        { "x": 880.0, "y": 720.0 },
+        { "x": 780.0, "y": 680.0 }
+      ]
+    },
+    {
+      "type": "freehand",
+      "points": [
+        { "x": 100.0, "y": 700.0 },
+        { "x": 130.0, "y": 680.0 },
+        { "x": 160.0, "y": 710.0 },
+        { "x": 190.0, "y": 690.0 },
+        { "x": 220.0, "y": 720.0 }
+      ]
+    },
+    {
+      "type": "text",
+      "points": [
+        { "x": 300.0, "y": 450.0 }
+      ],
+      "label": "Cluster A"
+    }
+  ],
+
+  "states": {
+    "loading": {
+      "contentState": "loading",
+      "message": "Loading image..."
+    },
+    "empty": {
+      "contentState": "empty",
+      "icon": "fa-image",
+      "message": "No image loaded",
+      "detail": "Open a PNG from the File Navigator or a step output."
+    },
+    "active": {
+      "contentState": "active",
+      "zoomLevel": 0.75,
+      "panOffset": { "dx": 0.0, "dy": 0.0 },
+      "activeTool": null
+    },
+    "error": {
+      "contentState": "error",
+      "message": "Something went wrong",
+      "detail": "Failed to fetch image: Network request failed (resourceId: umap-clusters-001)"
+    }
+  }
+}

@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Table — Styled Mock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- FontAwesome 6 Solid CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+  <style>
+    /* ================================================================== */
+    /* EMBEDDED: tercen-tokens.css (auto-generated from theme-export.json)  */
+    /* ================================================================== */
+
+    :root {
+      --font-family: 'Fira Sans', sans-serif;
+
+      --spacing-xs:  4px;
+      --spacing-sm:  8px;
+      --spacing-md:  16px;
+      --spacing-lg:  24px;
+      --spacing-xl:  32px;
+      --spacing-xxl: 48px;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   12px;
+      --radius-xl:   16px;
+      --radius-full: 9999px;
+
+      --elevation-none:   0;
+      --elevation-low:    1;
+      --elevation-medium: 4;
+      --elevation-high:   8;
+
+      --line-weight-subtle:       1px;
+      --line-weight-standard:     1.5px;
+      --line-weight-emphasis:     2px;
+      --line-weight-viz-grid:     1px;
+      --line-weight-viz-axis:     2px;
+      --line-weight-viz-data:     2px;
+      --line-weight-viz-highlight: 3px;
+
+      --control-height-sm: 28px;
+      --control-height-md: 36px;
+      --control-height-lg: 44px;
+
+      --button-padding-h:     16px;
+      --button-padding-v:     8px;
+      --button-border-radius: 8px;
+      --button-border-width:  1.5px;
+
+      --icon-size-sm: 16px;
+      --icon-size-md: 24px;
+      --icon-size-lg: 32px;
+
+      --text-body-small-size:   12px;
+      --text-body-small-weight: 400;
+      --text-body-small-line-height: 1.5;
+
+      --text-label-small-size:   12px;
+      --text-label-small-weight: 500;
+      --text-label-small-line-height: 1.5;
+
+      --text-body-medium-size:   14px;
+      --text-body-medium-weight: 400;
+      --text-body-medium-line-height: 1.5;
+
+      --text-label-large-size:   14px;
+      --text-label-large-weight: 500;
+
+      --text-headline-small-size:   16px;
+      --text-headline-small-weight: 600;
+
+      --window-toolbar-height:      48px;
+      --window-toolbar-button-size: 32px;
+      --window-toolbar-button-icon: 16px;
+
+      --dt-header-padding-v: 8px;
+      --dt-header-padding-h: 8px;
+      --dt-cell-padding-v:   4px;
+      --dt-cell-padding-h:   8px;
+      --dt-row-separator:    1px;
+
+      --row-num-width:  56px;
+      --col-width:      140px;
+      --row-height:     32px;
+      --header-height:  36px;
+    }
+
+    [data-theme="light"], :root {
+      --color-primary:                #1E40AF;
+      --color-on-primary:             #FFFFFF;
+      --color-primary-container:      #DBEAFE;
+      --color-on-primary-container:   #1E3A8A;
+      --color-primary-fixed:          #EFF6FF;
+      --color-tertiary:               #6D28D9;
+      --color-error:                  #B91C1C;
+      --color-on-error:               #FFFFFF;
+      --color-error-container:        #FEE2E2;
+      --color-surface:                #FFFFFF;
+      --color-on-surface:             #111827;
+      --color-on-surface-variant:     #374151;
+      --color-surface-container-low:  #F9FAFB;
+      --color-surface-container:      #F3F4F6;
+      --color-surface-container-high: #E5E7EB;
+      --color-outline:                #D1D5DB;
+      --color-outline-variant:        #E5E7EB;
+      --color-shadow:                 #000000;
+      --color-scrim:                  #000000;
+      --color-on-surface-muted:       #6B7280;
+      --color-on-surface-disabled:    #9CA3AF;
+      --color-warning:                #B45309;
+      --color-on-warning:             #FFFFFF;
+      --color-warning-container:      #FEF3C7;
+      --color-on-warning-container:   #B45309;
+      --color-success:                #047857;
+      --color-on-success:             #FFFFFF;
+      --color-success-container:      #D1FAE5;
+      --color-on-success-container:   #047857;
+      --color-info:                   #0E7490;
+      --color-on-info:                #FFFFFF;
+      --color-info-container:         #CFFAFE;
+      --color-on-info-container:      #0E7490;
+      --color-link:                   #2563EB;
+      --color-link-hover:             #1E40AF;
+      --color-text-tertiary:          #4B5563;
+
+      /* Derived / computed helpers */
+      --color-surface-alt: #F3F4F6;
+      --color-search-match:  rgba(245, 158, 11, 0.25);   /* amber-400/25 */
+      --color-search-focus:  rgba(245, 158, 11, 0.55);   /* amber-400/55 */
+      --color-edit-bg:       rgba(30, 64, 175, 0.12);    /* primary/12  */
+      --color-goto-bg:       rgba(253, 230, 138, 0.65);  /* amber-200/65 */
+      --color-type-color:    #F59E0B;                    /* approvedTypeColors[9] */
+    }
+
+    [data-theme="dark"] {
+      --color-primary:                #14B8A6;
+      --color-on-primary:             #FFFFFF;
+      --color-primary-container:      #153D47;
+      --color-on-primary-container:   #2DD4BF;
+      --color-primary-fixed:          #122E35;
+      --color-tertiary:               #A78BFA;
+      --color-error:                  #F87171;
+      --color-on-error:               #FFFFFF;
+      --color-error-container:        #450A0A;
+      --color-surface:                #111827;
+      --color-on-surface:             #F9FAFB;
+      --color-on-surface-variant:     #E5E7EB;
+      --color-surface-container-low:  #111827;
+      --color-surface-container:      #1F2937;
+      --color-surface-container-high: #1F2937;
+      --color-outline:                #374151;
+      --color-outline-variant:        #374151;
+      --color-shadow:                 #000000;
+      --color-scrim:                  #000000;
+      --color-on-surface-muted:       #6B7280;
+      --color-on-surface-disabled:    #4B5563;
+      --color-warning:                #FBBF24;
+      --color-on-warning:             #111827;
+      --color-warning-container:      #451A03;
+      --color-on-warning-container:   #FBBF24;
+      --color-success:                #10B981;
+      --color-on-success:             #111827;
+      --color-success-container:      #14532D;
+      --color-on-success-container:   #4ADE80;
+      --color-info:                   #60A5FA;
+      --color-on-info:                #111827;
+      --color-info-container:         #083344;
+      --color-on-info-container:      #67E8F9;
+      --color-link:                   #60A5FA;
+      --color-link-hover:             #3B82F6;
+      --color-text-tertiary:          #9CA3AF;
+
+      --color-surface-alt:    #1F2937;
+      --color-search-match:   rgba(251, 191, 36, 0.25);
+      --color-search-focus:   rgba(251, 191, 36, 0.55);
+      --color-edit-bg:        rgba(20, 184, 166, 0.18);
+      --color-goto-bg:        rgba(251, 191, 36, 0.35);
+      --color-type-color:     #FBBF24;
+    }
+
+    /* ================================================================== */
+    /* Reset & base                                                         */
+    /* ================================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      font-size: var(--text-body-medium-size);
+      font-weight: var(--text-body-medium-weight);
+      background: var(--color-surface-container);
+      color: var(--color-on-surface);
+      min-height: 100vh;
+      padding: var(--spacing-lg);
+      line-height: 1.5;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ================================================================== */
+    /* Page shell                                                           */
+    /* ================================================================== */
+    .page { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--spacing-lg); }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: var(--spacing-md);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+    }
+
+    .page-title { font-size: var(--text-headline-small-size); font-weight: var(--text-headline-small-weight); }
+    .page-subtitle { font-size: var(--text-body-small-size); color: var(--color-on-surface-muted); margin-top: 2px; }
+
+    /* Theme toggle */
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+    }
+
+    .toggle-btn {
+      background: var(--color-surface-container-high);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-full);
+      padding: 4px var(--spacing-md);
+      font-size: var(--text-body-small-size);
+      font-family: var(--font-family);
+      color: var(--color-on-surface);
+      cursor: pointer;
+      transition: background 0.15s;
+      font-weight: 500;
+    }
+
+    .toggle-btn:hover { background: var(--color-surface-container-high); }
+
+    /* State tabs */
+    .state-tabs {
+      display: flex;
+      gap: var(--spacing-xs);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      padding-bottom: 0;
+    }
+
+    .state-tab {
+      padding: var(--spacing-xs) var(--spacing-md);
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      font-family: var(--font-family);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--color-on-surface-muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      margin-bottom: -1px;
+    }
+
+    .state-tab:hover { color: var(--color-on-surface); }
+    .state-tab.active {
+      color: var(--color-primary);
+      border-bottom-color: var(--color-primary);
+      font-weight: 600;
+    }
+
+    /* ================================================================== */
+    /* Widget frame                                                         */
+    /* ================================================================== */
+    .widget-frame {
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 var(--elevation-low) 3px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+    }
+
+    /* ================================================================== */
+    /* Toolbar                                                              */
+    /* ================================================================== */
+    .toolbar {
+      height: var(--window-toolbar-height);
+      min-height: var(--window-toolbar-height);
+      background: var(--color-surface-container-high);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--spacing-sm);
+      gap: var(--spacing-xs);
+      flex-shrink: 0;
+    }
+
+    .toolbar-spacer { flex: 1 1 auto; }
+
+    .toolbar-divider {
+      width: var(--line-weight-subtle);
+      height: 20px;
+      background: var(--color-outline-variant);
+      flex-shrink: 0;
+      margin: 0 var(--spacing-xs);
+    }
+
+    /* Ghost icon button — 32x32 */
+    .tb-btn {
+      width: var(--window-toolbar-button-size);
+      height: var(--window-toolbar-button-size);
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--color-on-surface-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--window-toolbar-button-icon);
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+      font-family: var(--font-family);
+    }
+
+    .tb-btn:hover {
+      background: var(--color-surface-container);
+      color: var(--color-on-surface-variant);
+    }
+
+    .tb-btn:disabled {
+      color: var(--color-on-surface-disabled);
+      cursor: default;
+      background: transparent;
+    }
+
+    /* Primary variant (annotation active) */
+    .tb-btn.primary {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border: var(--line-weight-standard) solid var(--color-primary-container);
+    }
+
+    .tb-btn.primary:hover {
+      background: var(--color-on-primary-container);
+      color: var(--color-on-primary);
+    }
+
+    /* Labeled button */
+    .tb-btn-labeled {
+      height: var(--window-toolbar-button-size);
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--color-on-surface-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      padding: 0 var(--spacing-sm);
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      font-family: var(--font-family);
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tb-btn-labeled:hover {
+      background: var(--color-surface-container);
+      color: var(--color-on-surface-variant);
+    }
+
+    .tb-btn-labeled:disabled {
+      color: var(--color-on-surface-disabled);
+      cursor: default;
+    }
+
+    /* Search field */
+    .search-field {
+      height: var(--control-height-sm);
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--spacing-sm);
+      gap: var(--spacing-xs);
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface);
+      width: 180px;
+      flex-shrink: 0;
+    }
+
+    .search-field input {
+      border: none;
+      background: transparent;
+      color: var(--color-on-surface);
+      font-family: var(--font-family);
+      font-size: var(--text-body-small-size);
+      outline: none;
+      width: 100%;
+    }
+
+    .search-field input::placeholder { color: var(--color-on-surface-muted); }
+
+    .match-count {
+      font-size: 11px;
+      color: var(--color-on-surface-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Go-to row input */
+    .goto-input {
+      height: var(--control-height-sm);
+      width: 72px;
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-sm);
+      padding: 0 var(--spacing-sm);
+      font-size: var(--text-body-small-size);
+      font-family: var(--font-family);
+      color: var(--color-on-surface);
+      outline: none;
+      flex-shrink: 0;
+    }
+
+    .goto-input::placeholder { color: var(--color-on-surface-muted); }
+    .goto-label {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ================================================================== */
+    /* Sort progress bar                                                    */
+    /* ================================================================== */
+    .sort-progress {
+      height: 2px;
+      background: var(--color-outline-variant);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .sort-progress-fill {
+      height: 100%;
+      width: 35%;
+      background: var(--color-primary);
+      animation: progress-slide 1.2s ease-in-out infinite;
+    }
+
+    @keyframes progress-slide {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(400%); }
+    }
+
+    /* ================================================================== */
+    /* Table grid                                                           */
+    /* ================================================================== */
+    .table-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Header */
+    .table-header {
+      display: flex;
+      background: var(--color-surface-container-high);
+      border-bottom: var(--line-weight-standard) solid var(--color-outline);
+      height: var(--header-height);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .header-rn {
+      width: var(--row-num-width);
+      min-width: var(--row-num-width);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: var(--line-weight-subtle) solid var(--color-outline-variant);
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      color: var(--color-on-surface-muted);
+    }
+
+    .header-cell {
+      width: var(--col-width);
+      min-width: var(--col-width);
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--dt-cell-padding-h);
+      border-right: var(--line-weight-subtle) solid var(--color-outline-variant);
+      cursor: pointer;
+      gap: var(--spacing-xs);
+      user-select: none;
+      transition: background 0.12s;
+      overflow: hidden;
+    }
+
+    .header-cell:hover { background: var(--color-surface-container); }
+
+    .header-cell-name {
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      color: var(--color-on-surface);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .type-badge {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--color-on-surface-muted);
+      background: var(--color-surface-container);
+      border: var(--line-weight-subtle) solid var(--color-outline-variant);
+      border-radius: var(--radius-sm);
+      padding: 0 3px;
+      flex-shrink: 0;
+    }
+
+    .sort-icon {
+      font-size: 10px;
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    /* Data body */
+    .data-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    .data-row {
+      display: flex;
+      height: var(--row-height);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      transition: background 0.08s;
+    }
+
+    .data-row:hover { background: var(--color-primary-fixed) !important; }
+
+    .data-row.even { background: var(--color-surface); }
+    .data-row.odd  { background: var(--color-surface-container-low); }
+
+    .data-row.search-match { background: var(--color-search-match) !important; }
+    .data-row.focused-match { background: var(--color-search-focus) !important; }
+    .data-row.edited-row { background: var(--color-edit-bg) !important; }
+    .data-row.goto-row   { background: var(--color-goto-bg) !important; }
+
+    .row-num-cell {
+      width: var(--row-num-width);
+      min-width: var(--row-num-width);
+      height: var(--row-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: var(--line-weight-subtle) solid var(--color-outline-variant);
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+      flex-shrink: 0;
+    }
+
+    .data-cell {
+      width: var(--col-width);
+      min-width: var(--col-width);
+      height: var(--row-height);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--dt-cell-padding-h);
+      border-right: var(--line-weight-subtle) solid var(--color-outline-variant);
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface);
+      overflow: hidden;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .data-cell.numeric { justify-content: flex-end; }
+    .data-cell.edited  { background: var(--color-edit-bg); }
+
+    /* Edit overlay */
+    .cell-edit-input {
+      width: 100%;
+      background: var(--color-surface);
+      border: var(--line-weight-emphasis) solid var(--color-primary);
+      border-radius: var(--radius-sm);
+      padding: 2px 4px;
+      font-size: var(--text-body-small-size);
+      font-family: var(--font-family);
+      color: var(--color-on-surface);
+      outline: none;
+    }
+
+    /* ================================================================== */
+    /* Body states                                                          */
+    /* ================================================================== */
+    .state-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-md);
+      background: var(--color-surface);
+      padding: var(--spacing-lg);
+    }
+
+    .state-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .state-icon-wrap.loading {
+      background: var(--color-primary-fixed);
+      color: var(--color-primary);
+    }
+
+    .state-icon-wrap.empty {
+      background: var(--color-surface-container-high);
+      color: var(--color-on-surface-muted);
+    }
+
+    .state-icon-wrap.error {
+      background: var(--color-error-container);
+      color: var(--color-error);
+    }
+
+    .state-title {
+      font-size: var(--text-headline-small-size);
+      font-weight: var(--text-headline-small-weight);
+      color: var(--color-on-surface);
+    }
+
+    .state-subtitle {
+      font-size: var(--text-body-medium-size);
+      color: var(--color-on-surface-muted);
+      text-align: center;
+      max-width: 320px;
+    }
+
+    .retry-btn {
+      height: var(--control-height-md);
+      padding: 0 var(--button-padding-h);
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border: none;
+      border-radius: var(--button-border-radius);
+      font-size: var(--text-label-large-size);
+      font-weight: var(--text-label-large-weight);
+      font-family: var(--font-family);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .retry-btn:hover { background: var(--color-on-primary-container); }
+
+    /* Loading spinner */
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: var(--line-weight-emphasis) solid var(--color-primary-container);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ================================================================== */
+    /* Info popover                                                         */
+    /* ================================================================== */
+    .popover-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .popover {
+      position: absolute;
+      top: 52px;
+      left: var(--spacing-sm);
+      width: 280px;
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      overflow: hidden;
+      pointer-events: all;
+    }
+
+    .popover-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      background: var(--color-surface-container-high);
+    }
+
+    .popover-title {
+      font-size: var(--text-label-large-size);
+      font-weight: 600;
+      color: var(--color-on-surface);
+    }
+
+    .popover-body { padding: var(--spacing-sm) var(--spacing-md); }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      font-size: var(--text-body-small-size);
+    }
+
+    .meta-row:last-child { border-bottom: none; }
+    .meta-key { color: var(--color-on-surface-muted); font-weight: 500; }
+    .meta-val { color: var(--color-on-surface); font-family: monospace; font-size: 11px; }
+
+    .col-list {
+      margin-top: var(--spacing-sm);
+      border: var(--line-weight-subtle) solid var(--color-outline-variant);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .col-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px var(--spacing-sm);
+      font-size: 11px;
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+    }
+
+    .col-row:last-child { border-bottom: none; }
+    .col-row:nth-child(even) { background: var(--color-surface-container-low); }
+    .col-name { color: var(--color-on-surface); }
+    .col-type { color: var(--color-on-surface-muted); }
+
+    /* ================================================================== */
+    /* Dataset selector                                                     */
+    /* ================================================================== */
+    .dataset-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) 0;
+    }
+
+    .dataset-label {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+      font-weight: 500;
+    }
+
+    .dataset-btn {
+      padding: 3px var(--spacing-sm);
+      border-radius: var(--radius-full);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      background: var(--color-surface);
+      font-family: var(--font-family);
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .dataset-btn.active {
+      background: var(--color-primary-container);
+      border-color: var(--color-primary);
+      color: var(--color-on-primary-container);
+      font-weight: 500;
+    }
+
+    .dataset-btn:hover:not(.active) { background: var(--color-surface-container-high); }
+
+    /* kind pill */
+    .kind-pill {
+      font-size: 10px;
+      padding: 0 5px;
+      border-radius: var(--radius-full);
+      font-weight: 500;
+      display: inline-block;
+      margin-left: 4px;
+    }
+
+    .kind-pill.table   { background: var(--color-info-container);    color: var(--color-on-info-container); }
+    .kind-pill.computed { background: var(--color-success-container); color: var(--color-on-success-container); }
+    .kind-pill.cube    { background: var(--color-warning-container);  color: var(--color-on-warning-container); }
+
+    /* annotation mode banner */
+    .annotation-banner {
+      background: var(--color-primary-fixed);
+      border-bottom: var(--line-weight-subtle) solid var(--color-primary-container);
+      padding: 3px var(--spacing-md);
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-primary-container);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    .edit-badge {
+      background: var(--color-primary-container);
+      color: var(--color-on-primary-container);
+      border-radius: var(--radius-full);
+      padding: 0 6px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* ================================================================== */
+    /* Discard confirm dialog                                               */
+    /* ================================================================== */
+    .dialog-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dialog-backdrop.open { display: flex; }
+
+    .dialog {
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      width: 340px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    .dialog-title { font-size: var(--text-headline-small-size); font-weight: 600; margin-bottom: var(--spacing-sm); }
+    .dialog-body  { font-size: var(--text-body-medium-size); color: var(--color-on-surface-variant); margin-bottom: var(--spacing-md); }
+
+    .dialog-actions { display: flex; justify-content: flex-end; gap: var(--spacing-sm); }
+
+    .btn-ghost {
+      height: var(--control-height-md);
+      padding: 0 var(--spacing-md);
+      background: transparent;
+      border: none;
+      border-radius: var(--button-border-radius);
+      font-family: var(--font-family);
+      font-size: var(--text-label-large-size);
+      font-weight: 500;
+      color: var(--color-on-surface-muted);
+      cursor: pointer;
+    }
+
+    .btn-ghost:hover { background: var(--color-surface-container-high); color: var(--color-on-surface); }
+
+    .btn-danger {
+      height: var(--control-height-md);
+      padding: 0 var(--spacing-md);
+      background: var(--color-error);
+      color: var(--color-on-error);
+      border: none;
+      border-radius: var(--button-border-radius);
+      font-family: var(--font-family);
+      font-size: var(--text-label-large-size);
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ================================================================== */
+    /* Toast                                                                */
+    /* ================================================================== */
+    .toast {
+      position: fixed;
+      bottom: var(--spacing-lg);
+      right: var(--spacing-lg);
+      background: var(--color-on-surface);
+      color: var(--color-surface);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-md);
+      font-size: var(--text-body-small-size);
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ================================================================== */
+    /* Scrollbar styling                                                    */
+    /* ================================================================== */
+    .data-body::-webkit-scrollbar { width: 8px; height: 8px; }
+    .data-body::-webkit-scrollbar-track { background: var(--color-surface-container); }
+    .data-body::-webkit-scrollbar-thumb { background: var(--color-outline); border-radius: var(--radius-full); }
+    .data-body::-webkit-scrollbar-thumb:hover { background: var(--color-on-surface-disabled); }
+  </style>
+</head>
+<body>
+
+<!-- ================================================================== -->
+<!-- Toast notification                                                   -->
+<!-- ================================================================== -->
+<div class="toast" id="toast"></div>
+
+<!-- ================================================================== -->
+<!-- Discard confirm dialog                                               -->
+<!-- ================================================================== -->
+<div class="dialog-backdrop" id="discardDialog">
+  <div class="dialog">
+    <div class="dialog-title">Discard changes?</div>
+    <div class="dialog-body">You have <strong id="editCountDialog">3</strong> unsaved annotation changes. They will be permanently lost.</div>
+    <div class="dialog-actions">
+      <button class="btn-ghost" onclick="closeDialog()">Cancel</button>
+      <button class="btn-danger" onclick="confirmDiscard()">Discard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- Page                                                                  -->
+<!-- ================================================================== -->
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Data Table — Styled Mock</div>
+      <div class="page-subtitle">Widget 5 · All 4 body states · theme-aware · tercen-tokens.css embedded · FontAwesome 6 Solid</div>
+    </div>
+    <div class="theme-toggle">
+      <span>Theme:</span>
+      <button class="toggle-btn" onclick="toggleTheme()" id="themeBtn">Switch to Dark</button>
+    </div>
+  </div>
+
+  <!-- Dataset selector -->
+  <div class="dataset-bar">
+    <span class="dataset-label">Mock dataset:</span>
+    <button class="dataset-btn active" onclick="selectDataset('crabs')" id="ds-crabs">
+      crabs-long.csv <span class="kind-pill table">TableSchema</span>
+    </button>
+    <button class="dataset-btn" onclick="selectDataset('variables')" id="ds-variables">
+      Variables <span class="kind-pill computed">ComputedTable</span>
+    </button>
+    <button class="dataset-btn" onclick="selectDataset('dose')" id="ds-dose">
+      Dose-Response <span class="kind-pill cube">CubeQuery</span>
+    </button>
+    <button class="dataset-btn" onclick="selectDataset('umap')" id="ds-umap">
+      UMAP+Clusters <span class="kind-pill computed">ComputedTable</span>
+    </button>
+  </div>
+
+  <!-- State selector tabs -->
+  <div class="state-tabs">
+    <button class="state-tab active" onclick="showState('active')"   id="tab-active">Active</button>
+    <button class="state-tab"        onclick="showState('loading')"  id="tab-loading">Loading</button>
+    <button class="state-tab"        onclick="showState('empty')"    id="tab-empty">Empty</button>
+    <button class="state-tab"        onclick="showState('error')"    id="tab-error">Error</button>
+  </div>
+
+  <!-- Widget frame -->
+  <div class="widget-frame" id="widgetFrame">
+
+    <!-- ============================================================ -->
+    <!-- ACTIVE STATE                                                   -->
+    <!-- ============================================================ -->
+    <div id="state-active">
+
+      <!-- Annotation mode banner (hidden by default) -->
+      <div class="annotation-banner" id="annotationBanner" style="display:none;">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>Annotation mode active</span>
+        <span class="edit-badge" id="editBadge">3 edits</span>
+        <span style="font-size:11px;color:var(--color-on-surface-muted);">— click any cell to edit · Enter to confirm · Esc to cancel</span>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <!-- Left actions -->
+        <button class="tb-btn" id="btnInfo" onclick="togglePopover()" title="Table Info">
+          <i class="fa-solid fa-circle-info"></i>
+        </button>
+        <button class="tb-btn" id="btnDownload" onclick="handleDownload()" title="Download CSV">
+          <i class="fa-solid fa-download" id="downloadIcon"></i>
+        </button>
+        <button class="tb-btn" id="btnAnnotate" onclick="toggleAnnotate()" title="Annotation Mode">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+
+        <!-- Save / Discard (annotation mode only) -->
+        <button class="tb-btn-labeled" id="btnSave" style="display:none;" onclick="handleSave()" title="Save Annotations">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span id="saveBtnLabel">Save (3)</span>
+        </button>
+        <button class="tb-btn-labeled" id="btnDiscard" style="display:none;" onclick="handleDiscard()" title="Discard Changes">
+          <i class="fa-solid fa-xmark"></i>
+          Discard
+        </button>
+
+        <div class="toolbar-spacer"></div>
+
+        <!-- Go to row -->
+        <span class="goto-label">Go to:</span>
+        <input class="goto-input" type="number" placeholder="row #" min="0" id="gotoInput"
+               onkeydown="handleGoto(event)" title="Go to row number">
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Search nav -->
+        <button class="tb-btn" id="btnPrev" onclick="navigate(-1)" title="Previous match" disabled>
+          <i class="fa-solid fa-chevron-up"></i>
+        </button>
+        <button class="tb-btn" id="btnNext" onclick="navigate(1)" title="Next match" disabled>
+          <i class="fa-solid fa-chevron-down"></i>
+        </button>
+
+        <!-- Search field -->
+        <div class="search-field">
+          <i class="fa-solid fa-magnifying-glass" style="color:var(--color-on-surface-muted);font-size:12px;flex-shrink:0;"></i>
+          <input type="text" placeholder="Search…" id="searchInput"
+                 oninput="handleSearch(this.value)" title="Search all columns">
+        </div>
+        <span class="match-count" id="matchCount"></span>
+      </div>
+
+      <!-- Sort progress bar (hidden unless sorting) -->
+      <div class="sort-progress" id="sortProgress" style="display:none;">
+        <div class="sort-progress-fill"></div>
+      </div>
+
+      <!-- Info popover (hidden by default) -->
+      <div class="popover-overlay">
+        <div class="popover" id="infoPopover" style="display:none;">
+          <div class="popover-header">
+            <span class="popover-title"><i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>Table Info</span>
+            <button class="tb-btn" style="width:24px;height:24px;font-size:12px;" onclick="togglePopover()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="popover-body">
+            <div class="meta-row">
+              <span class="meta-key">Name</span>
+              <span class="meta-val" id="popName">crabs-long.csv</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">ID</span>
+              <span style="display:flex;align-items:center;gap:4px;">
+                <span class="meta-val" id="popId">mock-crabs</span>
+                <button class="tb-btn" style="width:20px;height:20px;font-size:10px;" onclick="copyId()" title="Copy ID">
+                  <i class="fa-solid fa-copy"></i>
+                </button>
+              </span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">Kind</span>
+              <span class="meta-val" id="popKind">TableSchema</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">Rows</span>
+              <span class="meta-val" id="popRows">1,000</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">Columns</span>
+              <span class="meta-val" id="popCols">6</span>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);margin:var(--spacing-sm) 0 var(--spacing-xs);">Column list</div>
+            <div class="col-list" id="popColList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table grid -->
+      <div class="table-container" id="tableContainer">
+        <!-- Header row -->
+        <div class="table-header" id="tableHeader"></div>
+        <!-- Data rows -->
+        <div class="data-body" id="dataBody"></div>
+      </div>
+
+    </div><!-- /state-active -->
+
+    <!-- ============================================================ -->
+    <!-- LOADING STATE                                                  -->
+    <!-- ============================================================ -->
+    <div id="state-loading" style="display:none;flex:1;">
+      <!-- Toolbar (disabled) -->
+      <div class="toolbar" style="opacity:0.5;pointer-events:none;">
+        <button class="tb-btn" disabled><i class="fa-solid fa-circle-info"></i></button>
+        <button class="tb-btn" disabled><i class="fa-solid fa-download"></i></button>
+        <button class="tb-btn" disabled><i class="fa-solid fa-pen-to-square"></i></button>
+        <div class="toolbar-spacer"></div>
+        <button class="tb-btn" disabled><i class="fa-solid fa-magnifying-glass"></i></button>
+      </div>
+      <div class="state-body">
+        <div class="spinner"></div>
+        <div class="state-title">Loading table…</div>
+        <div class="state-subtitle">Fetching schema and row data from Tercen</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- EMPTY STATE                                                    -->
+    <!-- ============================================================ -->
+    <div id="state-empty" style="display:none;flex:1;">
+      <!-- Toolbar (disabled) -->
+      <div class="toolbar" style="opacity:0.5;pointer-events:none;">
+        <button class="tb-btn" disabled><i class="fa-solid fa-circle-info"></i></button>
+        <button class="tb-btn" disabled><i class="fa-solid fa-download"></i></button>
+        <button class="tb-btn" disabled><i class="fa-solid fa-pen-to-square"></i></button>
+        <div class="toolbar-spacer"></div>
+        <button class="tb-btn" disabled><i class="fa-solid fa-magnifying-glass"></i></button>
+      </div>
+      <div class="state-body">
+        <div class="state-icon-wrap empty">
+          <i class="fa-solid fa-table"></i>
+        </div>
+        <div class="state-title">No table selected</div>
+        <div class="state-subtitle">Open a data set from the File Navigator to view it here</div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ERROR STATE                                                    -->
+    <!-- ============================================================ -->
+    <div id="state-error" style="display:none;flex:1;">
+      <!-- Toolbar (retry available) -->
+      <div class="toolbar" style="opacity:0.5;pointer-events:none;">
+        <button class="tb-btn" disabled><i class="fa-solid fa-circle-info"></i></button>
+        <button class="tb-btn" disabled><i class="fa-solid fa-download"></i></button>
+        <button class="tb-btn" disabled><i class="fa-solid fa-pen-to-square"></i></button>
+        <div class="toolbar-spacer"></div>
+        <button class="tb-btn" disabled><i class="fa-solid fa-magnifying-glass"></i></button>
+      </div>
+      <div class="state-body">
+        <div class="state-icon-wrap error">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="state-title">Could not load table</div>
+        <div class="state-subtitle" id="errorMsg">Network timeout after 5000ms. Check your connection and try again.</div>
+        <button class="retry-btn" onclick="handleRetry()">
+          <i class="fa-solid fa-rotate-right" style="margin-right:6px;"></i>Retry
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /widget-frame -->
+
+</div><!-- /page -->
+
+<!-- ================================================================== -->
+<!-- JavaScript — data + interactions                                     -->
+<!-- ================================================================== -->
+<script>
+/* ------------------------------------------------------------------ */
+/* Dataset definitions (from mock_data_service.dart)                  */
+/* ------------------------------------------------------------------ */
+const DATASETS = {
+  crabs: {
+    id: 'mock-crabs',
+    name: 'crabs-long.csv',
+    kind: 'TableSchema',
+    nRows: 1000,
+    columns: [
+      {name:'sp', type:'string'},
+      {name:'sex', type:'string'},
+      {name:'index', type:'double'},
+      {name:'observation', type:'double'},
+      {name:'variable', type:'string'},
+      {name:'measurement', type:'double'},
+    ],
+    rows: (() => {
+      const species = ['B','O'], sexes = ['M','F'], vars = ['FL','RW','CL','CW','BD'];
+      const r = [];
+      for (let i = 0; i < 80; i++) {
+        r.push({
+          sp: species[Math.floor(Math.random()*2)],
+          sex: sexes[Math.floor(Math.random()*2)],
+          index: Math.floor(i/5)+1,
+          observation: (i%50)+1,
+          variable: vars[i%5],
+          measurement: parseFloat((8 + Math.random()*12).toFixed(2)),
+        });
+      }
+      return r;
+    })(),
+  },
+
+  variables: {
+    id: 'mock-variables',
+    name: 'Variables',
+    kind: 'ComputedTableSchema',
+    nRows: 47,
+    columns: [
+      {name:'channel_name', type:'string'},
+      {name:'channel_description', type:'string'},
+      {name:'channel_id', type:'double'},
+    ],
+    rows: [
+      {channel_name:'FSC-A', channel_description:'Forward Scatter Area', channel_id:1},
+      {channel_name:'FSC-H', channel_description:'Forward Scatter Height', channel_id:2},
+      {channel_name:'FSC-W', channel_description:'Forward Scatter Width', channel_id:3},
+      {channel_name:'SSC-A', channel_description:'Side Scatter Area', channel_id:4},
+      {channel_name:'SSC-H', channel_description:'Side Scatter Height', channel_id:5},
+      {channel_name:'SSC-W', channel_description:'Side Scatter Width', channel_id:6},
+      {channel_name:'FITC-A', channel_description:'FITC fluorescence', channel_id:7},
+      {channel_name:'PE-A', channel_description:'PE fluorescence', channel_id:8},
+      {channel_name:'PE-Cy5-A', channel_description:'PE-Cy5 fluorescence', channel_id:9},
+      {channel_name:'PE-Cy7-A', channel_description:'PE-Cy7 fluorescence', channel_id:10},
+      {channel_name:'APC-A', channel_description:'APC fluorescence', channel_id:11},
+      {channel_name:'APC-Cy7-A', channel_description:'APC-Cy7 fluorescence', channel_id:12},
+      {channel_name:'Pacific Blue-A', channel_description:'Pacific Blue fluorescence', channel_id:13},
+      {channel_name:'BV421-A', channel_description:'BV421 fluorescence', channel_id:14},
+      {channel_name:'BV510-A', channel_description:'BV510 fluorescence', channel_id:15},
+      {channel_name:'BV605-A', channel_description:'BV605 fluorescence', channel_id:16},
+      {channel_name:'BV650-A', channel_description:'BV650 fluorescence', channel_id:17},
+      {channel_name:'BV711-A', channel_description:'BV711 fluorescence', channel_id:18},
+      {channel_name:'BV786-A', channel_description:'BV786 fluorescence', channel_id:19},
+      {channel_name:'BB515-A', channel_description:'BB515 fluorescence', channel_id:20},
+      {channel_name:'CD3', channel_description:'T cell marker', channel_id:27},
+      {channel_name:'CD4', channel_description:'T helper marker', channel_id:28},
+      {channel_name:'CD8', channel_description:'Cytotoxic T marker', channel_id:29},
+      {channel_name:'CD14', channel_description:'Monocyte marker', channel_id:30},
+      {channel_name:'CD19', channel_description:'B cell marker', channel_id:31},
+      {channel_name:'CD45', channel_description:'Leukocyte common antigen', channel_id:38},
+      {channel_name:'HLA-DR', channel_description:'MHC class II', channel_id:44},
+      {channel_name:'Time', channel_description:'Acquisition time', channel_id:47},
+    ],
+  },
+
+  dose: {
+    id: 'mock-dose',
+    name: 'Dose-Response',
+    kind: 'CubeQueryTableSchema',
+    nRows: 180,
+    columns: [
+      {name:'Dose', type:'double'},
+      {name:'Group', type:'string'},
+      {name:'Response', type:'double'},
+    ],
+    rows: (() => {
+      const doses = [0.001,0.01,0.1,0.5,1,2.5,5,10,25,50,100,250,500,1000,2500,5000,10000,50000];
+      const r = [];
+      for (let i = 0; i < 36; i++) {
+        const group = i%2===0 ? 'P999' : 'P100';
+        const d = doses[Math.floor(i/2) % doses.length];
+        const base = group==='P999' ? 100/(1+10/d) : 80/(1+50/d);
+        r.push({Dose: d, Group: group, Response: parseFloat((base + (Math.random()-0.5)*10).toFixed(2))});
+      }
+      return r;
+    })(),
+  },
+
+  umap: {
+    id: 'mock-umap',
+    name: 'UMAP+Clusters',
+    kind: 'ComputedTableSchema',
+    nRows: 4000,
+    columns: [
+      {name:'umap.umap.1', type:'double'},
+      {name:'umap.umap.2', type:'double'},
+      {name:'clust.cluster_id', type:'string'},
+    ],
+    rows: (() => {
+      const r = [];
+      for (let i = 0; i < 65; i++) {
+        const ci = i % 13;
+        const cx = -10 + (ci%4)*7, cy = -8 + Math.floor(ci/4)*6;
+        r.push({
+          'umap.umap.1': parseFloat((cx + (Math.random()-0.5)*4).toFixed(4)),
+          'umap.umap.2': parseFloat((cy + (Math.random()-0.5)*4).toFixed(4)),
+          'clust.cluster_id': 'c' + String(ci).padStart(2,'0'),
+        });
+      }
+      return r;
+    })(),
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* App state                                                            */
+/* ------------------------------------------------------------------ */
+let currentDataset = 'crabs';
+let currentState   = 'active';
+let sortCol        = null;
+let sortAsc        = true;
+let annotateMode   = false;
+let editCount      = 3;  // mock: start with 3 pending edits
+let popoverOpen    = false;
+let searchQuery    = '';
+let matchRows      = [];
+let focusedMatch   = -1;
+let gotoRow        = null;
+
+/* ------------------------------------------------------------------ */
+/* Theme                                                                */
+/* ------------------------------------------------------------------ */
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = isDark ? 'Switch to Dark' : 'Switch to Light';
+}
+
+/* ------------------------------------------------------------------ */
+/* State tab switching                                                  */
+/* ------------------------------------------------------------------ */
+function showState(state) {
+  ['active','loading','empty','error'].forEach(s => {
+    document.getElementById('state-'+s).style.display = 'none';
+    document.getElementById('tab-'+s).classList.remove('active');
+  });
+  const el = document.getElementById('state-'+state);
+  el.style.display = state === 'active' ? 'flex' : 'flex';
+  el.style.flexDirection = 'column';
+  if (state === 'active') el.style.flex = '1';
+  document.getElementById('tab-'+state).classList.add('active');
+  currentState = state;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dataset selection                                                    */
+/* ------------------------------------------------------------------ */
+function selectDataset(key) {
+  currentDataset = key;
+  sortCol = null; sortAsc = true;
+  annotateMode = false; editCount = 0;
+  searchQuery = ''; matchRows = []; focusedMatch = -1; gotoRow = null;
+  document.querySelectorAll('.dataset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('ds-'+key).classList.add('active');
+  document.getElementById('searchInput').value = '';
+  document.getElementById('matchCount').textContent = '';
+  document.getElementById('btnSave').style.display = 'none';
+  document.getElementById('btnDiscard').style.display = 'none';
+  document.getElementById('annotationBanner').style.display = 'none';
+  document.getElementById('btnAnnotate').classList.remove('primary');
+  renderTable();
+  updatePopover();
+}
+
+/* ------------------------------------------------------------------ */
+/* Render table                                                         */
+/* ------------------------------------------------------------------ */
+function numFmt(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number') {
+    const s = Math.abs(v) >= 1 ? v.toPrecision(6) : v.toPrecision(4);
+    return s.replace(/\.?0+$/, '').replace(/\.$/, '');
+  }
+  return String(v);
+}
+
+function isNumericType(type) {
+  return ['double','int32','uint64','uint16'].includes(type);
+}
+
+function getTypeIcon(type) {
+  if (isNumericType(type)) return '<i class="fa-solid fa-hashtag" style="font-size:9px;margin-right:3px;color:var(--color-on-surface-muted);"></i>';
+  return '<i class="fa-solid fa-font" style="font-size:9px;margin-right:3px;color:var(--color-on-surface-muted);"></i>';
+}
+
+function renderTable() {
+  const ds = DATASETS[currentDataset];
+  const header = document.getElementById('tableHeader');
+  const body   = document.getElementById('dataBody');
+
+  // Sort rows
+  let rows = [...ds.rows];
+  if (sortCol) {
+    rows.sort((a,b) => {
+      const va = a[sortCol], vb = b[sortCol];
+      let cmp = 0;
+      if (typeof va === 'number') cmp = va - vb;
+      else cmp = String(va).localeCompare(String(vb));
+      return sortAsc ? cmp : -cmp;
+    });
+  }
+
+  // Search: collect matching row indices
+  if (searchQuery) {
+    matchRows = [];
+    const q = searchQuery.toLowerCase();
+    rows.forEach((row, ri) => {
+      ds.columns.forEach(col => {
+        const v = String(row[col.name] ?? '').toLowerCase();
+        if (v.includes(q) && !matchRows.includes(ri)) matchRows.push(ri);
+      });
+    });
+    if (focusedMatch >= matchRows.length) focusedMatch = 0;
+    const cnt = matchRows.length;
+    document.getElementById('matchCount').textContent = cnt > 0
+      ? `${(focusedMatch+1)} of ${cnt}`
+      : 'no matches';
+    document.getElementById('btnNext').disabled = cnt === 0;
+    document.getElementById('btnPrev').disabled = cnt === 0;
+  } else {
+    matchRows = []; focusedMatch = -1;
+    document.getElementById('matchCount').textContent = '';
+    document.getElementById('btnNext').disabled = true;
+    document.getElementById('btnPrev').disabled = true;
+  }
+
+  // --- Header ---
+  let hHtml = `<div class="header-rn">#</div>`;
+  ds.columns.forEach(col => {
+    const isSort = sortCol === col.name;
+    const arrow = isSort
+      ? `<i class="fa-solid fa-arrow-${sortAsc?'up':'down'} sort-icon"></i>`
+      : '';
+    hHtml += `
+      <div class="header-cell" onclick="handleSort('${col.name}')" title="${col.name} (${col.type})">
+        <span class="header-cell-name">${getTypeIcon(col.type)}${col.name}</span>
+        <span class="type-badge">${col.type}</span>
+        ${arrow}
+      </div>`;
+  });
+  header.innerHTML = hHtml;
+
+  // --- Body rows ---
+  let bHtml = '';
+  const focusedRowIdx = (focusedMatch >= 0 && matchRows.length > 0) ? matchRows[focusedMatch] : -1;
+
+  rows.forEach((row, ri) => {
+    const isMatch   = matchRows.includes(ri);
+    const isFocused = ri === focusedRowIdx;
+    const isGoto    = ri === gotoRow;
+    const isEdited  = annotateMode && ri < 3;  // mock: first 3 rows "edited"
+
+    let cls = ri % 2 === 0 ? 'even' : 'odd';
+    if (isFocused)    cls = 'focused-match';
+    else if (isMatch) cls = 'search-match';
+    else if (isEdited) cls = 'edited-row';
+    else if (isGoto)  cls = 'goto-row';
+
+    bHtml += `<div class="data-row ${cls}"><div class="row-num-cell">${ri}</div>`;
+    ds.columns.forEach(col => {
+      const isNum = isNumericType(col.type);
+      const v = row[col.name];
+      const disp = numFmt(v);
+      const cellEdited = annotateMode && ri < 3 && col.name === ds.columns[1].name;
+      bHtml += `<div class="data-cell${isNum?' numeric':''}${cellEdited?' edited':''}"
+                     title="${col.name}: ${disp}">${disp}</div>`;
+    });
+    bHtml += `</div>`;
+  });
+
+  // Hint at more rows
+  bHtml += `<div class="data-row even" style="justify-content:center;color:var(--color-on-surface-muted);font-size:11px;">
+    <span style="padding:0 8px;">… ${(ds.nRows - rows.length).toLocaleString()} more rows (virtualised) …</span>
+  </div>`;
+
+  body.innerHTML = bHtml;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sort                                                                 */
+/* ------------------------------------------------------------------ */
+function handleSort(col) {
+  if (sortCol === col) {
+    if (sortAsc) { sortAsc = false; }
+    else { sortCol = null; sortAsc = true; }
+  } else {
+    sortCol = col; sortAsc = true;
+  }
+
+  // Show sort progress briefly
+  const prog = document.getElementById('sortProgress');
+  prog.style.display = 'block';
+  setTimeout(() => { prog.style.display = 'none'; renderTable(); }, 600);
+}
+
+/* ------------------------------------------------------------------ */
+/* Search                                                               */
+/* ------------------------------------------------------------------ */
+let searchTimer = null;
+function handleSearch(q) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = q;
+    focusedMatch = q ? 0 : -1;
+    renderTable();
+  }, 250);
+}
+
+function navigate(dir) {
+  if (matchRows.length === 0) return;
+  focusedMatch = (focusedMatch + dir + matchRows.length) % matchRows.length;
+  document.getElementById('matchCount').textContent = `${focusedMatch+1} of ${matchRows.length}`;
+  renderTable();
+  // Scroll to focused row
+  const body = document.getElementById('dataBody');
+  const row = body.children[matchRows[focusedMatch]];
+  if (row) row.scrollIntoView({block:'nearest'});
+}
+
+/* ------------------------------------------------------------------ */
+/* Go to row                                                            */
+/* ------------------------------------------------------------------ */
+function handleGoto(e) {
+  if (e.key !== 'Enter') return;
+  const n = parseInt(e.target.value, 10);
+  const ds = DATASETS[currentDataset];
+  if (isNaN(n) || n < 0 || n >= ds.nRows) {
+    e.target.style.borderColor = 'var(--color-error)';
+    setTimeout(() => { e.target.style.borderColor = ''; }, 1200);
+    return;
+  }
+  gotoRow = n;
+  renderTable();
+  const body = document.getElementById('dataBody');
+  const idx = Math.min(n, body.children.length - 1);
+  if (body.children[idx]) body.children[idx].scrollIntoView({block:'center', behavior:'smooth'});
+  setTimeout(() => { gotoRow = null; renderTable(); }, 1500);
+}
+
+/* ------------------------------------------------------------------ */
+/* Annotation mode                                                      */
+/* ------------------------------------------------------------------ */
+function toggleAnnotate() {
+  if (annotateMode && editCount > 0) {
+    document.getElementById('editCountDialog').textContent = editCount;
+    document.getElementById('discardDialog').classList.add('open');
+    return;
+  }
+  annotateMode = !annotateMode;
+  applyAnnotateMode();
+}
+
+function applyAnnotateMode() {
+  const btn = document.getElementById('btnAnnotate');
+  const banner = document.getElementById('annotationBanner');
+  const save   = document.getElementById('btnSave');
+  const discard = document.getElementById('btnDiscard');
+
+  if (annotateMode) {
+    btn.classList.add('primary');
+    banner.style.display = 'flex';
+    save.style.display = 'flex';
+    discard.style.display = 'flex';
+    updateEditBadge();
+  } else {
+    btn.classList.remove('primary');
+    banner.style.display = 'none';
+    save.style.display = 'none';
+    discard.style.display = 'none';
+    editCount = 3; // reset mock
+  }
+  renderTable();
+}
+
+function updateEditBadge() {
+  document.getElementById('editBadge').textContent = editCount + ' edit' + (editCount !== 1 ? 's' : '');
+  document.getElementById('saveBtnLabel').textContent = 'Save (' + editCount + ')';
+}
+
+function handleSave() {
+  if (editCount === 0) return;
+  // Simulate save
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving…';
+  setTimeout(() => {
+    annotateMode = false;
+    editCount = 3;
+    applyAnnotateMode();
+    btn.disabled = false;
+    showToast('Annotations saved as crabs-long_annotations.csv');
+  }, 900);
+}
+
+function handleDiscard() {
+  if (editCount > 0) {
+    document.getElementById('editCountDialog').textContent = editCount;
+    document.getElementById('discardDialog').classList.add('open');
+  } else {
+    confirmDiscard();
+  }
+}
+
+function closeDialog() {
+  document.getElementById('discardDialog').classList.remove('open');
+}
+
+function confirmDiscard() {
+  closeDialog();
+  annotateMode = false;
+  editCount = 3;
+  applyAnnotateMode();
+  showToast('Changes discarded');
+}
+
+/* ------------------------------------------------------------------ */
+/* Download                                                             */
+/* ------------------------------------------------------------------ */
+function handleDownload() {
+  const icon = document.getElementById('downloadIcon');
+  const btn  = document.getElementById('btnDownload');
+  btn.disabled = true;
+  icon.className = 'fa-solid fa-spinner fa-spin';
+  setTimeout(() => {
+    btn.disabled = false;
+    icon.className = 'fa-solid fa-download';
+    showToast('Downloaded ' + DATASETS[currentDataset].name.replace(/\.csv$/,'')+'.csv');
+  }, 1200);
+}
+
+/* ------------------------------------------------------------------ */
+/* Retry (error state)                                                  */
+/* ------------------------------------------------------------------ */
+function handleRetry() {
+  showState('loading');
+  document.querySelectorAll('.state-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-loading').classList.add('active');
+  setTimeout(() => { showState('active'); renderTable(); }, 1500);
+}
+
+/* ------------------------------------------------------------------ */
+/* Info popover                                                         */
+/* ------------------------------------------------------------------ */
+function togglePopover() {
+  popoverOpen = !popoverOpen;
+  document.getElementById('infoPopover').style.display = popoverOpen ? 'block' : 'none';
+}
+
+function updatePopover() {
+  const ds = DATASETS[currentDataset];
+  document.getElementById('popName').textContent = ds.name;
+  document.getElementById('popId').textContent   = ds.id;
+  document.getElementById('popKind').textContent  = ds.kind;
+  document.getElementById('popRows').textContent  = ds.nRows.toLocaleString();
+  document.getElementById('popCols').textContent  = ds.columns.length;
+
+  let colHtml = '';
+  ds.columns.forEach((c,i) => {
+    colHtml += `<div class="col-row"><span class="col-name">${c.name}</span><span class="col-type">${c.type}</span></div>`;
+  });
+  document.getElementById('popColList').innerHTML = colHtml;
+}
+
+function copyId() {
+  const id = DATASETS[currentDataset].id;
+  navigator.clipboard.writeText(id).then(() => showToast('Copied: ' + id)).catch(() => showToast('Copied: ' + id));
+}
+
+/* ------------------------------------------------------------------ */
+/* Toast                                                                */
+/* ------------------------------------------------------------------ */
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ------------------------------------------------------------------ */
+/* Close popover on outside click                                       */
+/* ------------------------------------------------------------------ */
+document.addEventListener('click', e => {
+  if (!popoverOpen) return;
+  const pop = document.getElementById('infoPopover');
+  const btn = document.getElementById('btnInfo');
+  if (!pop.contains(e.target) && !btn.contains(e.target)) {
+    popoverOpen = false;
+    pop.style.display = 'none';
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* Initial render                                                       */
+/* ------------------------------------------------------------------ */
+updatePopover();
+renderTable();
+</script>
+</body>
+</html>

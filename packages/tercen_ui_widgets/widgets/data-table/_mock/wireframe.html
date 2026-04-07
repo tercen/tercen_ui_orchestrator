@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Table — Wireframe</title>
+  <style>
+    /* ------------------------------------------------------------------ */
+    /* Reset & base                                                         */
+    /* ------------------------------------------------------------------ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Fira Sans', system-ui, sans-serif;
+      font-size: 13px;
+      background: #C8C8C8;
+      color: #222;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    h2 { font-size: 13px; font-weight: 600; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; color: #555; }
+
+    p { line-height: 1.5; margin-bottom: 8px; color: #444; }
+
+    /* ------------------------------------------------------------------ */
+    /* Layout shells                                                        */
+    /* ------------------------------------------------------------------ */
+    .page { max-width: 960px; margin: 0 auto; }
+
+    .spec-note {
+      background: #fff8e1;
+      border: 1px solid #e0c060;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #6b4e00;
+      margin-bottom: 16px;
+    }
+
+    .widget-frame {
+      background: #EFEFEF;
+      border: 2px solid #888;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    /* Grey box utility */
+    .box {
+      background: #D0D0D0;
+      border: 1px solid #999;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .box.tall {
+      height: 64px;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .box.icon-box {
+      width: 32px;
+      height: 32px;
+      font-size: 10px;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .label-tag {
+      display: inline-block;
+      background: #BBB;
+      border: 1px solid #999;
+      border-radius: 2px;
+      padding: 1px 5px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #444;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    .annotation {
+      font-size: 10px;
+      color: #888;
+      font-style: italic;
+      margin-left: 6px;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Toolbar                                                              */
+    /* ------------------------------------------------------------------ */
+    .toolbar {
+      height: 48px;
+      background: #DEDEDE;
+      border-bottom: 2px solid #999;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+    }
+
+    .toolbar-spacer { flex: 1; }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: #AAA;
+      flex-shrink: 0;
+    }
+
+    .input-box {
+      height: 28px;
+      width: 64px;
+      background: #E8E8E8;
+      border: 1px solid #AAA;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .search-field {
+      height: 28px;
+      width: 160px;
+      background: #E8E8E8;
+      border: 1px solid #AAA;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 6px;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .match-count {
+      font-size: 10px;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Table grid                                                           */
+    /* ------------------------------------------------------------------ */
+    .table-area {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-header {
+      display: flex;
+      background: #D4D4D4;
+      border-bottom: 2px solid #999;
+      flex-shrink: 0;
+    }
+
+    .row-num-col {
+      width: 56px;
+      flex-shrink: 0;
+      border-right: 1px solid #AAA;
+    }
+
+    .header-cell {
+      width: 140px;
+      flex-shrink: 0;
+      height: 36px;
+      border-right: 1px solid #AAA;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #444;
+      gap: 4px;
+      overflow: hidden;
+    }
+
+    .header-cell .type-badge {
+      font-size: 9px;
+      font-weight: 500;
+      color: #888;
+      background: #C8C8C8;
+      border: 1px solid #AAA;
+      border-radius: 2px;
+      padding: 0 3px;
+    }
+
+    .header-cell .sort-arrow {
+      font-size: 9px;
+      color: #555;
+    }
+
+    .header-num {
+      width: 56px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #999;
+    }
+
+    .data-body {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .data-row {
+      display: flex;
+      border-bottom: 1px solid #CCC;
+      height: 32px;
+    }
+
+    .data-row.alt {
+      background: #E8E8E8;
+    }
+
+    .data-row.search-match {
+      background: #F5E8A0;
+    }
+
+    .data-row.focused-match {
+      background: #EEC900;
+    }
+
+    .data-row.edited {
+      background: #C0E0FF;
+    }
+
+    .data-row.goto-row {
+      background: #F5D88A;
+    }
+
+    .row-num-cell {
+      width: 56px;
+      flex-shrink: 0;
+      border-right: 1px solid #CCC;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #AAA;
+    }
+
+    .data-cell {
+      width: 140px;
+      flex-shrink: 0;
+      height: 32px;
+      border-right: 1px solid #CCC;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 11px;
+      color: #333;
+      overflow: hidden;
+    }
+
+    .data-cell.numeric {
+      justify-content: flex-end;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Body states                                                          */
+    /* ------------------------------------------------------------------ */
+    .body-state {
+      height: 240px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #EBEBEB;
+    }
+
+    .state-icon {
+      width: 48px;
+      height: 48px;
+      background: #C8C8C8;
+      border: 1px solid #999;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .state-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    .state-sub {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .state-button {
+      background: #CCC;
+      border: 1px solid #999;
+      border-radius: 4px;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: #444;
+      font-weight: 500;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Info popover                                                         */
+    /* ------------------------------------------------------------------ */
+    .popover {
+      background: #E8E8E8;
+      border: 1px solid #AAA;
+      border-radius: 4px;
+      padding: 12px;
+      width: 260px;
+    }
+
+    .popover-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+      border-bottom: 1px solid #CCC;
+      font-size: 11px;
+    }
+
+    .popover-row:last-child { border-bottom: none; }
+
+    .popover-key { color: #777; font-weight: 500; }
+    .popover-val { color: #333; }
+
+    /* ------------------------------------------------------------------ */
+    /* Section dividers                                                     */
+    /* ------------------------------------------------------------------ */
+    .section { margin-bottom: 40px; }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #AAA;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+    }
+
+    .widget-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #888;
+      background: #D0D0D0;
+      border-bottom: 1px solid #AAA;
+      padding: 2px 8px;
+    }
+
+    .states-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .state-card {
+      background: #EFEFEF;
+      border: 2px solid #999;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .state-card-label {
+      background: #D0D0D0;
+      border-bottom: 1px solid #AAA;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    .progress-bar {
+      height: 2px;
+      background: #C0C0C0;
+      margin-bottom: 0;
+    }
+
+    .progress-bar-fill {
+      width: 40%;
+      height: 100%;
+      background: #888;
+    }
+
+    .annotation-badge {
+      background: #B8B8B8;
+      border: 1px dashed #888;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 10px;
+      color: #555;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Data Table — Wireframe</h1>
+  <p style="margin-bottom:4px">Widget 5 · Tercen UI frame · Feature Window</p>
+  <p class="annotation" style="font-size:12px;color:#666;font-style:normal">
+    Spec: data-table-spec.md v1.0 · Grey boxes = placeholders · All dimensions from theme-export.json
+  </p>
+
+  <div class="spec-note">
+    Dimensions: toolbar 48px tall · toolbar buttons 32x32px · header row 36px · data rows 32px · row-number column 56px wide · data columns 140px wide · spacing tokens: xs=4 sm=8 md=16 lg=24
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 1: Active state — nominal layout                     -->
+  <!-- ============================================================ -->
+  <div class="section">
+    <div class="section-title">1. Active State — Full Layout</div>
+    <p>
+      Toolbar (fixed 48px) above the table grid. Header row fixed at top of grid; data rows virtualised below.
+      Row-number column (56px) is frozen; data columns (140px each) scroll horizontally.
+      <span class="label-tag">Spec §3.3</span>
+    </p>
+
+    <div class="widget-frame" style="height: 400px; display:flex; flex-direction:column;">
+      <div class="widget-label">DATA TABLE — Active State</div>
+
+      <!-- Toolbar (nominal) -->
+      <div class="toolbar">
+        <!-- Left actions: Info, Download, Annotate -->
+        <div class="box icon-box" title="Info — circleInfo (FA6 Solid) · Tooltip: 'Table Info'">
+          [i]<span class="annotation">Info</span>
+        </div>
+        <div class="box icon-box" title="Download — download (FA6 Solid) · Tooltip: 'Download CSV'">
+          [↓]<span class="annotation">CSV</span>
+        </div>
+        <div class="box icon-box" title="Annotate — penToSquare (FA6 Solid) · Tooltip: 'Annotation Mode'">
+          [✎]<span class="annotation">Ann.</span>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <!-- Right: Go to row, Search nav, Search field -->
+        <span style="font-size:11px;color:#888;">Go to:</span>
+        <div class="input-box">row #</div>
+        <div class="toolbar-divider"></div>
+        <div class="box icon-box" title="Previous match (FA6: chevronUp)">
+          [∧]
+        </div>
+        <div class="box icon-box" title="Next match (FA6: chevronDown)">
+          [∨]
+        </div>
+        <div class="search-field">
+          [🔍] Search…
+        </div>
+        <span class="match-count">3 of 12</span>
+      </div>
+
+      <!-- Table grid -->
+      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+
+        <!-- Sorting progress indicator (2px) — visible only during sort -->
+        <div class="progress-bar">
+          <div class="progress-bar-fill"></div>
+        </div>
+        <span class="annotation" style="padding:0 8px;font-size:10px;">↑ 2px LinearProgressIndicator during sort · Spec §6.6</span>
+
+        <!-- Header row -->
+        <div class="table-header">
+          <div class="row-num-cell header-num" title="Row-number column — fixed, not scrollable, not sortable · Spec §6.4">#</div>
+          <div class="header-cell" title="Column header — click to sort asc/desc/none · Tooltip: 'sp (string)' · Spec §6.2">
+            sp <span class="type-badge">str</span> <span class="sort-arrow">↑</span>
+          </div>
+          <div class="header-cell">sex <span class="type-badge">str</span></div>
+          <div class="header-cell">index <span class="type-badge">dbl</span></div>
+          <div class="header-cell">observation <span class="type-badge">dbl</span></div>
+          <div class="header-cell" style="color:#AAA;">[+ more cols →]</div>
+        </div>
+
+        <!-- Data rows -->
+        <div class="data-body">
+          <div class="data-row">
+            <div class="row-num-cell">0</div>
+            <div class="data-cell">B</div>
+            <div class="data-cell">M</div>
+            <div class="data-cell numeric">1.0</div>
+            <div class="data-cell numeric">1.0</div>
+            <div class="data-cell" style="color:#AAA;">…</div>
+          </div>
+          <div class="data-row alt">
+            <div class="row-num-cell">1</div>
+            <div class="data-cell">B</div>
+            <div class="data-cell">F</div>
+            <div class="data-cell numeric">1.0</div>
+            <div class="data-cell numeric">2.0</div>
+            <div class="data-cell" style="color:#AAA;">…</div>
+          </div>
+          <div class="data-row search-match" title="Search match highlight — amber tint · Spec §7.2">
+            <div class="row-num-cell">2</div>
+            <div class="data-cell">O</div>
+            <div class="data-cell">M</div>
+            <div class="data-cell numeric">1.0</div>
+            <div class="data-cell numeric">3.0</div>
+            <div class="data-cell" style="color:#AAA;">…</div>
+          </div>
+          <div class="data-row focused-match" title="Focused search match — stronger amber · Spec §7.2">
+            <div class="row-num-cell">3</div>
+            <div class="data-cell">O</div>
+            <div class="data-cell">F</div>
+            <div class="data-cell numeric">1.0</div>
+            <div class="data-cell numeric">4.0</div>
+            <div class="data-cell" style="color:#AAA;">…</div>
+          </div>
+          <div class="data-row goto-row" title="Go-to-row highlight — brief animation · Spec §6.5">
+            <div class="row-num-cell">4</div>
+            <div class="data-cell">B</div>
+            <div class="data-cell">M</div>
+            <div class="data-cell numeric">1.0</div>
+            <div class="data-cell numeric">5.0</div>
+            <div class="data-cell" style="color:#AAA;">…</div>
+          </div>
+          <div class="data-row" style="align-items:center;justify-content:center;color:#AAA;font-size:11px;">
+            ↕ virtualised rows … (infinite scroll, page size = 100) · Spec §6.1
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 2: Toolbar — annotation mode active                  -->
+  <!-- ============================================================ -->
+  <div class="section">
+    <div class="section-title">2. Toolbar — Annotation Mode Active</div>
+    <p>Annotate button shows active state. Save and Discard buttons appear. Edited cell shown in blue tint. <span class="label-tag">Spec §5.3</span></p>
+
+    <div class="widget-frame">
+      <div class="widget-label">TOOLBAR — Annotation Mode</div>
+      <div class="toolbar">
+        <div class="box icon-box">[i]</div>
+        <div class="box icon-box">[↓]</div>
+        <!-- Annotate: active/toggled state — Primary variant -->
+        <div class="box icon-box" style="background:#AAAAFF;border-color:#6666CC;color:#333" title="Annotate button — Primary variant when active · Spec §5.3">
+          [✎★]
+        </div>
+        <!-- Save and Discard appear only in annotation mode -->
+        <div class="box" style="height:32px;padding:0 10px;background:#C0C0C0;border-color:#888;" title="Save — floppyDisk (FA6) · enabled only with pending edits">
+          [💾] Save (3) <span class="annotation-badge">3 edits</span>
+        </div>
+        <div class="box" style="height:32px;padding:0 10px;" title="Discard — xmark (FA6) · shows confirm prompt if pending edits exist">
+          [✕] Discard
+        </div>
+        <div class="toolbar-spacer"></div>
+        <span style="font-size:11px;color:#888;">Go to:</span>
+        <div class="input-box">row #</div>
+        <div class="toolbar-divider"></div>
+        <div class="box icon-box">[🔍]</div>
+      </div>
+      <!-- Show an edited cell below the toolbar -->
+      <div class="data-row edited" style="border-top:1px solid #CCC;" title="Edited cell — blue tint bg · Spec §10.2">
+        <div class="row-num-cell">7</div>
+        <div class="data-cell">O</div>
+        <div class="data-cell">F <span class="annotation-badge" style="margin-left:4px">edited</span></div>
+        <div class="data-cell numeric">2.0</div>
+        <div class="data-cell numeric">9.0</div>
+        <div class="data-cell" style="color:#AAA;">…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 3: Four body states                                  -->
+  <!-- ============================================================ -->
+  <div class="section">
+    <div class="section-title">3. Four Body States</div>
+    <p>Spec §3.2 — every window must implement all four. Below: all four at equal size.</p>
+
+    <div class="states-grid">
+
+      <!-- Loading -->
+      <div class="state-card">
+        <div class="state-card-label">Loading</div>
+        <div class="body-state">
+          <div class="state-icon">[⟳]</div>
+          <div class="state-text">Loading table…</div>
+          <div class="state-sub">Centred spinner + label · Spec §3.2</div>
+        </div>
+      </div>
+
+      <!-- Empty -->
+      <div class="state-card">
+        <div class="state-card-label">Empty</div>
+        <div class="body-state">
+          <div class="state-icon">[⊞]</div>
+          <div class="state-text">No table selected</div>
+          <div class="state-sub">Open a data set from the File Navigator</div>
+        </div>
+      </div>
+
+      <!-- Active (compact) -->
+      <div class="state-card">
+        <div class="state-card-label">Active</div>
+        <!-- Toolbar -->
+        <div class="toolbar" style="height:36px;font-size:11px;">
+          <div class="box icon-box" style="width:24px;height:24px;">[i]</div>
+          <div class="box icon-box" style="width:24px;height:24px;">[↓]</div>
+          <div class="box icon-box" style="width:24px;height:24px;">[✎]</div>
+          <div class="toolbar-spacer"></div>
+          <div class="input-box" style="width:48px;height:24px;">row#</div>
+          <div class="box icon-box" style="width:24px;height:24px;">[🔍]</div>
+        </div>
+        <!-- Mini table -->
+        <div class="table-header" style="height:28px;">
+          <div class="row-num-cell header-num" style="width:40px;height:28px;font-size:10px;">#</div>
+          <div class="header-cell" style="width:100px;height:28px;font-size:10px;">sp</div>
+          <div class="header-cell" style="width:100px;height:28px;font-size:10px;">sex</div>
+          <div class="header-cell" style="width:auto;height:28px;font-size:10px;color:#AAA;">[…]</div>
+        </div>
+        <div>
+          <div class="data-row" style="height:24px;">
+            <div class="row-num-cell" style="width:40px;height:24px;font-size:10px;">0</div>
+            <div class="data-cell" style="width:100px;height:24px;font-size:10px;">B</div>
+            <div class="data-cell" style="width:100px;height:24px;font-size:10px;">M</div>
+          </div>
+          <div class="data-row alt" style="height:24px;">
+            <div class="row-num-cell" style="width:40px;height:24px;font-size:10px;">1</div>
+            <div class="data-cell" style="width:100px;height:24px;font-size:10px;">B</div>
+            <div class="data-cell" style="width:100px;height:24px;font-size:10px;">F</div>
+          </div>
+          <div class="data-row" style="height:24px;color:#AAA;font-size:10px;padding-left:40px;">…</div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div class="state-card">
+        <div class="state-card-label">Error</div>
+        <div class="body-state">
+          <div class="state-icon" style="border-color:#888;">[✕]</div>
+          <div class="state-text">Could not load table</div>
+          <div class="state-sub">Network timeout after 5000ms</div>
+          <div class="state-button">Retry</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 4: Info popover                                      -->
+  <!-- ============================================================ -->
+  <div class="section">
+    <div class="section-title">4. Info Popover — Table Metadata</div>
+    <p>Opens anchored to the Info toolbar button. Scrollable column list below summary. <span class="label-tag">Spec §8</span></p>
+
+    <div style="display:flex;gap:24px;align-items:flex-start;">
+      <!-- Popover -->
+      <div class="popover">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Table Info</div>
+        <div class="popover-row"><span class="popover-key">Name</span><span class="popover-val">crabs-long.csv</span></div>
+        <div class="popover-row">
+          <span class="popover-key">ID</span>
+          <span style="display:flex;align-items:center;gap:4px;">
+            <span class="popover-val" style="font-size:10px;font-family:monospace;">mock-crabs</span>
+            <span class="box" style="width:18px;height:18px;font-size:9px;">[⎘]</span>
+          </span>
+        </div>
+        <div class="popover-row"><span class="popover-key">Kind</span><span class="popover-val">TableSchema</span></div>
+        <div class="popover-row"><span class="popover-key">Rows</span><span class="popover-val">1,000</span></div>
+        <div class="popover-row"><span class="popover-key">Columns</span><span class="popover-val">6</span></div>
+        <div style="font-size:11px;font-weight:600;margin:8px 0 4px;color:#666;">Column list</div>
+        <div style="border:1px solid #BBB;border-radius:3px;overflow:hidden;">
+          <div class="popover-row" style="background:#D8D8D8;padding:2px 6px;">
+            <span class="popover-val">sp</span><span class="popover-key">string</span>
+          </div>
+          <div class="popover-row" style="padding:2px 6px;">
+            <span class="popover-val">sex</span><span class="popover-key">string</span>
+          </div>
+          <div class="popover-row" style="background:#D8D8D8;padding:2px 6px;">
+            <span class="popover-val">index</span><span class="popover-key">double</span>
+          </div>
+          <div class="popover-row" style="padding:2px 6px;">
+            <span class="popover-val">observation</span><span class="popover-key">double</span>
+          </div>
+          <div class="popover-row" style="background:#D8D8D8;padding:2px 6px;">
+            <span class="popover-val">variable</span><span class="popover-key">string</span>
+          </div>
+          <div class="popover-row" style="padding:2px 6px;">
+            <span class="popover-val">measurement</span><span class="popover-key">double</span>
+          </div>
+        </div>
+        <div class="annotation" style="margin-top:6px;">↑ Scrollable list — no truncation · Spec §8.2</div>
+      </div>
+
+      <!-- Notes -->
+      <div style="font-size:12px;color:#555;line-height:1.6;">
+        <strong>Popover notes:</strong><br>
+        · Anchored below Info button in toolbar<br>
+        · Copy button on Table ID row → clipboard → "Copied" toast<br>
+        · Column list scrolls if many columns<br>
+        · No edit capability in popover<br>
+        · Dismissed on outside click / Escape<br>
+        · <em>SDUI primitive:</em> InfoCard or OverlayPanel (Gap — see gap-report.md)
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SECTION 5: Cell highlight legend                             -->
+  <!-- ============================================================ -->
+  <div class="section">
+    <div class="section-title">5. Cell Highlight States — Legend</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:80px;height:24px;background:#E8E8E8;border:1px solid #CCC;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:10px;">Normal (even)</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:80px;height:24px;background:#D8D8D8;border:1px solid #CCC;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:10px;">Normal (odd)</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="data-row search-match" style="width:120px;height:24px;border:1px solid #CCC;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:10px;margin:0;">Search match</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="data-row focused-match" style="width:140px;height:24px;border:1px solid #CCC;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:10px;margin:0;">Focused match</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="data-row edited" style="width:100px;height:24px;border:1px solid #CCC;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:10px;margin:0;">Edited cell</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="data-row goto-row" style="width:100px;height:24px;border:1px solid #CCC;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:10px;margin:0;">Go-to row</div>
+      </div>
+    </div>
+    <p class="annotation" style="margin-top:6px;font-size:11px;">Actual colours in styled.html use approved tercen-tokens.css values.</p>
+  </div>
+
+  <!-- Footer -->
+  <div style="border-top:1px solid #BBB;padding-top:12px;margin-top:8px;font-size:11px;color:#888;">
+    Data Table Wireframe · widgets/data-table/_mock/wireframe.html · Spec v1.0 · 2026-03-31
+  </div>
+
+</div>
+</body>
+</html>

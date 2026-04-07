@@ -1,0 +1,11 @@
+{
+  "name": "Chat Box",
+  "description": "Chat Box window for LLM-powered conversation within Tercen.",
+  "isWebApp": true,
+  "isViewOnly": false,
+  "entryType": "app",
+  "serve": "build/web",
+  "tags": ["window", "chat"],
+  "authors": ["tercen"],
+  "urls": ["https://github.com/tercen/tercen_ui_widgets"]
+}

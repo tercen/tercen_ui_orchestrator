@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<!--
+  Workflow Viewer — Styled Mock
+  Based on: workflow-viewer-spec.md v1.0
+  Tokens: tercen-tokens.css (embedded below)
+  Shows all 4 body states with realistic mock data.
+  Theme toggle: click the moon/sun button (top-right) or press T.
+-->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow Viewer — Styled Mock</title>
+
+  <!-- FontAwesome 6 Solid -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Google Fonts: Fira Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+/* ═══════════════════════════════════════════════════════════
+   TERCEN DESIGN TOKENS — embedded from tercen-tokens.css
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --font-family: 'Fira Sans', sans-serif;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  --line-weight-subtle: 1px;
+  --line-weight-standard: 1.5px;
+  --line-weight-emphasis: 2px;
+  --line-weight-viz-data: 2px;
+  --line-weight-viz-highlight: 3px;
+
+  --control-height-sm: 28px;
+  --control-height-md: 36px;
+  --control-height-lg: 44px;
+
+  --button-padding-h: 16px;
+  --button-border-radius: 8px;
+  --button-border-width: 1.5px;
+
+  --icon-size-sm: 16px;
+  --icon-size-md: 24px;
+
+  --text-body-medium-size: 14px;
+  --text-label-small-size: 12px;
+  --text-label-small-weight: 500;
+  --text-section-header-size: 12px;
+  --text-section-header-weight: 600;
+}
+
+[data-theme="light"], :root {
+  --color-primary: #1E40AF;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #DBEAFE;
+  --color-on-primary-container: #1E3A8A;
+  --color-primary-fixed: #EFF6FF;
+  --color-tertiary: #6D28D9;
+  --color-error: #B91C1C;
+  --color-on-error: #FFFFFF;
+  --color-error-container: #FEE2E2;
+  --color-surface: #FFFFFF;
+  --color-on-surface: #111827;
+  --color-on-surface-variant: #374151;
+  --color-surface-container-low: #F9FAFB;
+  --color-surface-container: #F3F4F6;
+  --color-surface-container-high: #E5E7EB;
+  --color-outline: #D1D5DB;
+  --color-outline-variant: #E5E7EB;
+  --color-shadow: #000000;
+  --color-on-surface-muted: #6B7280;
+  --color-on-surface-disabled: #9CA3AF;
+  --color-warning: #B45309;
+  --color-on-warning: #FFFFFF;
+  --color-warning-container: #FEF3C7;
+  --color-on-warning-container: #B45309;
+  --color-success: #047857;
+  --color-on-success: #FFFFFF;
+  --color-success-container: #D1FAE5;
+  --color-on-success-container: #047857;
+  --color-info: #0E7490;
+  --color-on-info: #FFFFFF;
+  --color-info-container: #CFFAFE;
+  --color-on-info-container: #0E7490;
+  --color-link: #2563EB;
+  --color-text-tertiary: #4B5563;
+}
+
+[data-theme="dark"] {
+  --color-primary: #14B8A6;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #153D47;
+  --color-on-primary-container: #2DD4BF;
+  --color-primary-fixed: #122E35;
+  --color-tertiary: #A78BFA;
+  --color-error: #F87171;
+  --color-on-error: #FFFFFF;
+  --color-error-container: #450A0A;
+  --color-surface: #111827;
+  --color-on-surface: #F9FAFB;
+  --color-on-surface-variant: #E5E7EB;
+  --color-surface-container-low: #111827;
+  --color-surface-container: #1F2937;
+  --color-surface-container-high: #1F2937;
+  --color-outline: #374151;
+  --color-outline-variant: #374151;
+  --color-shadow: #000000;
+  --color-on-surface-muted: #6B7280;
+  --color-on-surface-disabled: #4B5563;
+  --color-warning: #FBBF24;
+  --color-on-warning: #111827;
+  --color-warning-container: #451A03;
+  --color-on-warning-container: #FBBF24;
+  --color-success: #10B981;
+  --color-on-success: #111827;
+  --color-success-container: #14532D;
+  --color-on-success-container: #4ADE80;
+  --color-info: #60A5FA;
+  --color-on-info: #111827;
+  --color-info-container: #083344;
+  --color-on-info-container: #67E8F9;
+  --color-link: #60A5FA;
+  --color-text-tertiary: #9CA3AF;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE CHROME
+   ═══════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--text-body-medium-size);
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+  min-height: 100%;
+  padding: var(--spacing-lg);
+  transition: background 0.2s, color 0.2s;
+}
+
+/* Page header row */
+.page-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-md);
+}
+.page-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+.page-header .note {
+  font-size: 12px;
+  color: var(--color-on-surface-muted);
+}
+.theme-toggle {
+  margin-left: auto;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border-radius: var(--radius-md);
+  border: var(--button-border-width) solid var(--color-outline);
+  background: var(--color-surface);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.theme-toggle:hover {
+  background: var(--color-surface-container-high);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.section-label {
+  font-size: var(--text-section-header-size);
+  font-weight: var(--text-section-header-weight);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-on-surface-muted);
+  margin: var(--spacing-xl) 0 var(--spacing-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WINDOW SHELL
+   ═══════════════════════════════════════════════════════════ */
+
+.window-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: var(--spacing-xl);
+}
+
+/* Mock tab strip (provided by Frame in production) */
+.tab-strip {
+  display: flex;
+  align-items: flex-end;
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline);
+  padding: 0 var(--spacing-sm);
+  gap: var(--spacing-xs);
+  height: 36px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.tab {
+  height: 28px;
+  padding: 0 var(--spacing-md);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--color-on-surface-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-family);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: background 0.15s, color 0.15s;
+}
+.tab:hover { background: var(--color-surface-container-high); }
+.tab.active {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  border-color: var(--color-outline);
+}
+.tab-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #10B981; /* Workflow identity green */
+  flex-shrink: 0;
+}
+
+.window {
+  width: 860px;
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOOLBAR (48px fixed height)
+   ═══════════════════════════════════════════════════════════ */
+
+.toolbar {
+  height: 48px;
+  min-height: 48px;
+  background: var(--color-surface-container-high);
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-sm);
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* Primary button — Run All / Stop All / Reset All */
+.btn-primary {
+  height: var(--control-height-md);
+  padding: 0 var(--button-padding-h);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--button-border-radius);
+  font-family: var(--font-family);
+  font-size: var(--text-label-small-size);
+  font-weight: var(--text-label-small-weight);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn-primary:hover { filter: brightness(0.9); }
+.btn-primary:disabled {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface-disabled);
+  cursor: default;
+}
+
+/* Ghost toolbar button (icon-only) */
+.btn-ghost {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--icon-size-sm);
+  transition: background 0.15s, color 0.15s;
+}
+.btn-ghost:hover {
+  background: var(--color-surface-container);
+  color: var(--color-on-surface);
+}
+
+/* Search field */
+.toolbar-spacer { flex: 1; }
+.search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-wrap i.search-icon {
+  position: absolute;
+  left: var(--spacing-sm);
+  color: var(--color-on-surface-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+.search-input {
+  height: var(--control-height-md);
+  width: 200px;
+  padding: 0 var(--spacing-md) 0 28px;
+  background: var(--color-surface);
+  border: var(--line-weight-standard) solid var(--color-outline);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--color-on-surface);
+  outline: none;
+  transition: border-color 0.15s, background 0.2s;
+}
+.search-input::placeholder { color: var(--color-on-surface-muted); }
+.search-input:focus { border-color: var(--color-primary); }
+
+/* ═══════════════════════════════════════════════════════════
+   BODY STATES
+   ═══════════════════════════════════════════════════════════ */
+
+.body-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Centred state (loading / empty / error) */
+.state-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+}
+.state-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.state-icon-wrap.loading {
+  background: var(--color-primary-container);
+  color: var(--color-primary);
+}
+.state-icon-wrap.empty {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface-muted);
+}
+.state-icon-wrap.error {
+  background: var(--color-error-container);
+  color: var(--color-error);
+}
+.state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-on-surface);
+}
+.state-subtitle {
+  font-size: 14px;
+  color: var(--color-on-surface-muted);
+  text-align: center;
+}
+
+/* Spinner animation */
+@keyframes spin { to { transform: rotate(360deg); } }
+.fa-spin-custom { animation: spin 1s linear infinite; }
+
+/* Retry button */
+.btn-secondary {
+  height: var(--control-height-md);
+  padding: 0 var(--button-padding-h);
+  background: transparent;
+  color: var(--color-primary);
+  border: var(--button-border-width) solid var(--color-primary);
+  border-radius: var(--button-border-radius);
+  font-family: var(--font-family);
+  font-size: var(--text-label-small-size);
+  font-weight: var(--text-label-small-weight);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: var(--color-primary-fixed); }
+
+/* ═══════════════════════════════════════════════════════════
+   FLOWCHART VIEW
+   ═══════════════════════════════════════════════════════════ */
+
+.flowchart-scroll {
+  flex: 1;
+  overflow: auto;
+  background: var(--color-surface);
+  transition: background 0.2s;
+}
+.flowchart-canvas {
+  position: relative;
+  width: 1100px;
+  height: 780px;
+  padding: var(--spacing-lg);
+}
+
+/* SVG connector layer */
+.connectors {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* ─── Node base ──────────────────────────────────── */
+.node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Box node — TableStep, DataStep, ExportStep, MeltStep (box display style) */
+.node-box {
+  height: 44px;
+  min-width: 130px;
+  max-width: 180px;
+  padding: 0 var(--spacing-md);
+  background: var(--color-surface-container-low);
+  border: var(--line-weight-standard) solid var(--color-outline);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-on-surface);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.node-box:hover {
+  background: var(--color-primary-fixed);
+  border-color: var(--color-primary);
+}
+.node-box.focused {
+  border: var(--line-weight-emphasis) solid var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-fixed);
+}
+.node-box .node-name {
+  font-size: 12px;
+  color: var(--color-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Circle badge — Workflow, GroupStep, ViewStep */
+.node-circle {
+  width: 36px;
+  height: 36px;
+  background: var(--color-surface-container-low);
+  border: var(--line-weight-standard) solid var(--color-outline);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.node-circle:hover {
+  background: var(--color-primary-fixed);
+  border-color: var(--color-primary);
+}
+.node-circle.focused {
+  border: var(--line-weight-emphasis) solid var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-fixed);
+}
+
+/* Rounded square — InStep, OutStep */
+.node-square {
+  width: 32px;
+  height: 32px;
+  background: var(--color-surface-container-low);
+  border: var(--line-weight-standard) solid var(--color-outline);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: border-color 0.15s;
+}
+.node-square:hover { border-color: var(--color-primary); }
+
+/* Hexagon — JoinStep (box display, hexagon 90°) */
+.node-hex-wrap {
+  width: 60px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.node-hex {
+  width: 52px;
+  height: 44px;
+  background: var(--color-surface-container-low);
+  border: var(--line-weight-standard) solid var(--color-outline);
+  /* hexagon rotated 90°: points top+bottom, flat sides east+west */
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-on-surface);
+  gap: 4px;
+  transition: background 0.15s;
+}
+.node-hex:hover { background: var(--color-primary-fixed); }
+
+/* Node label (displayed outside the shape) */
+.node-label {
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+  text-align: center;
+  max-width: 140px;
+  line-height: 1.3;
+}
+.node-label.muted { color: var(--color-on-surface-muted); }
+
+/* ─── Step state icon colours ─────────────────────── */
+.icon-init    { color: var(--color-on-surface-muted); }
+.icon-done    { color: var(--color-success); }
+.icon-running { color: var(--color-info); }
+.icon-error   { color: var(--color-error); }
+.icon-neutral { color: var(--color-on-surface-variant); }
+
+/* Search highlight ring */
+.search-match .node-box,
+.search-match .node-circle {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ACTIVE STATE PANEL — FOCUSED STEP INFO
+   ═══════════════════════════════════════════════════════════ */
+.focus-info {
+  position: absolute;
+  bottom: var(--spacing-md);
+  right: var(--spacing-md);
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 11px;
+  color: var(--color-on-surface-muted);
+  line-height: 1.6;
+  max-width: 220px;
+}
+.focus-info strong { color: var(--color-on-surface); font-weight: 600; }
+
+  </style>
+</head>
+<body>
+
+<!-- Page header -->
+<div class="page-header">
+  <h1>Workflow Viewer</h1>
+  <span class="note">Styled mock — all 4 body states | Press T or click button to toggle theme</span>
+  <button class="theme-toggle" id="themeBtn" title="Toggle light/dark theme">
+    <i class="fa-solid fa-moon" id="themeIcon"></i>
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STATE 1 — LOADING
+     ═══════════════════════════════════════════════════════ -->
+<div class="section-label">State 1 — Loading</div>
+<div class="window-group">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div>Workflow</div>
+    <div class="tab">Data</div>
+  </div>
+  <div class="window" style="height:280px;">
+    <div class="toolbar">
+      <!-- toolbar disabled during load -->
+      <button class="btn-primary" disabled><i class="fa-solid fa-play"></i> Run All</button>
+      <div class="toolbar-spacer"></div>
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input class="search-input" type="text" placeholder="Search steps..." disabled>
+      </div>
+    </div>
+    <div class="body-area">
+      <div class="state-center">
+        <div class="state-icon-wrap loading">
+          <i class="fa-solid fa-circle-notch fa-spin-custom"></i>
+        </div>
+        <div class="state-title">Loading workflow...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STATE 2 — EMPTY
+     ═══════════════════════════════════════════════════════ -->
+<div class="section-label">State 2 — Empty (no workflow ID provided)</div>
+<div class="window-group">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div>Workflow</div>
+  </div>
+  <div class="window" style="height:280px;">
+    <div class="toolbar">
+      <button class="btn-primary" disabled><i class="fa-solid fa-play"></i> Run All</button>
+      <div class="toolbar-spacer"></div>
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input class="search-input" type="text" placeholder="Search steps..." disabled>
+      </div>
+    </div>
+    <div class="body-area">
+      <div class="state-center">
+        <div class="state-icon-wrap empty">
+          <i class="fa-solid fa-sitemap"></i>
+        </div>
+        <div class="state-title">No workflow selected</div>
+        <div class="state-subtitle">Select a workflow in the Navigator</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STATE 3 — ACTIVE  (test 22 — 22-step workflow)
+     ═══════════════════════════════════════════════════════ -->
+<div class="section-label">State 3 — Active ("test 22" workflow — 22 steps, 8-way fan-out, join, melt, views)</div>
+<div class="window-group">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div>Workflow</div>
+    <div class="tab">Data</div>
+    <div class="tab">Chat</div>
+  </div>
+  <div class="window" style="height:560px;">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <!-- Action button: workflow root focused + some steps done → Reset All -->
+      <button class="btn-primary" title="Reset all steps in test 22">
+        <i class="fa-solid fa-rotate-left"></i> Reset All
+      </button>
+      <div class="toolbar-spacer"></div>
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input class="search-input" type="text" placeholder="Search steps..." id="searchInput" oninput="handleSearch(this.value)">
+      </div>
+    </div>
+
+    <!-- ACTIVE BODY: Flowchart -->
+    <div class="body-area">
+      <div class="flowchart-scroll">
+        <div class="flowchart-canvas">
+
+          <!-- ── SVG connector layer ──────────────────────── -->
+          <svg class="connectors" xmlns="http://www.w3.org/2000/svg">
+            <!-- Focused path (root → Cell Ranger Data → QC step → QC filters → Find variable features → PCA): highlighted -->
+            <polyline points="120,46 120,80 120,90" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-opacity="0.6"/>
+            <polyline points="120,134 120,170 120,180" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-opacity="0.6"/>
+            <polyline points="120,224 120,260 120,270" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-opacity="0.6"/>
+            <polyline points="120,314 120,350 120,360" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-opacity="0.6"/>
+            <polyline points="120,404 120,440 120,450" fill="none" stroke="var(--color-primary)" stroke-width="3" stroke-opacity="0.6"/>
+
+            <!-- Std connectors: non-focused paths -->
+            <!-- Root → README.md (second entry) -->
+            <polyline points="120,46 120,66 640,66 640,90" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+
+            <!-- PCA → fan-out: 8 branches at depth 5 -->
+            <!-- PCA → View PCA Results (col 0) -->
+            <polyline points="120,494 120,520 120,530" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <!-- PCA → SNN Graph Clustering (col 1) -->
+            <polyline points="120,494 120,514 270,514 270,530" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <!-- PCA → Data step (col 2) -->
+            <polyline points="120,494 120,514 420,514 420,530" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <!-- PCA → Data step 1 (col 3) -->
+            <polyline points="120,494 120,514 570,514 570,530" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <!-- PCA → Data step 2 (col 5) -->
+            <polyline points="120,494 120,514 720,514 720,530" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <!-- PCA → Data step 3 (col 6) -->
+            <polyline points="120,494 120,514 870,514 870,530" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <!-- PCA → Data step 4 (col 7) -->
+            <polyline points="120,494 120,514 1020,514 1020,530" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+
+            <!-- SNN → View clusters + Differential analysis (depth 6) -->
+            <polyline points="270,574 270,600 270,610" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <polyline points="270,574 270,594 420,594 420,610" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+
+            <!-- Diff analysis → View Differentially Expressed (col 2 depth 7) -->
+            <polyline points="420,654 420,680 420,690" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+
+            <!-- Diff analysis → Join (col 3 depth 7, second input from README.md) -->
+            <polyline points="420,654 420,674 570,674 570,690" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+            <polyline points="640,134 640,674 570,674 570,690" fill="none" stroke="var(--color-outline-variant)" stroke-width="2" stroke-dasharray="4,3"/>
+
+            <!-- Join → Gather → Data step 5 → View 5 -->
+            <polyline points="570,734 570,750 570,760" fill="none" stroke="var(--color-outline)" stroke-width="2"/>
+
+            <!-- Data step 2 → View 4 (inline, same row) -->
+            <polyline points="720,574 720,574 870,574" fill="none" stroke="var(--color-outline)" stroke-width="2" opacity="0.4"/>
+          </svg>
+
+          <!-- ── Workflow root (row 0) ────────────────────── -->
+          <div class="node focused" style="left:88px;top:8px;" title="Workflow root — single-click to focus, double-click to rename">
+            <div class="node-circle focused">
+              <i class="fa-solid fa-sitemap icon-done" style="font-size:14px;"></i>
+            </div>
+            <div class="node-label">test 22</div>
+          </div>
+
+          <!-- ── Row 0 col 4: README.md (TableStep) ─────── -->
+          <div class="node" style="left:608px;top:90px;" title="README.md — TableStep">
+            <div class="node-box">
+              <i class="fa-solid fa-table icon-done"></i>
+              <span class="node-name">README.md</span>
+            </div>
+          </div>
+
+          <!-- ── Row 1: Cell Ranger Data (TableStep) ───── -->
+          <div class="node" style="left:40px;top:90px;" title="Cell Ranger Data — TableStep">
+            <div class="node-box">
+              <i class="fa-solid fa-table icon-done"></i>
+              <span class="node-name">Cell Ranger Data</span>
+            </div>
+          </div>
+
+          <!-- ── Row 2: QC step (DataStep) ─────────────── -->
+          <div class="node" style="left:40px;top:180px;" title="QC step — DataStep | state: done">
+            <div class="node-box">
+              <i class="fa-solid fa-cubes icon-done"></i>
+              <span class="node-name">QC step</span>
+            </div>
+          </div>
+
+          <!-- ── Row 3: QC filters and normalization ───── -->
+          <div class="node" style="left:10px;top:270px;" title="QC filters and normalization — DataStep | state: done">
+            <div class="node-box" style="min-width:160px;">
+              <i class="fa-solid fa-cubes icon-done"></i>
+              <span class="node-name">QC filters &amp; norm.</span>
+            </div>
+          </div>
+
+          <!-- ── Row 4: Find variable features ─────────── -->
+          <div class="node" style="left:15px;top:360px;" title="Find variable features — DataStep | state: done">
+            <div class="node-box" style="min-width:150px;">
+              <i class="fa-solid fa-cubes icon-done"></i>
+              <span class="node-name">Find variable features</span>
+            </div>
+          </div>
+
+          <!-- ── Row 5: PCA on 2K most variable genes ──── -->
+          <div class="node" style="left:0px;top:450px;" title="PCA on 2K most variable genes — DataStep | state: done">
+            <div class="node-box" style="min-width:175px;">
+              <i class="fa-solid fa-cubes icon-done"></i>
+              <span class="node-name">PCA on 2K most var. genes</span>
+            </div>
+          </div>
+
+          <!-- ── Row 6: Fan-out from PCA (8 children) ─── -->
+
+          <!-- View PCA Results (col 0) -->
+          <div class="node" style="left:40px;top:530px;" title="View PCA Results — DataStep | state: running">
+            <div class="node-box">
+              <i class="fa-solid fa-circle-notch icon-running fa-spin-custom"></i>
+              <span class="node-name">View PCA Results</span>
+            </div>
+          </div>
+
+          <!-- ViewStep 3 — circle badge, same row as View PCA Results -->
+          <div class="node" style="left:192px;top:542px;" title="View 3 — ViewStep (hover to see name)">
+            <div class="node-circle">
+              <i class="fa-solid fa-eye icon-done" style="font-size:13px;"></i>
+            </div>
+            <!-- name shown on hover only in production; shown here for reference -->
+            <div class="node-label muted" style="font-size:10px;">View 3</div>
+          </div>
+
+          <!-- SNN Graph Clustering (col 1) -->
+          <div class="node" style="left:230px;top:530px;" title="SNN Graph Clustering — DataStep | state: init">
+            <div class="node-box">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">SNN Graph Clustering</span>
+            </div>
+          </div>
+
+          <!-- Data step (col 2) -->
+          <div class="node" style="left:385px;top:530px;">
+            <div class="node-box">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">Data step</span>
+            </div>
+          </div>
+
+          <!-- Data step 1 (col 3) -->
+          <div class="node" style="left:535px;top:530px;">
+            <div class="node-box">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">Data step 1</span>
+            </div>
+          </div>
+
+          <!-- Data step 2 (col 5) -->
+          <div class="node" style="left:685px;top:530px;">
+            <div class="node-box">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">Data step 2</span>
+            </div>
+          </div>
+
+          <!-- View 4 — ViewStep same row as Data step 2 -->
+          <div class="node" style="left:840px;top:542px;" title="View 4 — ViewStep">
+            <div class="node-circle">
+              <i class="fa-solid fa-eye icon-init" style="font-size:13px;"></i>
+            </div>
+            <div class="node-label muted" style="font-size:10px;">View 4</div>
+          </div>
+
+          <!-- Data step 3 (col 6) -->
+          <div class="node" style="left:835px;top:530px;display:none"><!-- pushed right --></div>
+
+          <!-- Data step 4 (col 7) -->
+          <div class="node" style="left:985px;top:530px;">
+            <div class="node-box">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">Data step 4</span>
+            </div>
+          </div>
+
+          <!-- ── Row 7: Children of SNN ──────────────── -->
+
+          <!-- View clusters -->
+          <div class="node" style="left:230px;top:610px;">
+            <div class="node-box">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">View clusters</span>
+            </div>
+          </div>
+
+          <!-- Differential analysis -->
+          <div class="node" style="left:370px;top:610px;">
+            <div class="node-box" style="min-width:165px;">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">Differential analysis</span>
+            </div>
+          </div>
+
+          <!-- ── Row 8: Children of Differential ────── -->
+
+          <!-- View Differentially Expressed Markers -->
+          <div class="node" style="left:350px;top:690px;">
+            <div class="node-box" style="min-width:165px;">
+              <i class="fa-solid fa-cubes icon-init"></i>
+              <span class="node-name">View Diff. Expressed</span>
+            </div>
+          </div>
+
+          <!-- Join (hex, col 3, row 8) — merges Diff analysis + README.md -->
+          <div class="node" style="left:524px;top:690px;" title="Join — JoinStep | inputs from two branches">
+            <div class="node-hex-wrap">
+              <div class="node-hex">
+                <i class="fa-solid fa-code-merge icon-init" style="font-size:11px;"></i>
+              </div>
+            </div>
+            <div class="node-label">Join</div>
+          </div>
+
+          <!-- ── Row 9: Gather (MeltStep, hexagon) ─── -->
+          <div class="node" style="left:524px;top:760px;" title="Gather — MeltStep">
+            <div class="node-hex-wrap">
+              <div class="node-hex">
+                <i class="fa-solid fa-shuffle icon-init" style="font-size:11px;"></i>
+              </div>
+            </div>
+            <div class="node-label">Gather</div>
+          </div>
+
+          <!-- Focus info overlay -->
+          <div class="focus-info">
+            <strong>Focused: test 22</strong> (workflow root)<br>
+            Some steps done, some running<br>
+            <br>
+            <strong>Button:</strong> Reset All<br>
+            <strong>EventBus:</strong> focusChanged emitted<br>
+            <br>
+            Single-click node to change focus<br>
+            Double-click to open step viewer
+          </div>
+
+        </div><!-- /flowchart-canvas -->
+      </div><!-- /flowchart-scroll -->
+    </div><!-- /body-area -->
+  </div><!-- /window -->
+</div><!-- /window-group active -->
+
+<!-- ═══════════════════════════════════════════════════════
+     STATE 4 — ERROR
+     ═══════════════════════════════════════════════════════ -->
+<div class="section-label">State 4 — Error (connection failed)</div>
+<div class="window-group">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div>Workflow</div>
+  </div>
+  <div class="window" style="height:280px;">
+    <div class="toolbar">
+      <button class="btn-primary" disabled><i class="fa-solid fa-rotate-left"></i> Reset All</button>
+      <div class="toolbar-spacer"></div>
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input class="search-input" type="text" placeholder="Search steps..." disabled>
+      </div>
+    </div>
+    <div class="body-area">
+      <div class="state-center">
+        <div class="state-icon-wrap error">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="state-title">Failed to load workflow</div>
+        <div class="state-subtitle">
+          Connection timed out loading workflow 333e3ae3.<br>
+          Check your network connection and try again.
+        </div>
+        <button class="btn-secondary">
+          <i class="fa-solid fa-rotate-right"></i> Retry
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TOOLBAR BUTTON STATE REFERENCE
+     ═══════════════════════════════════════════════════════ -->
+<div class="section-label">Toolbar — Action Button All States</div>
+<div style="display:flex;gap:var(--spacing-md);flex-wrap:wrap;margin-bottom:var(--spacing-xl);">
+
+  <!-- Workflow root states -->
+  <div style="background:var(--color-surface);border:1px solid var(--color-outline);border-radius:var(--radius-md);padding:var(--spacing-md);">
+    <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);margin-bottom:var(--spacing-sm);">WORKFLOW ROOT FOCUSED</div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-sm);">
+      <button class="btn-primary"><i class="fa-solid fa-play"></i> Run All</button>
+      <button class="btn-primary" style="background:var(--color-error);"><i class="fa-solid fa-stop"></i> Stop All</button>
+      <button class="btn-primary"><i class="fa-solid fa-rotate-left"></i> Reset All</button>
+    </div>
+  </div>
+
+  <!-- Individual step states -->
+  <div style="background:var(--color-surface);border:1px solid var(--color-outline);border-radius:var(--radius-md);padding:var(--spacing-md);">
+    <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);margin-bottom:var(--spacing-sm);">INDIVIDUAL STEP FOCUSED</div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-sm);">
+      <button class="btn-primary"><i class="fa-solid fa-play"></i> Run Step</button>
+      <button class="btn-primary" style="background:var(--color-error);"><i class="fa-solid fa-stop"></i> Stop Step</button>
+      <button class="btn-primary"><i class="fa-solid fa-rotate-left"></i> Reset Step</button>
+    </div>
+  </div>
+
+  <!-- Step state icon legend -->
+  <div style="background:var(--color-surface);border:1px solid var(--color-outline);border-radius:var(--radius-md);padding:var(--spacing-md);">
+    <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);margin-bottom:var(--spacing-sm);">STEP STATE — ICON COLOUR</div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-sm);font-size:13px;">
+      <div style="display:flex;align-items:center;gap:var(--spacing-sm);">
+        <i class="fa-solid fa-cubes icon-init" style="width:20px;text-align:center;"></i>
+        <span style="color:var(--color-on-surface-variant);">Init — neutral, static</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--spacing-sm);">
+        <i class="fa-solid fa-cubes icon-done" style="width:20px;text-align:center;"></i>
+        <span style="color:var(--color-on-surface-variant);">Done — success green</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--spacing-sm);">
+        <i class="fa-solid fa-circle-notch icon-running fa-spin-custom" style="width:20px;text-align:center;"></i>
+        <span style="color:var(--color-on-surface-variant);">Running — spinner, info blue</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--spacing-sm);">
+        <i class="fa-solid fa-cubes icon-error" style="width:20px;text-align:center;"></i>
+        <span style="color:var(--color-on-surface-variant);">Error — error red</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     STEP TYPE SHAPE REFERENCE
+     ═══════════════════════════════════════════════════════ -->
+<div class="section-label">Step Type — Shape and Icon Reference</div>
+<div style="display:flex;gap:var(--spacing-md);flex-wrap:wrap;margin-bottom:var(--spacing-xl);">
+
+  <div style="background:var(--color-surface);border:1px solid var(--color-outline);border-radius:var(--radius-md);padding:var(--spacing-md);display:flex;flex-direction:column;gap:var(--spacing-sm);">
+    <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);">CIRCLE BADGE</div>
+    <div style="display:flex;gap:var(--spacing-md);align-items:flex-end;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="node-circle"><i class="fa-solid fa-sitemap icon-done" style="font-size:13px;"></i></div>
+        <span style="font-size:10px;color:var(--color-on-surface-muted);">Workflow</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="node-circle"><i class="fa-solid fa-sitemap icon-done" style="font-size:13px;"></i></div>
+        <span style="font-size:10px;color:var(--color-on-surface-muted);">GroupStep</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="node-circle"><i class="fa-solid fa-eye icon-done" style="font-size:13px;"></i></div>
+        <span style="font-size:10px;color:var(--color-on-surface-muted);">ViewStep</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--color-surface);border:1px solid var(--color-outline);border-radius:var(--radius-md);padding:var(--spacing-md);display:flex;flex-direction:column;gap:var(--spacing-sm);">
+    <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);">ROUNDED RECT (BOX)</div>
+    <div style="display:flex;flex-direction:column;gap:var(--spacing-sm);">
+      <div class="node-box" style="cursor:default;"><i class="fa-solid fa-table icon-done"></i><span class="node-name">TableStep</span></div>
+      <div class="node-box" style="cursor:default;"><i class="fa-solid fa-cubes icon-done"></i><span class="node-name">DataStep</span></div>
+      <div class="node-box" style="cursor:default;"><i class="fa-solid fa-file icon-init"></i><span class="node-name">ExportStep</span></div>
+      <div class="node-box" style="cursor:default;"><i class="fa-solid fa-wand-magic-sparkles icon-init"></i><span class="node-name">WizardStep</span></div>
+    </div>
+  </div>
+
+  <div style="background:var(--color-surface);border:1px solid var(--color-outline);border-radius:var(--radius-md);padding:var(--spacing-md);display:flex;flex-direction:column;gap:var(--spacing-sm);">
+    <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);">HEXAGON 90° (BOX)</div>
+    <div style="display:flex;gap:var(--spacing-md);align-items:flex-end;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="node-hex-wrap"><div class="node-hex"><i class="fa-solid fa-code-merge icon-done" style="font-size:11px;"></i></div></div>
+        <span style="font-size:10px;color:var(--color-on-surface-muted);">JoinStep</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="node-hex-wrap"><div class="node-hex"><i class="fa-solid fa-shuffle icon-init" style="font-size:11px;"></i></div></div>
+        <span style="font-size:10px;color:var(--color-on-surface-muted);">MeltStep</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--color-surface);border:1px solid var(--color-outline);border-radius:var(--radius-md);padding:var(--spacing-md);display:flex;flex-direction:column;gap:var(--spacing-sm);">
+    <div style="font-size:11px;font-weight:600;color:var(--color-on-surface-muted);">ROUNDED SQUARE (ICON)</div>
+    <div style="display:flex;gap:var(--spacing-md);align-items:flex-end;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="node-square"><i class="fa-solid fa-right-to-bracket icon-init" style="font-size:12px;"></i></div>
+        <span style="font-size:10px;color:var(--color-on-surface-muted);">InStep</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="node-square"><i class="fa-solid fa-right-from-bracket icon-done" style="font-size:12px;"></i></div>
+        <span style="font-size:10px;color:var(--color-on-surface-muted);">OutStep</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ─── Theme toggle ─────────────────────────────── */
+  const html = document.documentElement;
+  const themeBtn = document.getElementById('themeBtn');
+  const themeIcon = document.getElementById('themeIcon');
+
+  function setTheme(dark) {
+    html.setAttribute('data-theme', dark ? 'dark' : 'light');
+    themeIcon.className = dark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  }
+
+  themeBtn.addEventListener('click', () => {
+    setTheme(html.getAttribute('data-theme') !== 'dark');
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' || e.key === 'T') setTheme(html.getAttribute('data-theme') !== 'dark');
+  });
+
+  /* ─── Search highlight (basic demo) ────────────── */
+  function handleSearch(query) {
+    document.querySelectorAll('.node').forEach(node => {
+      const name = node.querySelector('.node-name, .node-label');
+      if (!name) return;
+      if (query && name.textContent.toLowerCase().includes(query.toLowerCase())) {
+        node.classList.add('search-match');
+      } else {
+        node.classList.remove('search-match');
+      }
+    });
+  }
+
+  /* ─── Node click — focus demo ────────────────── */
+  document.querySelectorAll('.node').forEach(node => {
+    const inner = node.querySelector('.node-box, .node-circle, .node-square, .node-hex');
+    if (!inner) return;
+    node.addEventListener('click', () => {
+      document.querySelectorAll('.node-box.focused, .node-circle.focused').forEach(el => el.classList.remove('focused'));
+      inner.classList.add('focused');
+    });
+  });
+</script>
+
+</body>
+</html>

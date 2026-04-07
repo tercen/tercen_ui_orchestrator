@@ -1,0 +1,35 @@
+name: data_table_app
+description: "Tercen Data Table — tabular data viewing and annotation window"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  get_it: ^8.0.3
+  shared_preferences: ^2.2.2
+  web: ^0.5.1
+  font_awesome_flutter: ^10.6.0
+  # Tercen context API — required for Phase 3 (real data integration)
+  sci_tercen_context:
+    git:
+      url: https://github.com/tercen/sci_tercen_client
+      ref: 1.12.0
+      path: sci_tercen_context
+  sci_tercen_client:
+    git:
+      url: https://github.com/tercen/sci_tercen_client
+      ref: 1.12.0
+      path: sci_tercen_client
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

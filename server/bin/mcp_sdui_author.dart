@@ -347,8 +347,9 @@ String _saveToCatalog(Map<String, dynamic> args) {
 
   // Find catalog.json.
   final candidates = [
-    '../../tercen_ui_widgets/catalog.json', // from server/bin/
-    '../tercen_ui_widgets/catalog.json',
+    '../../packages/tercen_ui_widgets/catalog.json', // from server/bin/ (monorepo)
+    '../packages/tercen_ui_widgets/catalog.json',    // from server/ (monorepo)
+    'packages/tercen_ui_widgets/catalog.json',       // from repo root
   ];
   File? catalogFile;
   for (final path in candidates) {

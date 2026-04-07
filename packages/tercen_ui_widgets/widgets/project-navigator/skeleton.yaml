@@ -1,0 +1,4 @@
+kind: window
+label: Project Navigator
+description: Project navigator window for browsing the Tercen team/project/file hierarchy.
+design_reference: project-navigator-spec.md

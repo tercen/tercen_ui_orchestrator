@@ -545,7 +545,7 @@ Mode B is what you're building. The AI picks the widget and its top-level props;
 
 ### 8.1 SDUI core types — extracted to `sdui` package
 
-The EventBus, SduiNode, WidgetRegistry, behavior widgets, and renderer live in the `../sdui` package. Both the orchestrator and widget libraries depend on it. Import from `package:sdui/sdui.dart`.
+The EventBus, SduiNode, WidgetRegistry, behavior widgets, and renderer live in the `packages/sdui` package. Both the orchestrator and widget libraries depend on it. Import from `package:sdui/sdui.dart`.
 
 ### 8.2 Widget metadata → AI discovery pipeline (not yet automated)
 

@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Trail — Styled Mock</title>
+
+  <!-- Fira Sans from Google Fonts (used by Tercen design system) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Solid -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <style>
+    /* ── Tercen tokens (subset from tercen-tokens.css) ─────── */
+    :root {
+      --font-family: 'Fira Sans', sans-serif;
+
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+
+      --line-weight-subtle: 1px;
+      --line-weight-standard: 1.5px;
+
+      --control-height-md: 36px;
+
+      --text-body-medium-size: 14px;
+      --text-body-small-size: 12px;
+      --text-label-small-size: 12px;
+      --text-label-small-weight: 500;
+      --text-section-header-size: 12px;
+      --text-section-header-weight: 600;
+      --text-section-header-letter-spacing: 0.5px;
+    }
+
+    /* Light theme */
+    [data-theme="light"], :root {
+      --color-primary: #1E40AF;
+      --color-on-primary: #FFFFFF;
+      --color-primary-container: #DBEAFE;
+      --color-primary-fixed: #EFF6FF;
+      --color-primary-darker: #1E3A8A;
+      --color-surface: #FFFFFF;
+      --color-on-surface: #111827;
+      --color-on-surface-variant: #374151;
+      --color-surface-container-low: #F9FAFB;
+      --color-surface-container: #F3F4F6;
+      --color-surface-container-high: #E5E7EB;
+      --color-outline: #D1D5DB;
+      --color-outline-variant: #E5E7EB;
+      --color-on-surface-muted: #6B7280;
+      --color-on-surface-disabled: #9CA3AF;
+      --color-error: #B91C1C;
+      --color-error-container: #FEE2E2;
+      --color-warning: #B45309;
+      --color-warning-container: #FEF3C7;
+      --color-success: #047857;
+      --color-success-container: #D1FAE5;
+      --color-info: #0E7490;
+      --color-info-container: #CFFAFE;
+      --color-link: #2563EB;
+      --color-text-tertiary: #4B5563;
+
+      /* Convenience neutrals */
+      --neutral-50: #F9FAFB;
+      --neutral-100: #F3F4F6;
+      --neutral-200: #E5E7EB;
+      --neutral-300: #D1D5DB;
+      --neutral-400: #9CA3AF;
+      --neutral-500: #6B7280;
+      --neutral-700: #374151;
+      --neutral-900: #111827;
+    }
+
+    /* Dark theme */
+    [data-theme="dark"] {
+      --color-primary: #14B8A6;
+      --color-on-primary: #FFFFFF;
+      --color-primary-container: #153D47;
+      --color-primary-fixed: #122E35;
+      --color-primary-darker: #0D9488;
+      --color-surface: #111827;
+      --color-on-surface: #F9FAFB;
+      --color-on-surface-variant: #E5E7EB;
+      --color-surface-container-low: #111827;
+      --color-surface-container: #1F2937;
+      --color-surface-container-high: #374151;
+      --color-outline: #374151;
+      --color-outline-variant: #374151;
+      --color-on-surface-muted: #6B7280;
+      --color-on-surface-disabled: #4B5563;
+      --color-error: #F87171;
+      --color-error-container: #450A0A;
+      --color-warning: #FBBF24;
+      --color-warning-container: #451A03;
+      --color-success: #10B981;
+      --color-success-container: #14532D;
+      --color-info: #60A5FA;
+      --color-info-container: #083344;
+      --color-link: #60A5FA;
+      --color-text-tertiary: #9CA3AF;
+
+      --neutral-50: #1F2937;
+      --neutral-100: #1F2937;
+      --neutral-200: #374151;
+      --neutral-300: #4B5563;
+      --neutral-400: #6B7280;
+      --neutral-500: #9CA3AF;
+      --neutral-700: #D1D5DB;
+      --neutral-900: #F9FAFB;
+    }
+
+    /* ── Reset & base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-family);
+      font-size: var(--text-body-medium-size);
+      background: var(--color-surface-container-low);
+      color: var(--color-on-surface);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* ── Window frame ─────────────────────────────────────── */
+    .window {
+      width: 1040px;
+      min-height: 680px;
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Mock tab bar ─────────────────────────────────────── */
+    .tab-bar {
+      height: 32px;
+      background: var(--color-surface-container);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      display: flex;
+      align-items: stretch;
+      padding: 0 var(--spacing-sm);
+      flex-shrink: 0;
+    }
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      padding: 0 var(--spacing-md);
+      border-bottom: 2px solid var(--color-primary);
+      font-size: var(--text-label-small-size);
+      font-weight: var(--text-label-small-weight);
+      color: var(--color-on-surface);
+    }
+    .tab-dot {
+      width: 8px; height: 8px;
+      background: #0D9488; /* Window 7 identity colour: Teal */
+      border-radius: 2px;
+    }
+    .tab-bar-spacer { flex: 1; }
+    .mock-badge {
+      align-self: center;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--color-on-surface-muted);
+      margin-right: var(--spacing-sm);
+    }
+    .theme-toggle {
+      align-self: center;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      color: var(--color-on-surface-muted);
+      font-size: 13px;
+      background: transparent;
+      border: none;
+      transition: background 120ms;
+    }
+    .theme-toggle:hover { background: var(--color-outline-variant); }
+
+    /* ── Toolbar ──────────────────────────────────────────── */
+    .toolbar {
+      height: 48px;
+      background: var(--color-surface);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--spacing-sm);
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    /* Secondary outlined icon button */
+    .btn-icon {
+      width: var(--control-height-md);
+      height: var(--control-height-md);
+      border: var(--line-weight-standard) solid var(--color-primary);
+      border-radius: var(--radius-md);
+      background: transparent;
+      color: var(--color-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 150ms ease;
+      flex-shrink: 0;
+    }
+    .btn-icon:hover { background: var(--color-primary-container); }
+    .btn-icon:disabled {
+      border-color: var(--neutral-300);
+      color: var(--neutral-400);
+      cursor: default;
+    }
+
+    /* Primary filled icon button */
+    .btn-icon-primary {
+      width: var(--control-height-md);
+      height: var(--control-height-md);
+      border-radius: var(--radius-md);
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 150ms ease;
+      flex-shrink: 0;
+    }
+    .btn-icon-primary:hover { background: var(--color-primary-darker); }
+
+    /* Search field */
+    .search-field {
+      width: 220px;
+      height: var(--control-height-md);
+      background: var(--color-surface);
+      border: var(--line-weight-subtle) solid var(--color-outline);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      padding: 0 var(--spacing-sm);
+      gap: var(--spacing-xs);
+      color: var(--color-on-surface-muted);
+      font-size: var(--text-body-small-size);
+      font-family: var(--font-family);
+    }
+    .search-field i { font-size: 12px; }
+
+    /* ── Body ─────────────────────────────────────────────── */
+    .body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Event list ───────────────────────────────────────── */
+    .event-list {
+      flex: 1;
+      border-right: var(--line-weight-subtle) solid var(--color-outline-variant);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* Table header */
+    .tbl-header {
+      height: 30px;
+      background: var(--color-surface-container);
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      display: flex;
+      align-items: stretch;
+      flex-shrink: 0;
+    }
+    .tbl-col {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      border-right: var(--line-weight-subtle) solid var(--color-outline-variant);
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .tbl-col.chk     { width: 32px; justify-content: center; flex-shrink: 0; }
+    .tbl-col.date    { width: 130px; flex-shrink: 0; }
+    .tbl-col.type    { width: 90px;  flex-shrink: 0; }
+    .tbl-col.user    { width: 116px; flex-shrink: 0; }
+    .tbl-col.action  { width: 168px; flex-shrink: 0; }
+    .tbl-col.target  { flex: 1; }
+    .tbl-col.team    { width: 116px; flex-shrink: 0; }
+    .tbl-col.project { width: 148px; flex-shrink: 0; }
+
+    .hdr-text {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-on-surface-muted);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hdr-text i { font-size: 9px; opacity: 0.7; }
+    .hdr-text i.active { color: var(--color-primary); opacity: 1; }
+
+    .resize-handle {
+      width: 4px;
+      background: var(--color-outline-variant);
+      flex-shrink: 0;
+      cursor: col-resize;
+    }
+
+    /* Header checkbox */
+    .hdr-checkbox {
+      font-size: 15px;
+      color: var(--color-on-surface-muted);
+    }
+
+    /* Rows */
+    .tbl-rows {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .tbl-row {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      border-bottom: var(--line-weight-subtle) solid var(--color-outline-variant);
+      cursor: pointer;
+      transition: background 100ms;
+    }
+    .tbl-row:hover:not(.selected):not(.multi-selected) {
+      background: var(--neutral-50);
+    }
+    .tbl-row.selected      { background: var(--color-primary-container); }
+    .tbl-row.multi-selected { background: var(--color-primary-fixed); }
+
+    .row-cell {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .row-cell.chk     { width: 32px; justify-content: center; flex-shrink: 0; }
+    .row-cell.date    { width: 130px; flex-shrink: 0; font-size: 11px; color: var(--color-on-surface-muted); }
+    .row-cell.type    { width: 90px;  flex-shrink: 0; }
+    .row-cell.user    { width: 116px; flex-shrink: 0; font-size: var(--text-body-small-size); color: var(--color-on-surface-variant); }
+    .row-cell.action  { width: 168px; flex-shrink: 0; font-size: var(--text-body-small-size); color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; }
+    .row-cell.target  { flex: 1; overflow: hidden; }
+    .row-cell.team    { width: 116px; flex-shrink: 0; font-size: var(--text-body-small-size); color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; }
+    .row-cell.project { width: 148px; flex-shrink: 0; font-size: var(--text-body-small-size); color: var(--color-on-surface); overflow: hidden; text-overflow: ellipsis; }
+
+    .row-checkbox {
+      font-size: 15px;
+      color: var(--color-on-surface-disabled);
+    }
+    .row-checkbox.checked { color: var(--color-primary); }
+
+    .target-link {
+      font-size: var(--text-body-small-size);
+      color: var(--color-link);
+      text-decoration: underline;
+      text-decoration-color: var(--color-link);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Event type chips ─────────────────────────────────── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .chip i { font-size: 9px; }
+
+    /* create: success green */
+    .chip-create {
+      background: var(--color-success-container);
+      color: var(--color-success);
+    }
+    /* update: info teal */
+    .chip-update {
+      background: var(--color-info-container);
+      color: var(--color-info);
+    }
+    /* delete: error red */
+    .chip-delete {
+      background: var(--color-error-container);
+      color: var(--color-error);
+    }
+    /* run: info teal */
+    .chip-run {
+      background: var(--color-info-container);
+      color: var(--color-info);
+    }
+    /* complete/done: success green */
+    .chip-complete {
+      background: var(--color-success-container);
+      color: var(--color-success);
+    }
+    /* fail: error red */
+    .chip-fail {
+      background: var(--color-error-container);
+      color: var(--color-error);
+    }
+    /* cancel: warning amber */
+    .chip-cancel {
+      background: var(--color-warning-container);
+      color: var(--color-warning);
+    }
+
+    /* ── Load-more hint ───────────────────────────────────── */
+    .load-more-row {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--color-on-surface-muted);
+      border-top: var(--line-weight-subtle) solid var(--color-outline-variant);
+      gap: 8px;
+    }
+    .load-more-row i { font-size: 11px; }
+
+    /* ── Detail panel ─────────────────────────────────────── */
+    .detail-panel {
+      width: 360px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      padding: var(--spacing-md);
+      background: var(--color-surface);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .detail-section {
+      padding: 6px 0;
+    }
+    .detail-section + .detail-section {
+      border-top: var(--line-weight-subtle) solid var(--color-outline-variant);
+    }
+    .detail-section-label {
+      font-size: var(--text-section-header-size);
+      font-weight: var(--text-section-header-weight);
+      letter-spacing: var(--text-section-header-letter-spacing);
+      color: var(--color-on-surface-muted);
+      text-transform: uppercase;
+      margin-bottom: var(--spacing-xs);
+    }
+    .detail-value {
+      font-size: var(--text-body-medium-size);
+      color: var(--color-on-surface);
+    }
+    .detail-small {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+      margin-top: 2px;
+    }
+    .detail-id {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+    .detail-meta-row {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-bottom: 3px;
+      align-items: flex-start;
+    }
+    .detail-meta-key {
+      width: 80px;
+      flex-shrink: 0;
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+    }
+    .detail-meta-val {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface);
+      word-break: break-all;
+    }
+    .detail-link {
+      font-size: var(--text-body-medium-size);
+      color: var(--color-link);
+      text-decoration: underline;
+      text-decoration-color: var(--color-link);
+      cursor: pointer;
+    }
+    .detail-scope-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .detail-scope-sep {
+      font-size: var(--text-body-small-size);
+      color: var(--color-on-surface-muted);
+    }
+
+    /* Error box inside detail panel */
+    .detail-error-box {
+      margin-top: var(--spacing-sm);
+      padding: var(--spacing-sm);
+      background: var(--color-error-container);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-body-small-size);
+      color: var(--color-error);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+<div class="window">
+
+  <!-- ── Mock tab bar ──────────────────────────────────────── -->
+  <div class="tab-bar">
+    <div class="tab">
+      <div class="tab-dot"></div>
+      Audit Trail
+    </div>
+    <div class="tab-bar-spacer"></div>
+    <span class="mock-badge">MOCK</span>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+      <i class="fa-solid fa-moon"></i>
+    </button>
+  </div>
+
+  <!-- ── Toolbar ───────────────────────────────────────────── -->
+  <div class="toolbar">
+    <!-- Columns visibility -->
+    <button class="btn-icon" title="Columns">
+      <i class="fa-solid fa-table-columns"></i>
+    </button>
+    <!-- Sort: newest first -->
+    <button class="btn-icon" title="Sort: Newest first">
+      <i class="fa-solid fa-arrow-down-wide-short"></i>
+    </button>
+    <!-- Export CSV -->
+    <button class="btn-icon" title="Export CSV">
+      <i class="fa-solid fa-file-export"></i>
+    </button>
+    <!-- Search -->
+    <div class="search-field">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <span>Search events...</span>
+    </div>
+    <!-- Send to Chat (primary) -->
+    <button class="btn-icon-primary" title="Send to Chat">
+      <i class="fa-solid fa-paper-plane"></i>
+    </button>
+  </div>
+
+  <!-- ── Active body: master-detail ────────────────────────── -->
+  <div class="body">
+
+    <!-- ── Event list ──────────────────────────── -->
+    <div class="event-list">
+
+      <!-- Header -->
+      <div class="tbl-header">
+        <div class="tbl-col chk">
+          <i class="fa-regular fa-square hdr-checkbox"></i>
+        </div>
+        <div class="tbl-col date">
+          <span class="hdr-text">Date <i class="fa-solid fa-filter"></i></span>
+        </div>
+        <div class="resize-handle"></div>
+        <div class="tbl-col type">
+          <span class="hdr-text">Type <i class="fa-solid fa-filter"></i></span>
+        </div>
+        <div class="resize-handle"></div>
+        <div class="tbl-col user">
+          <span class="hdr-text">User <i class="fa-solid fa-filter"></i></span>
+        </div>
+        <div class="resize-handle"></div>
+        <div class="tbl-col action">
+          <span class="hdr-text">Action <i class="fa-solid fa-filter"></i></span>
+        </div>
+        <div class="resize-handle"></div>
+        <div class="tbl-col target">
+          <span class="hdr-text">Target <i class="fa-solid fa-filter"></i></span>
+        </div>
+        <div class="resize-handle"></div>
+        <div class="tbl-col team">
+          <span class="hdr-text">Team <i class="fa-solid fa-filter"></i></span>
+        </div>
+        <div class="resize-handle"></div>
+        <div class="tbl-col project">
+          <span class="hdr-text">Project <i class="fa-solid fa-filter"></i></span>
+        </div>
+      </div>
+
+      <!-- Rows -->
+      <div class="tbl-rows">
+
+        <!-- Row 1: selected (cancel) -->
+        <div class="tbl-row selected" onclick="selectRow(this, 'cancel')">
+          <div class="row-cell chk"><i class="fa-solid fa-square-check row-checkbox checked"></i></div>
+          <div class="row-cell date">2026-03-16 11:00</div>
+          <div class="row-cell type"><span class="chip chip-cancel"><i class="fa-solid fa-ban"></i>Cancel</span></div>
+          <div class="row-cell user">faris.naji</div>
+          <div class="row-cell action">Task Cancelled</div>
+          <div class="row-cell target"><span class="target-link">PCA Operator</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 2: delete -->
+        <div class="tbl-row" onclick="selectRow(this, 'delete')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-15 10:30</div>
+          <div class="row-cell type"><span class="chip chip-delete"><i class="fa-solid fa-trash"></i>Delete</span></div>
+          <div class="row-cell user">admin</div>
+          <div class="row-cell action">Deleted FileDocument</div>
+          <div class="row-cell target"><span class="target-link">old_draft_report.md</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 3: fail -->
+        <div class="tbl-row" onclick="selectRow(this, 'fail')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-14 16:20</div>
+          <div class="row-cell type"><span class="chip chip-fail"><i class="fa-solid fa-xmark"></i>Failed</span></div>
+          <div class="row-cell user">admin</div>
+          <div class="row-cell action">Task Failed</div>
+          <div class="row-cell target"><span class="target-link">Clustering Operator</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 4: fail -->
+        <div class="tbl-row" onclick="selectRow(this, 'fail2')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-13 10:05</div>
+          <div class="row-cell type"><span class="chip chip-fail"><i class="fa-solid fa-xmark"></i>Failed</span></div>
+          <div class="row-cell user">martin.english</div>
+          <div class="row-cell action">Task Failed</div>
+          <div class="row-cell target"><span class="target-link">Heatmap Operator</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 5: complete -->
+        <div class="tbl-row" onclick="selectRow(this, 'complete')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-12 17:00</div>
+          <div class="row-cell type"><span class="chip chip-complete"><i class="fa-solid fa-check"></i>Done</span></div>
+          <div class="row-cell user">admin</div>
+          <div class="row-cell action">Task Completed</div>
+          <div class="row-cell target"><span class="target-link">Boxplot Operator</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 6: create TableSchema -->
+        <div class="tbl-row" onclick="selectRow(this, 'create-ts')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-12 16:30</div>
+          <div class="row-cell type"><span class="chip chip-create"><i class="fa-solid fa-plus"></i>Create</span></div>
+          <div class="row-cell user">admin</div>
+          <div class="row-cell action">Created TableSchema</div>
+          <div class="row-cell target"><span class="target-link">analysis_results_v2</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 7: complete PCA -->
+        <div class="tbl-row" onclick="selectRow(this, 'complete2')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-11 14:18</div>
+          <div class="row-cell type"><span class="chip chip-complete"><i class="fa-solid fa-check"></i>Done</span></div>
+          <div class="row-cell user">faris.naji</div>
+          <div class="row-cell action">Task Completed</div>
+          <div class="row-cell target"><span class="target-link">PCA Operator</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 8: complete mean -->
+        <div class="tbl-row" onclick="selectRow(this, 'complete3')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-10 09:02</div>
+          <div class="row-cell type"><span class="chip chip-complete"><i class="fa-solid fa-check"></i>Done</span></div>
+          <div class="row-cell user">admin</div>
+          <div class="row-cell action">Task Completed</div>
+          <div class="row-cell target"><span class="target-link">Mean Operator</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 9: update workflow -->
+        <div class="tbl-row" onclick="selectRow(this, 'update')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-10 08:15</div>
+          <div class="row-cell type"><span class="chip chip-update"><i class="fa-solid fa-pen-to-square"></i>Update</span></div>
+          <div class="row-cell user">martin.english</div>
+          <div class="row-cell action">Updated Workflow</div>
+          <div class="row-cell target"><span class="target-link">Crabs Workflow</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 10: create WebAppOperator -->
+        <div class="tbl-row" onclick="selectRow(this, 'create-wao')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-08 11:00</div>
+          <div class="row-cell type"><span class="chip chip-create"><i class="fa-solid fa-plus"></i>Create</span></div>
+          <div class="row-cell user">martin.english</div>
+          <div class="row-cell action">Created WebAppOperator</div>
+          <div class="row-cell target"><span class="target-link">Immunophenotyping Viewer</span></div>
+          <div class="row-cell team">MartinLibrary</div>
+          <div class="row-cell project">immunophenotyping_v3…</div>
+        </div>
+
+        <!-- Row 11: create FileDocument -->
+        <div class="tbl-row" onclick="selectRow(this, 'create-fd')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-06 14:22</div>
+          <div class="row-cell type"><span class="chip chip-create"><i class="fa-solid fa-plus"></i>Create</span></div>
+          <div class="row-cell user">admin</div>
+          <div class="row-cell action">Created FileDocument</div>
+          <div class="row-cell target"><span class="target-link">pipeline_config.json</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 12: create FileDocument -->
+        <div class="tbl-row" onclick="selectRow(this, 'create-fd2')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-05 09:00</div>
+          <div class="row-cell type"><span class="chip chip-create"><i class="fa-solid fa-plus"></i>Create</span></div>
+          <div class="row-cell user">martin.english</div>
+          <div class="row-cell action">Created FileDocument</div>
+          <div class="row-cell target"><span class="target-link">experiment_report.md</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <!-- Row 13: create Workflow -->
+        <div class="tbl-row" onclick="selectRow(this, 'create-wf')">
+          <div class="row-cell chk"><i class="fa-regular fa-square row-checkbox"></i></div>
+          <div class="row-cell date">2026-03-04 14:20</div>
+          <div class="row-cell type"><span class="chip chip-create"><i class="fa-solid fa-plus"></i>Create</span></div>
+          <div class="row-cell user">admin</div>
+          <div class="row-cell action">Created Workflow</div>
+          <div class="row-cell target"><span class="target-link">Analysis Pipeline</span></div>
+          <div class="row-cell team">Team10Dec2025</div>
+          <div class="row-cell project">Standard Operator…</div>
+        </div>
+
+        <div class="load-more-row">
+          <i class="fa-solid fa-ellipsis"></i>
+          + 13 more events — scroll to load
+        </div>
+
+      </div>
+    </div><!-- /event-list -->
+
+    <!-- ── Detail panel ──────────────────────── -->
+    <div class="detail-panel" id="detail-panel">
+
+      <!-- Content changes on row click via JS -->
+      <!-- Default: cancel event (row 1 selected) -->
+
+      <div class="detail-section">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="chip chip-cancel" style="font-size:11px; padding:3px 8px;">
+            <i class="fa-solid fa-ban"></i> Cancel
+          </span>
+          <span style="font-size:11px; color:var(--color-on-surface-muted);">2026-03-16 11:00:00</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-label">User</div>
+        <div class="detail-value">faris.naji</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-label">Scope</div>
+        <div class="detail-scope-row">
+          <span class="detail-link">Team10Dec2025</span>
+          <span class="detail-scope-sep">&rsaquo;</span>
+          <span class="detail-link" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Standard Operator Test Workflow</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-label">Action</div>
+        <div class="detail-value">Task Cancelled</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-label">Target</div>
+        <div class="detail-link">PCA Operator</div>
+        <div class="detail-small">(Task)</div>
+        <div class="detail-id">ID: step-pca-002</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-label">Task Timing</div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Created</span>
+          <span class="detail-meta-val">2026-03-16T10:55:00Z</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Run</span>
+          <span class="detail-meta-val">2026-03-16T10:55:10Z</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Completed</span>
+          <span class="detail-meta-val">2026-03-16T11:00:00Z</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Duration</span>
+          <span class="detail-meta-val">4m 50s</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-label">Metadata</div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">state</span>
+          <span class="detail-meta-val">CanceledState</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-label">Record Info</div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Source</span>
+          <span class="detail-meta-val">task</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Public</span>
+          <span class="detail-meta-val">No</span>
+        </div>
+        <div class="detail-meta-row">
+          <span class="detail-meta-key">Record ID</span>
+          <span class="detail-meta-val" style="font-family:monospace; font-size:10px;">task-26</span>
+        </div>
+      </div>
+
+    </div><!-- /detail-panel -->
+
+  </div><!-- /body -->
+
+</div><!-- /window -->
+
+<script>
+  /* ── Theme toggle ── */
+  const themeBtn  = document.getElementById('theme-toggle');
+  const htmlEl    = document.documentElement;
+  const sunIcon   = 'fa-solid fa-sun';
+  const moonIcon  = 'fa-solid fa-moon';
+
+  themeBtn.addEventListener('click', () => {
+    const isDark = htmlEl.getAttribute('data-theme') === 'dark';
+    htmlEl.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    themeBtn.innerHTML = isDark
+      ? '<i class="' + moonIcon + '"></i>'
+      : '<i class="' + sunIcon  + '"></i>';
+  });
+
+  /* ── Row selection (demo) ── */
+  const detailContent = {
+    'cancel': `
+      <div class="detail-section">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="chip chip-cancel"><i class="fa-solid fa-ban"></i> Cancel</span>
+          <span style="font-size:11px;color:var(--color-on-surface-muted);">2026-03-16 11:00:00</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">User</div>
+        <div class="detail-value">faris.naji</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Scope</div>
+        <div class="detail-scope-row">
+          <span class="detail-link">Team10Dec2025</span>
+          <span class="detail-scope-sep">&rsaquo;</span>
+          <span class="detail-link">Standard Operator Test Workflow</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Action</div>
+        <div class="detail-value">Task Cancelled</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Target</div>
+        <div class="detail-link">PCA Operator</div>
+        <div class="detail-small">(Task)</div>
+        <div class="detail-id">ID: step-pca-002</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Task Timing</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Created</span><span class="detail-meta-val">2026-03-16T10:55:00Z</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Run</span><span class="detail-meta-val">2026-03-16T10:55:10Z</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Completed</span><span class="detail-meta-val">2026-03-16T11:00:00Z</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Duration</span><span class="detail-meta-val">4m 50s</span></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Metadata</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">state</span><span class="detail-meta-val">CanceledState</span></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Record Info</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Source</span><span class="detail-meta-val">task</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Public</span><span class="detail-meta-val">No</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Record ID</span><span class="detail-meta-val" style="font-family:monospace;font-size:10px;">task-26</span></div>
+      </div>
+    `,
+    'fail': `
+      <div class="detail-section">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="chip chip-fail"><i class="fa-solid fa-xmark"></i> Failed</span>
+          <span style="font-size:11px;color:var(--color-on-surface-muted);">2026-03-14 16:20:00</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">User</div>
+        <div class="detail-value">admin</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Scope</div>
+        <div class="detail-scope-row">
+          <span class="detail-link">Team10Dec2025</span>
+          <span class="detail-scope-sep">&rsaquo;</span>
+          <span class="detail-link">Standard Operator Test Workflow</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Action</div>
+        <div class="detail-value">Task Failed</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Target</div>
+        <div class="detail-link">Clustering Operator</div>
+        <div class="detail-small">(Task)</div>
+        <div class="detail-id">ID: step-cluster-005</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Task Timing</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Created</span><span class="detail-meta-val">2026-03-14T16:15:00Z</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Run</span><span class="detail-meta-val">2026-03-14T16:15:05Z</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Completed</span><span class="detail-meta-val">2026-03-14T16:20:00Z</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Duration</span><span class="detail-meta-val">4m 55s</span></div>
+        <div class="detail-error-box">RuntimeError: convergence not reached after 1000 iterations</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Record Info</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Source</span><span class="detail-meta-val">task</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Record ID</span><span class="detail-meta-val" style="font-family:monospace;font-size:10px;">task-25</span></div>
+      </div>
+    `,
+    'delete': `
+      <div class="detail-section">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="chip chip-delete"><i class="fa-solid fa-trash"></i> Delete</span>
+          <span style="font-size:11px;color:var(--color-on-surface-muted);">2026-03-15 10:30:00</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">User</div>
+        <div class="detail-value">admin</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Scope</div>
+        <div class="detail-scope-row">
+          <span class="detail-link">Team10Dec2025</span>
+          <span class="detail-scope-sep">&rsaquo;</span>
+          <span class="detail-link">Standard Operator Test Workflow</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Action</div>
+        <div class="detail-value">Deleted FileDocument</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Target</div>
+        <div class="detail-link">old_draft_report.md</div>
+        <div class="detail-small">(FileDocument)</div>
+        <div class="detail-id">ID: fd-old-draft-003</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Properties</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">id</span><span class="detail-meta-val" style="font-family:monospace;font-size:10px;">fd-old-draft-003-pqr678</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">name</span><span class="detail-meta-val">old_draft_report.md</span></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Record Info</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Source</span><span class="detail-meta-val">activity</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Public</span><span class="detail-meta-val">No</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Record ID</span><span class="detail-meta-val" style="font-family:monospace;font-size:10px;">act-15</span></div>
+      </div>
+    `,
+    'update': `
+      <div class="detail-section">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="chip chip-update"><i class="fa-solid fa-pen-to-square"></i> Update</span>
+          <span style="font-size:11px;color:var(--color-on-surface-muted);">2026-03-10 08:15:00</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">User</div>
+        <div class="detail-value">martin.english</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Scope</div>
+        <div class="detail-scope-row">
+          <span class="detail-link">Team10Dec2025</span>
+          <span class="detail-scope-sep">&rsaquo;</span>
+          <span class="detail-link">Standard Operator Test Workflow</span>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Action</div>
+        <div class="detail-value">Updated Workflow</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Target</div>
+        <div class="detail-link">Crabs Workflow</div>
+        <div class="detail-small">(Workflow)</div>
+        <div class="detail-id">ID: wf-crabs-001</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Properties</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">id</span><span class="detail-meta-val" style="font-family:monospace;font-size:10px;">ec1e482ae7f2fdc0a1580c5e32215049</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">name</span><span class="detail-meta-val">Crabs Workflow</span></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-label">Record Info</div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Source</span><span class="detail-meta-val">activity</span></div>
+        <div class="detail-meta-row"><span class="detail-meta-key">Record ID</span><span class="detail-meta-val" style="font-family:monospace;font-size:10px;">act-9</span></div>
+      </div>
+    `,
+  };
+
+  // Default to 'cancel' key for unspecified rows
+  const fallback = 'cancel';
+
+  function selectRow(rowEl, key) {
+    // Clear all selections
+    document.querySelectorAll('.tbl-row').forEach(r => {
+      r.classList.remove('selected', 'multi-selected');
+      const chk = r.querySelector('.row-checkbox');
+      if (chk) { chk.className = 'fa-regular fa-square row-checkbox'; }
+    });
+    // Select clicked row
+    rowEl.classList.add('selected');
+    const chk = rowEl.querySelector('.row-checkbox');
+    if (chk) { chk.className = 'fa-solid fa-square-check row-checkbox checked'; }
+    // Update detail panel
+    const panel = document.getElementById('detail-panel');
+    panel.innerHTML = detailContent[key] || detailContent[fallback];
+  }
+</script>
+
+</body>
+</html>

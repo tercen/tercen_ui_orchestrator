@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<!--
+  Wireframe — layout and features only
+  Workflow Viewer Widget — workflow-viewer-spec.md v1.0
+  Grey boxes, placeholder text, annotated elements.
+  No production styling — see styled.html for themed version.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow Viewer — Wireframe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: monospace;
+      font-size: 13px;
+      background: #f0f0f0;
+      color: #222;
+      padding: 24px;
+    }
+
+    h1 { font-size: 16px; margin-bottom: 4px; }
+    p.note { font-size: 12px; color: #555; margin-bottom: 24px; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin: 20px 0 8px;
+    }
+
+    /* Window shell */
+    .window {
+      width: 860px;
+      height: 600px;
+      border: 2px solid #999;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      margin-bottom: 32px;
+    }
+
+    /* Mock tab strip above the window (Frame provides this in production) */
+    .tab-strip {
+      height: 36px;
+      background: #ddd;
+      border-bottom: 1px solid #bbb;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .tab {
+      height: 28px;
+      padding: 0 12px;
+      background: #ccc;
+      border: 1px solid #bbb;
+      border-radius: 4px 4px 0 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .tab.active {
+      background: #fff;
+      border-bottom-color: #fff;
+    }
+    .tab-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: #888;
+      flex-shrink: 0;
+    }
+
+    /* Toolbar (48px, fixed height) */
+    .toolbar {
+      height: 48px;
+      background: #e8e8e8;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .toolbar-annotation {
+      font-size: 10px;
+      color: #666;
+      margin-left: auto;
+      margin-right: 4px;
+    }
+
+    /* Placeholder box component */
+    .box {
+      background: #ddd;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 11px;
+      color: #555;
+      padding: 4px;
+    }
+
+    /* Toolbar action button placeholder */
+    .tb-btn {
+      height: 36px;
+      padding: 0 12px;
+      background: #ccc;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .tb-btn-icon { width: 36px; height: 36px; background: #ccc; border: 1px solid #aaa; border-radius: 4px; }
+    .spacer { flex: 1; }
+
+    /* Search field placeholder */
+    .search-box {
+      height: 36px;
+      width: 180px;
+      background: #fff;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      font-size: 12px;
+      color: #888;
+    }
+    .search-icon { width: 16px; height: 16px; background: #bbb; border-radius: 2px; flex-shrink: 0; }
+
+    /* Flowchart body (scrollable both axes) */
+    .flowchart-body {
+      flex: 1;
+      overflow: auto;
+      background: #fafafa;
+      position: relative;
+      padding: 24px;
+    }
+
+    /* State overlays (centred content) */
+    .state-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+    }
+    .state-icon { width: 48px; height: 48px; background: #ccc; border-radius: 50%; }
+    .state-title { font-size: 14px; font-weight: bold; color: #555; }
+    .state-subtitle { font-size: 12px; color: #888; }
+    .state-btn {
+      height: 36px;
+      padding: 0 16px;
+      background: #ccc;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* Flowchart nodes */
+    .flow-canvas {
+      position: relative;
+      width: 900px;
+      height: 700px;
+    }
+
+    /* Node shapes */
+    .node {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    /* Box node (DataStep, TableStep, ExportStep, MeltStep) */
+    .node-box {
+      background: #ddd;
+      border: 1.5px solid #aaa;
+      border-radius: 6px;
+      width: 130px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 10px;
+      font-size: 11px;
+    }
+    .node-box.focused { border: 2px solid #555; }
+    .node-box.running { border: 2px dashed #777; }
+
+    /* Circle badge node (Workflow root, GroupStep, ViewStep) */
+    .node-circle {
+      width: 36px;
+      height: 36px;
+      background: #ddd;
+      border: 1.5px solid #aaa;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+    .node-circle.focused { border: 2px solid #555; }
+
+    /* Rounded square (InStep, OutStep) */
+    .node-square {
+      width: 30px;
+      height: 30px;
+      background: #ddd;
+      border: 1.5px solid #aaa;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+
+    /* Hexagon (JoinStep, MeltStep icon-only) */
+    .node-hex {
+      width: 40px;
+      height: 48px;
+      background: #ddd;
+      border: 1.5px solid #aaa;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+
+    /* Node labels */
+    .node-label {
+      font-size: 10px;
+      color: #555;
+      text-align: center;
+      max-width: 130px;
+      word-break: break-word;
+    }
+    .node-label.outside { margin-top: 2px; }
+
+    /* Connector SVG overlay */
+    .connectors {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* State icon colours (greyscale for wireframe) */
+    .state-init { color: #888; }
+    .state-done { color: #444; }
+    .state-running { color: #666; font-style: italic; }
+    .state-error { color: #888; text-decoration: line-through; }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px;
+      width: 280px;
+      font-size: 11px;
+    }
+    .legend h3 { font-size: 12px; margin-bottom: 4px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; }
+    .legend-shape { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<h1>Workflow Viewer — Wireframe</h1>
+<p class="note">Wireframe — layout and features only. Grey boxes show element placement. See styled.html for themed version.</p>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<!-- STATE 1: LOADING                                           -->
+<!-- ─────────────────────────────────────────────────────────── -->
+<div class="section-label">State 1 of 4 — Loading</div>
+<div class="window">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div> Workflow</div>
+    <div class="tab"><div class="tab-dot"></div> Data</div>
+  </div>
+  <div class="toolbar">
+    <div class="box" style="width:90px;height:36px;opacity:0.4">[Run All ▷]</div>
+    <span class="spacer"></span>
+    <div class="box" style="width:180px;height:36px;opacity:0.4">[🔍 Search steps...]</div>
+    <span class="toolbar-annotation">48px toolbar</span>
+  </div>
+  <div class="flowchart-body">
+    <div class="state-overlay">
+      <div class="state-icon"></div>
+      <div class="state-title">Loading workflow...</div>
+      <div class="state-subtitle">Centred spinner + label (no toolbar action)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<!-- STATE 2: EMPTY                                             -->
+<!-- ─────────────────────────────────────────────────────────── -->
+<div class="section-label">State 2 of 4 — Empty (no workflow ID)</div>
+<div class="window">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div> Workflow</div>
+  </div>
+  <div class="toolbar">
+    <div class="box" style="width:90px;height:36px;opacity:0.3">[disabled]</div>
+    <span class="spacer"></span>
+    <div class="box" style="width:180px;height:36px;opacity:0.3">[disabled]</div>
+  </div>
+  <div class="flowchart-body">
+    <div class="state-overlay">
+      <div class="state-icon"></div>
+      <div class="state-title">No workflow selected</div>
+      <div class="state-subtitle">Select a workflow in the Navigator</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<!-- STATE 3: ACTIVE — main layout                             -->
+<!-- ─────────────────────────────────────────────────────────── -->
+<div class="section-label">State 3 of 4 — Active (workflow loaded, "Crabs Workflow" example)</div>
+<div class="window">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div> Workflow</div>
+    <div class="tab"><div class="tab-dot"></div> Data</div>
+  </div>
+
+  <!-- TOOLBAR: [Action Button] ........ [Search Field] -->
+  <div class="toolbar">
+    <!-- Action button — label is context-sensitive (Run All / Stop All / Reset All) -->
+    <div class="tb-btn">
+      <div class="box" style="width:14px;height:14px;border:none;padding:0;">[▷]</div>
+      Run All
+      <!-- annotation: tooltip = "Run all steps in Crabs Workflow" -->
+    </div>
+
+    <span class="spacer"><!-- Spacer pushes search to trailing slot --></span>
+
+    <!-- Search field — collapses to icon-only when narrow -->
+    <div class="search-box">
+      <div class="search-icon"></div>
+      Search steps...
+      <!-- FA6: magnifyingGlass prefix, xmark clear button -->
+    </div>
+  </div>
+
+  <!-- BODY: Flowchart view (scrollable X + Y) -->
+  <div class="flowchart-body">
+
+    <!-- SVG connectors (elbow/right-angle lines) -->
+    <svg class="connectors" xmlns="http://www.w3.org/2000/svg">
+      <!-- Workflow root → Crabs Data -->
+      <polyline points="80,36 80,80 130,80 130,110" fill="none" stroke="#aaa" stroke-width="2"/>
+      <!-- Crabs Data → Heatmap -->
+      <polyline points="130,154 130,180 130,200" fill="none" stroke="#aaa" stroke-width="2"/>
+      <!-- Crabs Data → Multi Pairwise (branch right) -->
+      <polyline points="130,154 130,174 330,174 330,200" fill="none" stroke="#aaa" stroke-width="2"/>
+      <!-- Crabs Data → PCA (branch right) -->
+      <polyline points="130,154 130,174 530,174 530,200" fill="none" stroke="#aaa" stroke-width="2"/>
+      <!-- PCA → Multi Pairwise PC view -->
+      <polyline points="530,244 530,280 530,300" fill="none" stroke="#aaa" stroke-width="2"/>
+    </svg>
+
+    <!-- Workflow root node (circle badge, row 0) -->
+    <div class="node" style="left:60px;top:10px;">
+      <div class="node-circle focused">WF</div>
+      <div class="node-label outside">Crabs Workflow</div>
+      <!-- Focusable: yes | Editable name: yes | FA6: sitemap -->
+    </div>
+
+    <!-- TableStep: Crabs Data (box, row 1) -->
+    <div class="node" style="left:65px;top:110px;">
+      <div class="node-box">
+        [table] Crabs Data
+      </div>
+      <!-- kind: tableStep | shape: rounded rect | FA6: table -->
+    </div>
+
+    <!-- DataStep: Heatmap (box, row 2, branch 1) -->
+    <div class="node" style="left:65px;top:200px;">
+      <div class="node-box">
+        [cubes] Heatmap
+      </div>
+    </div>
+
+    <!-- DataStep: Multi Pairwise (box, row 2, branch 2) -->
+    <div class="node" style="left:265px;top:200px;">
+      <div class="node-box">
+        [cubes] Multi Pairwise
+      </div>
+    </div>
+
+    <!-- DataStep: PCA (box, row 2, branch 3) -->
+    <div class="node" style="left:465px;top:200px;">
+      <div class="node-box">
+        [cubes] PCA
+      </div>
+    </div>
+
+    <!-- DataStep: Multi Pairwise PC view (box, row 3, child of PCA) -->
+    <div class="node" style="left:430px;top:300px;">
+      <div class="node-box">
+        [cubes] Multi Pairwise PC view
+      </div>
+    </div>
+
+    <!-- Annotation overlay -->
+    <div style="position:absolute;bottom:8px;right:8px;font-size:10px;color:#999;text-align:right;">
+      Flowchart scrolls X + Y<br>
+      Single-click = focus node<br>
+      Double-click = open step viewer<br>
+      Slow double-click on name = inline rename
+    </div>
+
+  </div><!-- /flowchart-body -->
+</div><!-- /window active -->
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<!-- STATE 4: ERROR                                             -->
+<!-- ─────────────────────────────────────────────────────────── -->
+<div class="section-label">State 4 of 4 — Error (connection failed or workflow not found)</div>
+<div class="window">
+  <div class="tab-strip">
+    <div class="tab active"><div class="tab-dot"></div> Workflow</div>
+  </div>
+  <div class="toolbar">
+    <div class="box" style="width:90px;height:36px;opacity:0.3">[disabled]</div>
+    <span class="spacer"></span>
+    <div class="box" style="width:180px;height:36px;opacity:0.3">[disabled]</div>
+  </div>
+  <div class="flowchart-body">
+    <div class="state-overlay">
+      <div class="state-icon"></div>
+      <div class="state-title">Failed to load workflow</div>
+      <div class="state-subtitle">Connection timed out. Check your network and try again.</div>
+      <div class="state-btn">Retry</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<!-- TOOLBAR BUTTON STATE MATRIX                                -->
+<!-- ─────────────────────────────────────────────────────────── -->
+<div class="section-label">Toolbar — Action Button States</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+  <div style="background:#eee;border:1px solid #ccc;border-radius:4px;padding:12px;font-size:11px;width:200px;">
+    <strong>Focused: Workflow root</strong><br><br>
+    Init → <code>[▷ Run All]</code><br>
+    Running → <code>[⏹ Stop All]</code><br>
+    Done/Error → <code>[↺ Reset All]</code>
+  </div>
+  <div style="background:#eee;border:1px solid #ccc;border-radius:4px;padding:12px;font-size:11px;width:200px;">
+    <strong>Focused: Individual step</strong><br><br>
+    Init → <code>[▷ Run Step]</code><br>
+    Running → <code>[⏹ Stop Step]</code><br>
+    Done/Error → <code>[↺ Reset Step]</code>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<!-- NODE SHAPE LEGEND                                          -->
+<!-- ─────────────────────────────────────────────────────────── -->
+<div class="section-label">Node Shape Reference</div>
+<div class="legend">
+  <h3>Shapes</h3>
+  <div class="legend-row"><div class="node-circle legend-shape" style="width:28px;height:28px;font-size:8px;">⬤</div><span>circle badge — Workflow root, GroupStep, ViewStep</span></div>
+  <div class="legend-row"><div class="node-box legend-shape" style="width:90px;height:28px;font-size:10px;">[icon] name</div><span>rounded rect — TableStep, DataStep, ExportStep</span></div>
+  <div class="legend-row"><div class="node-hex legend-shape" style="width:28px;height:34px;font-size:8px;">⬡</div><span>hexagon 90° — JoinStep, MeltStep</span></div>
+  <div class="legend-row"><div class="node-square legend-shape">□</div><span>rounded square — InStep, OutStep</span></div>
+  <h3 style="margin-top:8px;">Step State (icon colour)</h3>
+  <div class="legend-row"><span class="state-init">●</span><span>Init — grey icon (neutral600)</span></div>
+  <div class="legend-row"><span class="state-done">●</span><span>Done — green icon (success)</span></div>
+  <div class="legend-row"><span class="state-running">◌</span><span>Running — animated spinner (info)</span></div>
+  <div class="legend-row"><span class="state-error">●</span><span>Error — red icon (error)</span></div>
+</div>
+
+</body>
+</html>

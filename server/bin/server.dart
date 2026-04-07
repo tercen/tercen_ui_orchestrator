@@ -826,8 +826,9 @@ Future<void> _autoLoadCatalog() async {
     final rawUrl = 'https://raw.githubusercontent.com/${segments[0]}/${segments[1]}/$ref/$catalogFile';
     // Prefer local clone over GitHub fetch (avoids CDN caching delays).
     final localCandidates = [
-      '../../tercen_ui_widgets/$catalogFile',  // from server/bin/
-      '../tercen_ui_widgets/$catalogFile',     // from server/
+      '../../packages/tercen_ui_widgets/$catalogFile',  // from server/bin/ (monorepo)
+      '../packages/tercen_ui_widgets/$catalogFile',     // from server/ (monorepo)
+      'packages/tercen_ui_widgets/$catalogFile',        // from repo root
     ];
     Map<String, dynamic>? catalog;
     for (final path in localCandidates) {

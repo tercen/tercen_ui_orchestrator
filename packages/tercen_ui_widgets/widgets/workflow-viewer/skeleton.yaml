@@ -1,0 +1,4 @@
+kind: window
+label: Workflow Viewer
+description: Hybrid tree/org-chart visualisation of a Tercen workflow's structure, status, and data flow.
+design_reference: _references/window-design.md

@@ -1,0 +1,9 @@
+{
+  "name": "PNG Viewer",
+  "description": "PNG image viewer and annotation tool for the Tercen LLM platform.",
+  "urls": ["https://github.com/tercen/tercen_ui_widgets"],
+  "isWebApp": true,
+  "isViewOnly": false,
+  "entryType": "app",
+  "serve": "build/web"
+}

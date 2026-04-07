@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Navigator — Wireframe</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: monospace;
+      font-size: 13px;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Layout scaffold ── */
+    .scaffold {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    /* ── Widget shell ── */
+    .widget-shell {
+      border: 2px solid #999;
+      background: #fff;
+      width: 320px;
+    }
+
+    .widget-shell.full-width {
+      width: 100%;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      height: 48px;
+      border-bottom: 2px solid #999;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 4px;
+    }
+
+    .tb-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px dashed #999;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    .tb-btn.primary {
+      border: 2px solid #333;
+      background: #ddd;
+    }
+
+    .tb-btn.dropdown {
+      width: 64px;
+      font-size: 9px;
+    }
+
+    .tb-divider {
+      width: 1px;
+      height: 24px;
+      background: #ccc;
+      margin: 0 2px;
+    }
+
+    .tb-search {
+      flex: 1;
+      height: 28px;
+      border: 1px dashed #999;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 10px;
+      color: #999;
+      font-family: monospace;
+    }
+
+    /* ── Tree view ── */
+    .tree-view {
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+
+    .tree-row {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .tree-row.selected {
+      background: #e0e8ff;
+      border-left: 3px solid #555;
+    }
+
+    .tree-row.hovered {
+      background: #f0f0f0;
+    }
+
+    .indent-1 { padding-left: 16px; }
+    .indent-2 { padding-left: 32px; }
+    .indent-3 { padding-left: 48px; }
+
+    .chevron {
+      width: 12px;
+      text-align: center;
+      font-size: 9px;
+      color: #999;
+    }
+
+    .node-icon {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #aaa;
+      background: #e8e8e8;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+    }
+
+    .node-name {
+      font-size: 12px;
+      color: #333;
+    }
+
+    .badge {
+      font-size: 9px;
+      border: 1px solid #aaa;
+      padding: 0 4px;
+      color: #666;
+      border-radius: 2px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid #aaa;
+      background: #e8e8e8;
+      flex-shrink: 0;
+    }
+
+    .tree-spacer {
+      height: 4px;
+      border-bottom: 1px dashed #e0e0e0;
+      margin: 2px 0;
+    }
+
+    /* ── Empty / Loading / Error state bodies ── */
+    .body-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 240px;
+      gap: 8px;
+    }
+
+    .state-icon {
+      width: 40px;
+      height: 40px;
+      border: 1px dashed #aaa;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #999;
+    }
+
+    .state-text {
+      font-size: 12px;
+      color: #555;
+      text-align: center;
+    }
+
+    .state-sub {
+      font-size: 10px;
+      color: #999;
+      text-align: center;
+    }
+
+    .state-btn {
+      border: 1px solid #555;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #555;
+      background: #f5f5f5;
+    }
+
+    /* ── Annotation boxes ── */
+    .annotation {
+      font-size: 10px;
+      color: #666;
+      border-left: 3px solid #ccc;
+      padding-left: 6px;
+      margin-top: 4px;
+    }
+
+    /* ── Row layout for showing multiple states ── */
+    .states-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .state-card {
+      border: 2px solid #999;
+      background: #fff;
+      width: 220px;
+    }
+
+    .state-card-header {
+      padding: 4px 8px;
+      background: #e8e8e8;
+      border-bottom: 1px solid #ccc;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Upload drop target ── */
+    .drop-target {
+      border: 2px dashed #555 !important;
+      background: #eef2ff;
+    }
+
+    .progress-bar {
+      height: 3px;
+      background: #ccc;
+      margin: 0 8px 4px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 60%;
+      background: #555;
+    }
+
+    /* ── Spinner (CSS only) ── */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #ccc;
+      border-top-color: #555;
+      border-radius: 50%;
+    }
+
+    h2 {
+      font-size: 14px;
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="scaffold">
+
+    <!-- ── Header ── -->
+    <div>
+      <div style="font-size: 18px; font-weight: bold; margin-bottom: 4px;">Project Navigator — Wireframe</div>
+      <div style="font-size: 11px; color: #666;">Layout skeleton · All 4 body states · Annotation notes</div>
+    </div>
+
+    <!-- ── Section 1: Active State (full widget) ── -->
+    <div>
+      <h2>1. ACTIVE STATE — Toolbar + Tree View</h2>
+      <div style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;">
+
+        <div>
+          <div class="widget-shell" style="width: 340px;">
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+              <!-- Upload (primary, always shown, active when project/folder selected) -->
+              <div class="tb-btn primary" title="Upload — active when project or folder selected">UP</div>
+              <!-- Download (active when file/dataset selected) -->
+              <div class="tb-btn" title="Download — active when file or dataset selected">DL</div>
+              <!-- Refresh (always active) -->
+              <div class="tb-btn" title="Refresh — always active">RF</div>
+              <div class="tb-divider"></div>
+              <!-- Team (active when team selected) -->
+              <div class="tb-btn" title="Team — active when team selected">TM</div>
+              <div class="tb-divider"></div>
+              <!-- Type filter dropdown -->
+              <div class="tb-btn dropdown" title="Type filter dropdown">ALL ▾</div>
+              <!-- Text search -->
+              <div class="tb-search">Search...</div>
+            </div>
+
+            <!-- Tree View (active state, scrollable) -->
+            <div class="tree-view" style="height: 320px;">
+
+              <!-- Personal team (auto-expanded) -->
+              <div class="tree-row">
+                <div class="chevron">▼</div>
+                <div class="node-icon">P</div>
+                <div class="node-name">Personal</div>
+                <div class="badge">(me)</div>
+              </div>
+
+              <!-- Immunophenotyping project (user-expanded) -->
+              <div class="tree-row indent-1 selected">
+                <div class="chevron">▼</div>
+                <div class="node-icon">Pr</div>
+                <div class="node-name">Immunophenotyping</div>
+                <div class="badge">v2.3</div>
+                <div class="dot" style="background:#bdbdbd;"></div>
+              </div>
+
+              <!-- Children of Immunophenotyping -->
+              <div class="tree-row indent-2">
+                <div class="chevron"></div>
+                <div class="node-icon">F</div>
+                <div class="node-name">README.md</div>
+              </div>
+              <div class="tree-row indent-2">
+                <div class="chevron"></div>
+                <div class="node-icon">Z</div>
+                <div class="node-name">omip69_1k_donor.zip</div>
+              </div>
+              <div class="tree-row indent-2">
+                <div class="chevron"></div>
+                <div class="node-icon">D</div>
+                <div class="node-name">Sample_annotation.csv</div>
+              </div>
+              <div class="tree-row indent-2">
+                <div class="chevron"></div>
+                <div class="node-icon">D</div>
+                <div class="node-name">OMIP-069 - Channel Desc...</div>
+              </div>
+              <div class="tree-row indent-2">
+                <div class="chevron"></div>
+                <div class="node-icon">W</div>
+                <div class="node-name">Flow Immunophenotyping</div>
+                <div class="dot" style="background:#ccc;border-color:#999;"></div>
+              </div>
+
+              <!-- reports folder (collapsed) with upload in progress -->
+              <div class="tree-row indent-2 drop-target">
+                <div class="chevron">▶</div>
+                <div class="node-icon">Fo</div>
+                <div class="node-name">reports</div>
+              </div>
+              <!-- inline upload progress bar -->
+              <div class="progress-bar" style="margin-left: 48px;"><div class="progress-bar-fill"></div></div>
+
+              <!-- PCA project (collapsed) -->
+              <div class="tree-row indent-1">
+                <div class="chevron">▶</div>
+                <div class="node-icon">Pr</div>
+                <div class="node-name">PCA Analysis</div>
+                <div class="badge">v1.0</div>
+              </div>
+
+              <!-- flow_preprocessing (collapsed) -->
+              <div class="tree-row indent-1">
+                <div class="chevron">▶</div>
+                <div class="node-icon">Pr</div>
+                <div class="node-name">flow_preprocessing</div>
+                <div class="badge">v2.3</div>
+              </div>
+
+              <div class="tree-spacer"></div>
+
+              <!-- MartinLibrary team (collapsed) -->
+              <div class="tree-row">
+                <div class="chevron">▶</div>
+                <div class="node-icon">T</div>
+                <div class="node-name">MartinLibrary</div>
+                <div class="badge">(3)</div>
+              </div>
+
+              <!-- MyNewTeam (collapsed) -->
+              <div class="tree-row">
+                <div class="chevron">▶</div>
+                <div class="node-icon">T</div>
+                <div class="node-name">MyNewTeam</div>
+                <div class="badge">(1)</div>
+              </div>
+
+              <!-- Team10Dec2025 (collapsed) -->
+              <div class="tree-row">
+                <div class="chevron">▶</div>
+                <div class="node-icon">T</div>
+                <div class="node-name">Team10Dec2025</div>
+                <div class="badge">(2)</div>
+              </div>
+
+            </div><!-- /tree-view -->
+          </div><!-- /widget-shell -->
+        </div>
+
+        <!-- Annotations -->
+        <div style="font-family: monospace; font-size: 11px; color: #444; max-width: 320px;">
+          <div style="font-weight: bold; margin-bottom: 8px;">LAYOUT RULES</div>
+          <div class="annotation">Toolbar: fixed 48px height. Left-aligned buttons.</div>
+          <div class="annotation">Upload (UP) = primary accent. Other buttons = ghost style.</div>
+          <div class="annotation">Dividers separate button groups: [upload|download|refresh] | [team] | [filter+search].</div>
+          <div class="annotation">Type filter is a labeled dropdown button, not an icon only.</div>
+          <div class="annotation">Search = flex-grow text input, fills remaining toolbar width.</div>
+          <div style="margin-top: 8px; font-weight: bold;">TREE RULES</div>
+          <div class="annotation">Personal team: auto-expanded on load, listed first.</div>
+          <div class="annotation">Other teams: collapsed on load.</div>
+          <div class="annotation">Project contents: flat list (no virtual grouping).</div>
+          <div class="annotation">Selected row: tinted bg + left accent border (3px).</div>
+          <div class="annotation">Upload in progress: dashed border on drop target + inline progress bar.</div>
+          <div class="annotation">Chevron + type icon + name + status badges, left to right.</div>
+          <div style="margin-top: 8px; font-weight: bold;">NODE ICON KEY</div>
+          <div class="annotation">P=Personal Team, T=Team, Pr=Project, Fo=Folder, F=File, Z=ZIP, D=Dataset, W=Workflow</div>
+          <div style="margin-top: 8px; font-weight: bold;">STATUS BADGES</div>
+          <div class="annotation">Project: version chip (v2.3), git-status dot (clean=green, modified=amber).</div>
+          <div class="annotation">Workflow: status dot (idle=neutral, running=info, complete=success, error=error).</div>
+          <div class="annotation">Team: member count in parentheses.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 2: All 4 Body States ── -->
+    <div>
+      <h2>2. ALL FOUR BODY STATES</h2>
+      <div class="states-row">
+
+        <!-- LOADING -->
+        <div class="state-card">
+          <div class="state-card-header">LOADING</div>
+          <div class="body-state">
+            <div class="spinner"></div>
+            <div class="state-text">Loading projects...</div>
+          </div>
+        </div>
+
+        <!-- EMPTY -->
+        <div class="state-card">
+          <div class="state-card-header">EMPTY</div>
+          <div class="body-state">
+            <div class="state-icon">[ ]</div>
+            <div class="state-text">No projects yet</div>
+            <div class="state-sub">Ask the AI to create a project</div>
+            <button class="state-btn">Ask the AI</button>
+          </div>
+        </div>
+
+        <!-- ERROR -->
+        <div class="state-card">
+          <div class="state-card-header">ERROR</div>
+          <div class="body-state">
+            <div class="state-icon" style="border-color:#c00; color:#c00;">!</div>
+            <div class="state-text" style="color:#c00;">Something went wrong</div>
+            <div class="state-sub">Could not connect to Tercen</div>
+            <button class="state-btn" style="border-color:#c00; color:#c00;">Retry</button>
+          </div>
+        </div>
+
+        <!-- ACTIVE (thumbnail) -->
+        <div class="state-card">
+          <div class="state-card-header">ACTIVE</div>
+          <div class="toolbar" style="height: 36px; border-bottom: 1px solid #ccc; gap: 3px; padding: 0 4px;">
+            <div class="tb-btn primary" style="width: 24px; height: 24px; font-size: 8px;">UP</div>
+            <div class="tb-btn" style="width: 24px; height: 24px; font-size: 8px;">DL</div>
+            <div class="tb-btn" style="width: 24px; height: 24px; font-size: 8px;">RF</div>
+            <div class="tb-btn dropdown" style="width: 40px; height: 24px; font-size: 8px;">ALL</div>
+          </div>
+          <div class="body-state" style="height: 180px; justify-content: flex-start; align-items: flex-start; padding: 4px 0;">
+            <div class="tree-row" style="font-size: 10px;">
+              <div class="chevron" style="font-size: 8px;">▼</div>
+              <div class="node-icon" style="width: 10px; height: 10px; font-size: 7px;">P</div>
+              <div class="node-name" style="font-size: 10px;">Personal</div>
+            </div>
+            <div class="tree-row indent-1 selected" style="font-size: 10px;">
+              <div class="chevron" style="font-size: 8px;">▶</div>
+              <div class="node-icon" style="width: 10px; height: 10px; font-size: 7px;">Pr</div>
+              <div class="node-name" style="font-size: 10px;">Immunophenotyping</div>
+            </div>
+            <div class="tree-row" style="font-size: 10px;">
+              <div class="chevron" style="font-size: 8px;">▶</div>
+              <div class="node-icon" style="width: 10px; height: 10px; font-size: 7px;">T</div>
+              <div class="node-name" style="font-size: 10px;">MartinLibrary</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 3: Toolbar button anatomy ── -->
+    <div>
+      <h2>3. TOOLBAR BUTTON ANATOMY</h2>
+      <div style="font-family: monospace; font-size: 11px; color: #444;">
+        <table style="border-collapse: collapse; width: 100%;">
+          <thead>
+            <tr style="background: #e8e8e8;">
+              <th style="border: 1px solid #ccc; padding: 4px 8px; text-align: left;">Button</th>
+              <th style="border: 1px solid #ccc; padding: 4px 8px; text-align: left;">Style</th>
+              <th style="border: 1px solid #ccc; padding: 4px 8px; text-align: left;">Size</th>
+              <th style="border: 1px solid #ccc; padding: 4px 8px; text-align: left;">Active when</th>
+              <th style="border: 1px solid #ccc; padding: 4px 8px; text-align: left;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Upload</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Primary (accent bg)</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">32x32 icon-only</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Project or folder selected</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Open file picker / drag-drop</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Download</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Ghost</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">32x32 icon-only</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">File or dataset selected</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Emit downloadFile</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Refresh</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Ghost</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">32x32 icon-only</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Always</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Re-fetch tree data</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Team</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Ghost</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">32x32 icon-only</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Team selected</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Emit openTeamWidget</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Type filter</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Ghost labeled</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">64px wide, 32px tall</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Always</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Open dropdown (All/File/Dataset/Workflow)</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Text search</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Text input</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">flex-grow, 28px tall</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Always</td>
+              <td style="border: 1px solid #ccc; padding: 4px 8px;">Filter tree by name</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Section 4: Node tile anatomy ── -->
+    <div>
+      <h2>4. NODE TILE ANATOMY</h2>
+      <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+        <div class="widget-shell" style="width: 360px;">
+          <div class="tree-view">
+            <!-- Anatomy labels shown as monospace annotation -->
+            <div style="font-family: monospace; font-size: 10px; color: #888; padding: 4px 8px 2px;">
+              [indent] [chevron] [icon] [name] [badges] [status-dot]
+            </div>
+            <!-- Team row -->
+            <div class="tree-row" style="border-bottom: 1px dashed #eee;">
+              <div class="chevron">▼</div>
+              <div class="node-icon" style="background:#dbeafe;">T</div>
+              <div class="node-name" style="font-weight: bold;">Personal</div>
+              <div class="badge">(me) — personal team</div>
+            </div>
+            <!-- Project row -->
+            <div class="tree-row indent-1 selected" style="border-bottom: 1px dashed #eee;">
+              <div class="chevron">▼</div>
+              <div class="node-icon" style="background:#fef3c7;">Pr</div>
+              <div class="node-name">Immunophenotyping</div>
+              <div class="badge">v2.3</div>
+              <div class="dot" style="background:#d1fae5; border-color:#a7f3d0;"></div>
+              <div style="font-size: 9px; color: #666; margin-left: 2px;">clean</div>
+            </div>
+            <!-- Folder row -->
+            <div class="tree-row indent-2" style="border-bottom: 1px dashed #eee;">
+              <div class="chevron">▶</div>
+              <div class="node-icon" style="background:#fef3c7;">Fo</div>
+              <div class="node-name">reports</div>
+            </div>
+            <!-- File row -->
+            <div class="tree-row indent-2" style="border-bottom: 1px dashed #eee;">
+              <div class="chevron"></div>
+              <div class="node-icon" style="background:#f3f4f6;">F</div>
+              <div class="node-name">README.md</div>
+            </div>
+            <!-- Dataset row -->
+            <div class="tree-row indent-2" style="border-bottom: 1px dashed #eee;">
+              <div class="chevron"></div>
+              <div class="node-icon" style="background:#cffafe;">D</div>
+              <div class="node-name">Sample_annotation.csv</div>
+            </div>
+            <!-- Workflow row (complete) -->
+            <div class="tree-row indent-2" style="border-bottom: 1px dashed #eee;">
+              <div class="chevron"></div>
+              <div class="node-icon" style="background:#dbeafe;">W</div>
+              <div class="node-name">Flow Immunophenotyping</div>
+              <div class="dot" style="background:#d1fae5; border-color:#a7f3d0;"></div>
+              <div style="font-size: 9px; color: #666; margin-left: 2px;">complete</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-family: monospace; font-size: 11px; color: #444; max-width: 280px;">
+          <div style="font-weight: bold; margin-bottom: 8px;">COLOUR CODING</div>
+          <div class="annotation">Team icon: primary (blue)</div>
+          <div class="annotation">Project icon: warning (amber)</div>
+          <div class="annotation">Folder icon: warning/muted (amber)</div>
+          <div class="annotation">File (generic): onSurfaceMuted (grey)</div>
+          <div class="annotation">Dataset: info (teal)</div>
+          <div class="annotation">Workflow: primary (blue)</div>
+          <div style="margin-top: 8px; font-weight: bold;">INTERACTION MODEL</div>
+          <div class="annotation">Single-click branch: set focus + keep expanded</div>
+          <div class="annotation">Click chevron: toggle expand/collapse only</div>
+          <div class="annotation">Single-click leaf: set focus (emit focusChanged)</div>
+          <div class="annotation">Double-click leaf: open viewer (emit openViewer)</div>
+          <div class="annotation">Team single-click: expand/collapse only (no focus)</div>
+          <div style="margin-top: 8px; font-weight: bold;">INDENTATION</div>
+          <div class="annotation">Level 0 (teams): 8px left padding</div>
+          <div class="annotation">Level 1 (projects): 16px</div>
+          <div class="annotation">Level 2 (project contents): 32px</div>
+          <div class="annotation">Level 3 (folder contents): 48px</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
