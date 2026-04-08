@@ -255,22 +255,25 @@ class MockServiceCaller extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   Map<String, dynamic> _workflowGraph() {
-    final nodeCount = _scenario == MockScenario.empty ? 0 : 4;
-    final nodes = List.generate(nodeCount, (i) => <String, dynamic>{
-      'id': 'step-$i',
-      'name': 'Step ${i + 1}',
-      'kind': ['DataStep', 'ViewStep', 'ExportStep', 'DataStep'][i % 4],
-      'state': 'Done',
-      'rect': {'x': 100.0 + i * 200, 'y': 100.0, 'w': 140.0, 'h': 60.0},
-    });
-    final edges = <Map<String, dynamic>>[];
-    for (var i = 0; i < nodeCount - 1; i++) {
-      edges.add({'from': 'step-$i', 'to': 'step-${i + 1}'});
+    if (_scenario == MockScenario.empty) {
+      return {'name': 'Empty Workflow', 'nodes': <Map<String, dynamic>>[], 'edges': <Map<String, dynamic>>[]};
     }
+    // Real data from Crabs Workflow (698d1d8b31b0c571f9c3fe4a4801efb8)
     return {
-      'name': 'Mock Workflow',
-      'nodes': nodes,
-      'edges': edges,
+      'name': 'Crabs Workflow',
+      'nodes': [
+        {'id': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'label': 'Crabs Data', 'x': 739.5, 'y': 142.5, 'width': 89.0, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'table_chart', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'TableStep'},
+        {'id': '5c9c53bc-bbd7-4cf3-bce2-74318af36b07', 'label': 'Heatmap', 'x': 606.5, 'y': 267.5, 'width': 89.0, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        {'id': '3e75a3e7-88d1-43c5-8cc3-91e46b731c94', 'label': 'Multi Pairwise', 'x': 732.5, 'y': 264.5, 'width': 101.6, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        {'id': '0b00fb03-8c3d-48bd-abd1-e40b00553a36', 'label': 'PCA', 'x': 883.5, 'y': 266.5, 'width': 89.0, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        {'id': '8a206dc0-357d-4a5e-86d1-06acfed3ed88', 'label': 'Multi Pairwise PC view', 'x': 854.2, 'y': 401.5, 'width': 150.2, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+      ],
+      'edges': [
+        {'from': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'to': '5c9c53bc-bbd7-4cf3-bce2-74318af36b07'},
+        {'from': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'to': '3e75a3e7-88d1-43c5-8cc3-91e46b731c94'},
+        {'from': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'to': '0b00fb03-8c3d-48bd-abd1-e40b00553a36'},
+        {'from': '0b00fb03-8c3d-48bd-abd1-e40b00553a36', 'to': '8a206dc0-357d-4a5e-86d1-06acfed3ed88'},
+      ],
     };
   }
 

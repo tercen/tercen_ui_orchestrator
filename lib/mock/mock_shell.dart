@@ -130,7 +130,7 @@ class _MockShellState extends State<MockShell> {
         'content': {
           'type': type,
           'id': 'mock-$type-$_openCounter-root',
-          'props': <String, dynamic>{},
+          'props': _defaultProps(type),
           'children': <Map<String, dynamic>>[],
         },
       }),
@@ -162,6 +162,23 @@ class _MockShellState extends State<MockShell> {
     for (final child in node.children) {
       _seedFromNode(child);
     }
+  }
+
+  /// Generate default prop values for a widget so DataSource bindings resolve.
+  Map<String, dynamic> _defaultProps(String type) {
+    final meta = _sduiContext.registry.getMetadata(type);
+    if (meta == null) return {};
+    final props = <String, dynamic>{};
+    for (final entry in meta.props.entries) {
+      final spec = entry.value;
+      if (spec.defaultValue != null) {
+        props[entry.key] = spec.defaultValue;
+      } else if (spec.required) {
+        // Generate a plausible mock value based on prop name.
+        props[entry.key] = 'mock-${entry.key}';
+      }
+    }
+    return props;
   }
 
   void _updateKnownChannels(String type) {

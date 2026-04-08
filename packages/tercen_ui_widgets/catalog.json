@@ -4360,9 +4360,16 @@
                   },
                   { "type": "Spacer", "id": "{{widgetId}}-tb-spacer" },
                   {
-                    "type": "TextField",
-                    "id": "{{widgetId}}-search",
-                    "props": { "hint": "Search steps\u2026", "prefixIcon": "search" }
+                    "type": "SizedBox",
+                    "id": "{{widgetId}}-search-box",
+                    "props": { "width": 200 },
+                    "children": [
+                      {
+                        "type": "TextField",
+                        "id": "{{widgetId}}-search",
+                        "props": { "hint": "Search steps\u2026", "prefixIcon": "search" }
+                      }
+                    ]
                   }
                 ]
               }
