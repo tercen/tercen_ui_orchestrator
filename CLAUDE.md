@@ -53,12 +53,13 @@ Every link must stay aligned. Run `/bridge-check` after changes to any file in t
 
 ## Widget Development Pipeline
 
-1. **Spec** — functional specification (`/phase-1-spec`)
-2. **Mock** — HTML wireframe + styled rendering + gap evaluation (`/phase-2-mock`)
-3. **Reconcile** — diff mock against spec, produce design-decisions.md (`/phase-3-reconcile`)
-4. **Primitives** — fill gaps in sdui package / tokens (`/phase-3-primitives`)
-5. **Catalog** — author catalog.json entry (`/phase-4-catalog`)
-6. **Review** — validation and sign-off (`/phase-5-review`)
+1. **Spec** — functional specification (`/phase-1-spec`, reviewed by `/phase-1-review`)
+2. **Primitives** — fill SDUI primitive gaps if any (`/phase-3-primitives`)
+3. **Catalog** — author catalog.json entry (`/phase-4-catalog`)
+4. **Test** — verify in mock shell (`flutter run -t lib/mock/main_mock.dart`)
+5. **Review** — catalog conformance review (`/phase-5-review`)
+
+The mock shell (`lib/mock/`) renders catalog widgets in the real SDUI engine with mock data. It replaces the old HTML mock workflow.
 
 ## Sibling Packages (outside this repo)
 
