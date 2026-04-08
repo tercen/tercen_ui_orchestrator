@@ -5899,7 +5899,7 @@
                                                                 "type": "Image",
                                                                 "id": "{{widgetId}}-streaming-gif",
                                                                 "props": {
-                                                                  "src": "https://raw.githubusercontent.com/tercen/tercen_ui_widgets/main/Assets/thinking_indicator_32.gif",
+                                                                  "src": "packages/tercen_ui_widgets/Assets/thinking_indicator_32.gif",
                                                                   "width": 28,
                                                                   "height": 28,
                                                                   "fit": "contain"
@@ -7234,7 +7234,7 @@
                                     "type": "Image",
                                     "id": "{{widgetId}}-logo-l",
                                     "props": {
-                                      "src": "https://raw.githubusercontent.com/tercen/tercen_ui_widgets/main/Assets/Tercen%20Logo/TercenID_Final_C_no_tag.png",
+                                      "src": "packages/tercen_ui_widgets/Assets/Tercen%20Logo/TercenID_Final_C_no_tag.png",
                                       "height": 36,
                                       "fit": "contain"
                                     }
@@ -7252,7 +7252,7 @@
                                     "type": "Image",
                                     "id": "{{widgetId}}-logo-d",
                                     "props": {
-                                      "src": "https://raw.githubusercontent.com/tercen/tercen_ui_widgets/main/Assets/Tercen%20Logo/TercenID_Final_C_no_tag_white.png",
+                                      "src": "packages/tercen_ui_widgets/Assets/Tercen%20Logo/TercenID_Final_C_no_tag_white.png",
                                       "height": 36,
                                       "fit": "contain"
                                     }
