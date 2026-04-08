@@ -466,7 +466,7 @@
                             }
                           },
                           {
-                            "_comment": "Tree body — personal team first, then alphabetical",
+                            "_comment": "Tree body \u2014 personal team first, then alphabetical",
                             "type": "Expanded",
                             "id": "{{widgetId}}-tree-exp",
                             "children": [
@@ -493,7 +493,7 @@
                                     },
                                     "children": [
                                       {
-                                        "_comment": "Personal team — always first, default expanded",
+                                        "_comment": "Personal team \u2014 always first, default expanded",
                                         "type": "Collapsible",
                                         "id": "{{widgetId}}-pteam-coll",
                                         "props": {
@@ -645,7 +645,7 @@
                                                     [
                                                       "{{context.username}}",
                                                       true,
-                                                      ""
+                                                      "\uf000"
                                                     ],
                                                     200
                                                   ],
@@ -956,7 +956,7 @@
                                                                         [
                                                                           "{{item.id}}",
                                                                           "",
-                                                                          ""
+                                                                          "\uf000"
                                                                         ],
                                                                         200
                                                                       ]
@@ -1746,7 +1746,7 @@
                                                                                                 [
                                                                                                   "{{item.projectId}}",
                                                                                                   "{{item.id}}",
-                                                                                                  ""
+                                                                                                  "\uf000"
                                                                                                 ],
                                                                                                 200
                                                                                               ]
@@ -2389,7 +2389,7 @@
                                                 },
                                                 "children": [
                                                   {
-                                                    "_comment": "TEAM ROW — level 0. Click expands/collapses.",
+                                                    "_comment": "TEAM ROW \u2014 level 0. Click expands/collapses.",
                                                     "type": "Action",
                                                     "id": "{{widgetId}}-team-tap-{{item.id}}",
                                                     "props": {
@@ -2518,7 +2518,7 @@
                                                     },
                                                     "children": [
                                                       {
-                                                        "_comment": "Nested DataSource — projects for THIS team",
+                                                        "_comment": "Nested DataSource \u2014 projects for THIS team",
                                                         "type": "DataSource",
                                                         "id": "{{widgetId}}-proj-ds-{{item.id}}",
                                                         "props": {
@@ -2533,7 +2533,7 @@
                                                             [
                                                               "{{item.name}}",
                                                               true,
-                                                              ""
+                                                              "\uf000"
                                                             ],
                                                             200
                                                           ],
@@ -2596,7 +2596,7 @@
                                                                     },
                                                                     "children": [
                                                                       {
-                                                                        "_comment": "Project row — level 1, indent 24px. Tap toggles expand AND sets focus.",
+                                                                        "_comment": "Project row \u2014 level 1, indent 24px. Tap toggles expand AND sets focus.",
                                                                         "type": "Action",
                                                                         "id": "{{widgetId}}-proj-tap-{{item.id}}",
                                                                         "props": {
@@ -2831,7 +2831,7 @@
                                                                         },
                                                                         "children": [
                                                                           {
-                                                                            "_comment": "Project contents — root-level documents/folders",
+                                                                            "_comment": "Project contents \u2014 root-level documents/folders",
                                                                             "type": "DataSource",
                                                                             "id": "{{widgetId}}-pcd-{{item.id}}",
                                                                             "props": {
@@ -2846,7 +2846,7 @@
                                                                                 [
                                                                                   "{{item.id}}",
                                                                                   "",
-                                                                                  ""
+                                                                                  "\uf000"
                                                                                 ],
                                                                                 200
                                                                               ]
@@ -3636,7 +3636,7 @@
                                                                                                         [
                                                                                                           "{{item.projectId}}",
                                                                                                           "{{item.id}}",
-                                                                                                          ""
+                                                                                                          "\uf000"
                                                                                                         ],
                                                                                                         200
                                                                                                       ]
@@ -4279,7 +4279,7 @@
         "tier": 2,
         "typeColor": "#EC4899",
         "tabLabel": "Workflow",
-        "description": "Interactive directed graph viewer for Tercen workflows. Displays pipeline steps as shaped nodes with data-flow connectors, state-coloured icons, zoom/pan, and path highlighting. Toolbar provides context-sensitive Run/Stop/Reset button and step search.",
+        "description": "Interactive directed graph viewer for Tercen workflows. Displays pipeline steps as shaped nodes with data-flow connectors, state-coloured icons, zoom/pan, and path highlighting. Toolbar provides context-sensitive Run/Stop/Reset button and step search. Use when the user wants to visualise, navigate, or control execution of a workflow.",
         "emittedEvents": [
           "window.intent",
           "workflow.selection",
@@ -4312,9 +4312,7 @@
           }
         ],
         "state": {
-          "publishTo": [
-            "workflow.selection"
-          ],
+          "publishTo": ["workflow.selection"],
           "selection": {
             "channel": "workflow.selection",
             "matchField": "nodeId",
@@ -4323,47 +4321,28 @@
           }
         },
         "props": {
-          "workflowId": {
-            "type": "string",
-            "required": true
-          },
-          "workflowName": {
-            "type": "string"
-          }
+          "workflowId": { "type": "string", "required": true },
+          "workflowName": { "type": "string" }
         },
         "domain": "workflow",
-        "capabilities": [
-          "browse",
-          "search",
-          "select",
-          "navigate",
-          "execute"
-        ],
+        "capabilities": ["browse", "search", "select", "navigate", "execute"],
         "selectionMode": "single",
         "dataSource": "workflowService.getWorkflowGraph"
       },
       "template": {
         "type": "Column",
         "id": "{{widgetId}}-root",
-        "props": {
-          "crossAxisAlignment": "stretch"
-        },
+        "props": { "crossAxisAlignment": "stretch" },
         "children": [
           {
             "type": "Container",
             "id": "{{widgetId}}-toolbar",
-            "props": {
-              "color": "surface",
-              "padding": 8,
-              "height": 48
-            },
+            "props": { "color": "surface", "padding": 8, "height": 48 },
             "children": [
               {
                 "type": "Row",
                 "id": "{{widgetId}}-toolbar-row",
-                "props": {
-                  "crossAxisAlignment": "center"
-                },
+                "props": { "crossAxisAlignment": "center" },
                 "children": [
                   {
                     "type": "WorkflowActionButton",
@@ -4379,29 +4358,17 @@
                       "resetStepChannel": "workflow.resetStep"
                     }
                   },
-                  {
-                    "type": "Spacer",
-                    "id": "{{widgetId}}-tb-spacer"
-                  },
+                  { "type": "Spacer", "id": "{{widgetId}}-tb-spacer" },
                   {
                     "type": "TextField",
                     "id": "{{widgetId}}-search",
-                    "props": {
-                      "hint": "Search steps…",
-                      "prefixIcon": "search"
-                    }
+                    "props": { "hint": "Search steps\u2026", "prefixIcon": "search" }
                   }
                 ]
               }
             ]
           },
-          {
-            "type": "Divider",
-            "id": "{{widgetId}}-toolbar-div",
-            "props": {
-              "color": "outlineVariant"
-            }
-          },
+          { "type": "Divider", "id": "{{widgetId}}-toolbar-div", "props": { "color": "outlineVariant" } },
           {
             "type": "Expanded",
             "id": "{{widgetId}}-body",
@@ -4412,53 +4379,30 @@
                 "props": {
                   "service": "workflowService",
                   "method": "getWorkflowGraph",
-                  "args": [
-                    "{{props.workflowId}}"
-                  ],
+                  "args": ["{{props.workflowId}}"],
                   "refreshOn": "workflow.workflowUpdated"
                 },
                 "children": [
                   {
                     "type": "Conditional",
                     "id": "{{widgetId}}-loading",
-                    "props": {
-                      "visible": "{{loading}}"
-                    },
+                    "props": { "visible": "{{loading}}" },
                     "children": [
                       {
                         "type": "Center",
-                        "id": "{{widgetId}}-loading-c",
+                        "id": "{{widgetId}}-loading-center",
                         "children": [
                           {
                             "type": "Column",
                             "id": "{{widgetId}}-loading-col",
-                            "props": {
-                              "mainAxisAlignment": "center",
-                              "mainAxisSize": "min"
-                            },
+                            "props": { "mainAxisAlignment": "center", "mainAxisSize": "min" },
                             "children": [
-                              {
-                                "type": "LoadingIndicator",
-                                "id": "{{widgetId}}-spinner",
-                                "props": {
-                                  "variant": "spinner"
-                                }
-                              },
-                              {
-                                "type": "SizedBox",
-                                "id": "{{widgetId}}-loading-gap",
-                                "props": {
-                                  "height": 12
-                                }
-                              },
+                              { "type": "LoadingIndicator", "id": "{{widgetId}}-spinner", "props": { "variant": "spinner" } },
+                              { "type": "SizedBox", "id": "{{widgetId}}-loading-gap", "props": { "height": 12 } },
                               {
                                 "type": "Text",
                                 "id": "{{widgetId}}-loading-text",
-                                "props": {
-                                  "text": "Loading workflow…",
-                                  "textStyle": "bodyMedium",
-                                  "color": "onSurfaceMuted"
-                                }
+                                "props": { "text": "Loading workflow\u2026", "textStyle": "bodyMedium", "color": "onSurfaceMuted" }
                               }
                             ]
                           }
@@ -4469,78 +4413,24 @@
                   {
                     "type": "Conditional",
                     "id": "{{widgetId}}-error",
-                    "props": {
-                      "visible": "{{error}}"
-                    },
+                    "props": { "visible": "{{error}}" },
                     "children": [
                       {
                         "type": "Center",
-                        "id": "{{widgetId}}-err-c",
+                        "id": "{{widgetId}}-err-center",
                         "children": [
                           {
                             "type": "Column",
                             "id": "{{widgetId}}-err-col",
-                            "props": {
-                              "mainAxisAlignment": "center",
-                              "crossAxisAlignment": "center"
-                            },
+                            "props": { "mainAxisAlignment": "center", "crossAxisAlignment": "center" },
                             "children": [
-                              {
-                                "type": "Icon",
-                                "id": "{{widgetId}}-err-icon",
-                                "props": {
-                                  "icon": "triangle-exclamation",
-                                  "size": 32,
-                                  "color": "error"
-                                }
-                              },
-                              {
-                                "type": "SizedBox",
-                                "id": "{{widgetId}}-err-g1",
-                                "props": {
-                                  "height": 12
-                                }
-                              },
-                              {
-                                "type": "Text",
-                                "id": "{{widgetId}}-err-title",
-                                "props": {
-                                  "text": "Something went wrong",
-                                  "textStyle": "bodyMedium",
-                                  "color": "error"
-                                }
-                              },
-                              {
-                                "type": "SizedBox",
-                                "id": "{{widgetId}}-err-g2",
-                                "props": {
-                                  "height": 4
-                                }
-                              },
-                              {
-                                "type": "Text",
-                                "id": "{{widgetId}}-err-msg",
-                                "props": {
-                                  "text": "{{errorMessage}}",
-                                  "textStyle": "bodySmall",
-                                  "color": "onSurfaceMuted"
-                                }
-                              },
-                              {
-                                "type": "SizedBox",
-                                "id": "{{widgetId}}-err-g3",
-                                "props": {
-                                  "height": 16
-                                }
-                              },
-                              {
-                                "type": "SecondaryButton",
-                                "id": "{{widgetId}}-retry-btn",
-                                "props": {
-                                  "text": "Retry",
-                                  "channel": "workflow.workflowUpdated"
-                                }
-                              }
+                              { "type": "Icon", "id": "{{widgetId}}-err-icon", "props": { "icon": "triangle-exclamation", "size": 32, "color": "error" } },
+                              { "type": "SizedBox", "id": "{{widgetId}}-err-g1", "props": { "height": 12 } },
+                              { "type": "Text", "id": "{{widgetId}}-err-title", "props": { "text": "Something went wrong", "textStyle": "bodyMedium", "color": "error" } },
+                              { "type": "SizedBox", "id": "{{widgetId}}-err-g2", "props": { "height": 4 } },
+                              { "type": "Text", "id": "{{widgetId}}-err-msg", "props": { "text": "{{errorMessage}}", "textStyle": "bodySmall", "color": "onSurfaceMuted" } },
+                              { "type": "SizedBox", "id": "{{widgetId}}-err-g3", "props": { "height": 16 } },
+                              { "type": "SecondaryButton", "id": "{{widgetId}}-retry-btn", "props": { "text": "Retry", "channel": "workflow.workflowUpdated" } }
                             ]
                           }
                         ]
@@ -4550,9 +4440,7 @@
                   {
                     "type": "Conditional",
                     "id": "{{widgetId}}-ready",
-                    "props": {
-                      "visible": "{{ready}}"
-                    },
+                    "props": { "visible": "{{ready}}" },
                     "children": [
                       {
                         "type": "DirectedGraph",
@@ -4704,7 +4592,7 @@
                             "id": "{{widgetId}}-li",
                             "props": {
                               "variant": "skeleton",
-                              "text": "Loading…"
+                              "text": "Loading\u2026"
                             }
                           }
                         ]
@@ -4853,7 +4741,7 @@
                             "id": "{{widgetId}}-li",
                             "props": {
                               "variant": "skeleton",
-                              "text": "Loading…"
+                              "text": "Loading\u2026"
                             }
                           }
                         ]
@@ -5136,7 +5024,7 @@
                                 "type": "Text",
                                 "id": "{{widgetId}}-loading-text",
                                 "props": {
-                                  "text": "Loading audit trail…",
+                                  "text": "Loading audit trail\u2026",
                                   "textStyle": "bodyMedium",
                                   "color": "onSurfaceMuted"
                                 }
@@ -5215,7 +5103,7 @@
                     ]
                   },
                   {
-                    "_comment": "Ready state — toolbar + master-detail layout",
+                    "_comment": "Ready state \u2014 toolbar + master-detail layout",
                     "type": "Conditional",
                     "id": "{{widgetId}}-ready",
                     "props": {
@@ -5391,7 +5279,7 @@
                                         "type": "TextField",
                                         "id": "{{widgetId}}-search",
                                         "props": {
-                                          "hint": "Search events…",
+                                          "hint": "Search events\u2026",
                                           "prefixIcon": "search"
                                         }
                                       }
@@ -7027,7 +6915,7 @@
                                 ],
                                 [
                                   "{{context.userId}}",
-                                  ""
+                                  "\uf000"
                                 ],
                                 20,
                                 0,
@@ -7273,7 +7161,7 @@
       "metadata": {
         "type": "MainHeader",
         "tier": 2,
-        "description": "Top-level header bar with brand logo, user avatar, and dropdown menu. Frame chrome — not user-requested.",
+        "description": "Top-level header bar with brand logo, user avatar, and dropdown menu. Frame chrome \u2014 not user-requested.",
         "props": {},
         "emittedEvents": [
           "header.intent"
@@ -7847,7 +7735,7 @@
                         "type": "LoadingIndicator",
                         "id": "{{widgetId}}-spinner",
                         "props": {
-                          "text": "Loading document…"
+                          "text": "Loading document\u2026"
                         }
                       }
                     ]
@@ -8125,7 +8013,7 @@
                         "type": "LoadingIndicator",
                         "id": "{{widgetId}}-spinner",
                         "props": {
-                          "text": "Loading table…"
+                          "text": "Loading table\u2026"
                         }
                       }
                     ]
