@@ -44,3 +44,4 @@ flutter:
   uses-material-design: true
   assets:
     - orchestrator.config.json
+    - packages/tercen_ui_widgets/catalog.json

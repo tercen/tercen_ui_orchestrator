@@ -62,33 +62,14 @@ class _MockOrchestratorAppState extends State<MockOrchestratorApp> {
     }
   }
 
-  /// Load catalog from GitHub (single source of truth: tercen_ui_widgets).
+  /// Load catalog from local asset (monorepo packages/tercen_ui_widgets/).
+  /// This lets us iterate on catalog.json without pushing to GitHub.
   Future<Map<String, dynamic>?> _fetchCatalog() async {
-    final configStr = await rootBundle.loadString('orchestrator.config.json');
-    final config = jsonDecode(configStr) as Map<String, dynamic>;
-    final lib = config['widgetLibrary'] as Map<String, dynamic>?;
-    if (lib == null) throw Exception('No widgetLibrary in orchestrator.config.json');
+    const catalogPath = 'packages/tercen_ui_widgets/catalog.json';
+    debugPrint('[mock] Loading catalog from local asset: $catalogPath');
 
-    final repo = lib['repo'] as String? ?? '';
-    final ref = lib['ref'] as String? ?? 'main';
-    final catalogFile = lib['catalogFile'] as String? ?? 'catalog.json';
-    if (repo.isEmpty) throw Exception('No repo URL in config');
-
-    final uri = Uri.parse(repo);
-    final segments = uri.pathSegments;
-    if (segments.length < 2) throw Exception('Invalid repo URL: $repo');
-
-    final rawUrl = 'https://raw.githubusercontent.com/'
-        '${segments[0]}/${segments[1]}/$ref/$catalogFile';
-    debugPrint('[mock] Fetching catalog from $rawUrl');
-
-    final httpClient = io_http.HttpBrowserClient();
-    final response = await httpClient.get(rawUrl);
-    if (response.statusCode != 200) {
-      throw Exception('Catalog: GitHub returned ${response.statusCode}');
-    }
-
-    final catalog = jsonDecode(response.body as String) as Map<String, dynamic>;
+    final catalogStr = await rootBundle.loadString(catalogPath);
+    final catalog = jsonDecode(catalogStr) as Map<String, dynamic>;
     debugPrint('[mock] Loaded catalog with '
         '${(catalog['widgets'] as List?)?.length ?? 0} widget(s)');
     return catalog;

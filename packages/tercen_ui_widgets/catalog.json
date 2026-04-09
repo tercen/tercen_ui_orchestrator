@@ -4330,58 +4330,23 @@
         "dataSource": "workflowService.getWorkflowGraph"
       },
       "template": {
-        "type": "Column",
+        "type": "WindowShell",
         "id": "{{widgetId}}-root",
-        "props": { "crossAxisAlignment": "stretch" },
+        "props": {
+          "toolbarActions": [
+            {
+              "icon": "play",
+              "label": "Run All",
+              "channel": "workflow.runWorkflow",
+              "payload": { "workflowId": "{{props.workflowId}}" },
+              "isPrimary": true,
+              "tooltip": "Run all steps"
+            }
+          ]
+        },
         "children": [
           {
-            "type": "Container",
-            "id": "{{widgetId}}-toolbar",
-            "props": { "color": "surface", "padding": 8, "height": 48 },
-            "children": [
-              {
-                "type": "Row",
-                "id": "{{widgetId}}-toolbar-row",
-                "props": { "crossAxisAlignment": "center" },
-                "children": [
-                  {
-                    "type": "WorkflowActionButton",
-                    "id": "{{widgetId}}-action-btn",
-                    "props": {
-                      "selectionChannel": "workflow.{{widgetId}}.selection",
-                      "workflowId": "{{props.workflowId}}",
-                      "runWorkflowChannel": "workflow.runWorkflow",
-                      "stopWorkflowChannel": "workflow.stopWorkflow",
-                      "resetWorkflowChannel": "workflow.resetWorkflow",
-                      "runStepChannel": "workflow.runStep",
-                      "stopStepChannel": "workflow.stopStep",
-                      "resetStepChannel": "workflow.resetStep"
-                    }
-                  },
-                  { "type": "Spacer", "id": "{{widgetId}}-tb-spacer" },
-                  {
-                    "type": "SizedBox",
-                    "id": "{{widgetId}}-search-box",
-                    "props": { "width": 200 },
-                    "children": [
-                      {
-                        "type": "TextField",
-                        "id": "{{widgetId}}-search",
-                        "props": { "hint": "Search steps\u2026", "prefixIcon": "search" }
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          { "type": "Divider", "id": "{{widgetId}}-toolbar-div", "props": { "color": "outlineVariant" } },
-          {
-            "type": "Expanded",
-            "id": "{{widgetId}}-body",
-            "children": [
-              {
-                "type": "DataSource",
+            "type": "DataSource",
                 "id": "{{widgetId}}-ds",
                 "props": {
                   "service": "workflowService",
@@ -4463,8 +4428,6 @@
                   }
                 ]
               }
-            ]
-          }
         ]
       }
     },
