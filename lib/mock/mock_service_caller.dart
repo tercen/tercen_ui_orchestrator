@@ -258,21 +258,41 @@ class MockServiceCaller extends ChangeNotifier {
     if (_scenario == MockScenario.empty) {
       return {'name': 'Empty Workflow', 'nodes': <Map<String, dynamic>>[], 'edges': <Map<String, dynamic>>[]};
     }
-    // Real data from Crabs Workflow (698d1d8b31b0c571f9c3fe4a4801efb8)
+    // Extended Crabs Workflow — exercises all node shapes from spec Section 5.
+    // Workflow root at row 0, TableStep, DataStep, ViewStep, JoinStep, MeltStep.
     return {
       'name': 'Crabs Workflow',
       'nodes': [
-        {'id': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'label': 'Crabs Data', 'x': 739.5, 'y': 142.5, 'width': 89.0, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'table_chart', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'TableStep'},
-        {'id': '5c9c53bc-bbd7-4cf3-bce2-74318af36b07', 'label': 'Heatmap', 'x': 606.5, 'y': 267.5, 'width': 89.0, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
-        {'id': '3e75a3e7-88d1-43c5-8cc3-91e46b731c94', 'label': 'Multi Pairwise', 'x': 732.5, 'y': 264.5, 'width': 101.6, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
-        {'id': '0b00fb03-8c3d-48bd-abd1-e40b00553a36', 'label': 'PCA', 'x': 883.5, 'y': 266.5, 'width': 89.0, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
-        {'id': '8a206dc0-357d-4a5e-86d1-06acfed3ed88', 'label': 'Multi Pairwise PC view', 'x': 854.2, 'y': 401.5, 'width': 150.2, 'height': 55.0, 'shape': 'roundedRect', 'icon': 'hub', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        // Row 0: Workflow root — circle badge 48px, label outside
+        {'id': 'workflow-root', 'label': 'Crabs Workflow', 'x': 300.0, 'y': 30.0, 'width': 48.0, 'height': 48.0, 'shape': 'circle', 'icon': 'sitemap', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'Workflow', 'labelPosition': 'outside'},
+        // Row 1: TableStep — rounded rect, table icon
+        {'id': 'ts-crabs', 'label': 'Crabs Data', 'x': 290.0, 'y': 120.0, 'width': 110.0, 'height': 36.0, 'shape': 'roundedRect', 'icon': 'table', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'TableStep'},
+        // Row 2: DataSteps — rounded rect, cubes icon
+        {'id': 'ds-heatmap', 'label': 'Heatmap', 'x': 80.0, 'y': 210.0, 'width': 100.0, 'height': 36.0, 'shape': 'roundedRect', 'icon': 'cubes', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        {'id': 'ds-pairwise', 'label': 'Multi Pairwise', 'x': 230.0, 'y': 210.0, 'width': 120.0, 'height': 36.0, 'shape': 'roundedRect', 'icon': 'cubes', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        {'id': 'ds-pca', 'label': 'PCA', 'x': 410.0, 'y': 210.0, 'width': 80.0, 'height': 36.0, 'shape': 'roundedRect', 'icon': 'cubes', 'iconColor': 'info', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        // Row 2 same-row: ViewStep — circle badge 36px, eye icon, label outside (hover only in prod)
+        {'id': 'vs-heatmap-view', 'label': 'View', 'x': 190.0, 'y': 210.0, 'width': 36.0, 'height': 36.0, 'shape': 'circle', 'icon': 'eye', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'ViewStep'},
+        // Row 3: DataStep from PCA
+        {'id': 'ds-pc-view', 'label': 'PC Scatter Plot', 'x': 370.0, 'y': 300.0, 'width': 130.0, 'height': 36.0, 'shape': 'roundedRect', 'icon': 'cubes', 'iconColor': 'onSurfaceVariant', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'DataStep'},
+        // Row 3: JoinStep — hexagon, code-merge icon (merges Heatmap + Pairwise)
+        {'id': 'js-join', 'label': 'Join', 'x': 140.0, 'y': 300.0, 'width': 80.0, 'height': 36.0, 'shape': 'hexagon', 'icon': 'code-merge', 'iconColor': 'success', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'JoinStep'},
+        // Row 4: MeltStep — hexagon box (wider, shows name), shuffle icon
+        {'id': 'ms-gather', 'label': 'Gather', 'x': 120.0, 'y': 390.0, 'width': 100.0, 'height': 36.0, 'shape': 'hexagon', 'icon': 'shuffle', 'iconColor': 'error', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'MeltStep'},
+        // Row 5: OutStep — rounded square, right-from-bracket icon
+        {'id': 'os-output', 'label': 'Output', 'x': 145.0, 'y': 470.0, 'width': 36.0, 'height': 36.0, 'shape': 'roundedSquare', 'icon': 'right-from-bracket', 'iconColor': 'onSurfaceVariant', 'fill': 'surface', 'borderColor': 'outline', 'subtitle': 'OutStep'},
       ],
       'edges': [
-        {'from': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'to': '5c9c53bc-bbd7-4cf3-bce2-74318af36b07'},
-        {'from': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'to': '3e75a3e7-88d1-43c5-8cc3-91e46b731c94'},
-        {'from': 'fb8504d0-cee7-40c7-99a7-389be2f3d6ad', 'to': '0b00fb03-8c3d-48bd-abd1-e40b00553a36'},
-        {'from': '0b00fb03-8c3d-48bd-abd1-e40b00553a36', 'to': '8a206dc0-357d-4a5e-86d1-06acfed3ed88'},
+        {'from': 'workflow-root', 'to': 'ts-crabs'},
+        {'from': 'ts-crabs', 'to': 'ds-heatmap'},
+        {'from': 'ts-crabs', 'to': 'ds-pairwise'},
+        {'from': 'ts-crabs', 'to': 'ds-pca'},
+        {'from': 'ds-heatmap', 'to': 'vs-heatmap-view'},
+        {'from': 'ds-heatmap', 'to': 'js-join'},
+        {'from': 'ds-pairwise', 'to': 'js-join'},
+        {'from': 'ds-pca', 'to': 'ds-pc-view'},
+        {'from': 'js-join', 'to': 'ms-gather'},
+        {'from': 'ms-gather', 'to': 'os-output'},
       ],
     };
   }

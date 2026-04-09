@@ -4289,7 +4289,8 @@
           "workflow.resetWorkflow",
           "workflow.runStep",
           "workflow.stopStep",
-          "workflow.resetStep"
+          "workflow.resetStep",
+          "workflow.stepRenamed"
         ],
         "handlesIntent": [
           {
@@ -4335,17 +4336,20 @@
         "props": {
           "toolbarActions": [
             {
-              "icon": "play",
-              "label": "Run All",
-              "channel": "workflow.runWorkflow",
-              "payload": { "workflowId": "{{props.workflowId}}" },
-              "isPrimary": true,
-              "tooltip": "Run all steps"
+              "isWorkflowAction": true,
+              "selectionChannel": "workflow.{{widgetId}}.selection",
+              "workflowId": "{{props.workflowId}}",
+              "runWorkflowChannel": "workflow.runWorkflow",
+              "stopWorkflowChannel": "workflow.stopWorkflow",
+              "resetWorkflowChannel": "workflow.resetWorkflow",
+              "runStepChannel": "workflow.runStep",
+              "stopStepChannel": "workflow.stopStep",
+              "resetStepChannel": "workflow.resetStep"
             },
             { "icon": "magnifying-glass-plus", "tooltip": "Zoom in", "channel": "workflow.{{widgetId}}.zoomIn" },
             { "icon": "magnifying-glass-minus", "tooltip": "Zoom out", "channel": "workflow.{{widgetId}}.zoomOut" },
             { "icon": "expand", "tooltip": "Fit to window", "channel": "workflow.{{widgetId}}.fitToWindow" },
-            { "isSearch": true, "hint": "Search steps\u2026" }
+            { "isSearch": true, "hint": "Search steps\u2026", "channel": "workflow.{{widgetId}}.search" }
           ]
         },
         "children": [
@@ -4425,7 +4429,15 @@
                           "nodes": "{{data.nodes}}",
                           "edges": "{{data.edges}}",
                           "channel": "workflow.{{widgetId}}.selection",
-                          "doubleTapChannel": "workflow.{{widgetId}}.openStep"
+                          "doubleTapChannel": "workflow.{{widgetId}}.openStep",
+                          "zoomInChannel": "workflow.{{widgetId}}.zoomIn",
+                          "zoomOutChannel": "workflow.{{widgetId}}.zoomOut",
+                          "fitToWindowChannel": "workflow.{{widgetId}}.fitToWindow",
+                          "stepStateChannel": "workflow.stepStateChanged",
+                          "searchChannel": "workflow.{{widgetId}}.search",
+                          "emptyIcon": "sitemap",
+                          "emptyTitle": "This workflow is empty",
+                          "emptySubtitle": ""
                         }
                       }
                     ]

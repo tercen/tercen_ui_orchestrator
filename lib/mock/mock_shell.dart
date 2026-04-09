@@ -38,6 +38,10 @@ class _MockShellState extends State<MockShell> {
   List<String> _knownChannels = [];
   int _openCounter = 0;
 
+  /// Resizable frame boundaries for testing widget resize behaviour.
+  double _leftPadding = 80;
+  double _rightPanelWidth = 340;
+
   /// Widgets that use scope builders needing real backends.
   final _incompatibleWidgets = <String, String>{};
 
@@ -252,18 +256,60 @@ class _MockShellState extends State<MockShell> {
               _buildWarningBar(cs, tt),
             const Divider(height: 1),
             Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _buildWidgetArea(cs, tt),
-                  ),
-                  const VerticalDivider(width: 1),
-                  SizedBox(
-                    width: 340,
-                    child: _buildRightPanel(cs, tt),
-                  ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final totalW = constraints.maxWidth;
+                  const handleW = 8.0;
+                  const minWidgetW = 200.0;
+                  const minRightW = 200.0;
+
+                  final left = _leftPadding.clamp(
+                      0.0, totalW - minWidgetW - minRightW - handleW * 2);
+                  final right = _rightPanelWidth.clamp(
+                      minRightW, totalW - left - minWidgetW - handleW * 2);
+                  final widgetW = totalW - left - right - handleW * 2;
+
+                  return Row(
+                    children: [
+                      // Left spacer (simulates adjacent pane)
+                      if (left > 0)
+                        SizedBox(
+                          width: left,
+                          child: ColoredBox(
+                            color: cs.surfaceContainerLow,
+                            child: Center(
+                              child: RotatedBox(
+                                quarterTurns: 3,
+                                child: Text('ADJACENT PANE',
+                                    style: tt.labelSmall?.copyWith(
+                                        color: cs.onSurface
+                                            .withValues(alpha: 0.15),
+                                        letterSpacing: 2)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Left drag handle
+                      _buildDragHandle(cs,
+                          onDrag: (dx) =>
+                              setState(() => _leftPadding += dx)),
+                      // Widget under test
+                      SizedBox(
+                        width: widgetW,
+                        child: _buildWidgetArea(cs, tt),
+                      ),
+                      // Right drag handle
+                      _buildDragHandle(cs,
+                          onDrag: (dx) =>
+                              setState(() => _rightPanelWidth -= dx)),
+                      // Inspector panel
+                      SizedBox(
+                        width: right,
+                        child: _buildRightPanel(cs, tt),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -353,6 +399,18 @@ class _MockShellState extends State<MockShell> {
 
               const SizedBox(width: 24),
 
+              // Reset frame size
+              IconButton(
+                icon: Icon(Icons.fit_screen, size: 16, color: cs.onSurfaceVariant),
+                tooltip: 'Reset frame size',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() {
+                  _leftPadding = 80;
+                  _rightPanelWidth = 340;
+                }),
+              ),
+              const SizedBox(width: 8),
+
               // Known channels indicator
               if (_knownChannels.isNotEmpty)
                 Tooltip(
@@ -390,24 +448,88 @@ class _MockShellState extends State<MockShell> {
       );
     }
 
-    // Render via the real WindowManager — same floating windows as production.
-    return Container(
-      color: cs.surface,
-      child: ListenableBuilder(
-        listenable: _sduiContext.windowManager,
-        builder: (context, _) {
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              if (_sduiContext.windowManager.windows.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return _sduiContext.windowManager.buildStack(
-                constraints.maxWidth,
-                constraints.maxHeight,
-              );
-            },
-          );
-        },
+    // Render via the real WindowManager with a visible frame border and
+    // size indicator so the user can observe resize behaviour.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth.round();
+        final h = constraints.maxHeight.round();
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: cs.outline, width: 1),
+            color: cs.surface,
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: ListenableBuilder(
+                  listenable: _sduiContext.windowManager,
+                  builder: (context, _) {
+                    return LayoutBuilder(
+                      builder: (context, inner) {
+                        if (_sduiContext.windowManager.windows.isEmpty) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
+                        return _sduiContext.windowManager.buildStack(
+                          inner.maxWidth,
+                          inner.maxHeight,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              // Frame size badge
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: IgnorePointer(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: cs.inverseSurface.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${w}x$h',
+                      style: tt.labelSmall?.copyWith(
+                        color: cs.onInverseSurface,
+                        fontFamily: 'monospace',
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDragHandle(ColorScheme cs,
+      {required void Function(double dx) onDrag}) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeColumn,
+      child: GestureDetector(
+        onHorizontalDragUpdate: (d) => onDrag(d.delta.dx),
+        child: Container(
+          width: 8,
+          color: cs.surfaceContainerHighest,
+          child: Center(
+            child: Container(
+              width: 4,
+              height: 40,
+              decoration: BoxDecoration(
+                color: cs.onSurface.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

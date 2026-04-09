@@ -722,15 +722,35 @@ void registerBuiltinWidgets(WidgetRegistry registry) {
             'Highlights nodes whose label matches searchQuery.',
         props: {
           'nodes': PropSpec(type: 'list', required: true,
-              description: 'List of {id, label, x, y, width, height, shape, icon, iconColor, fill, borderColor, subtitle?}'),
+              description: 'List of {id, label, x, y, width, height, shape, icon, iconColor, fill, borderColor, subtitle?, labelPosition?}'),
           'edges': PropSpec(type: 'list', required: true,
               description: 'List of {from, to}'),
           'channel': PropSpec(type: 'string', defaultValue: 'graph.selection',
               description: 'EventBus channel for single-tap selection events'),
           'doubleTapChannel': PropSpec(type: 'string',
               description: 'EventBus channel for double-tap events (e.g. open step viewer)'),
+          'zoomInChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to trigger zoom in'),
+          'zoomOutChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to trigger zoom out'),
+          'fitToWindowChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to trigger fit-to-window zoom'),
+          'stepStateChannel': PropSpec(type: 'string',
+              description: 'EventBus channel for incremental step state updates. '
+                  'Expects payload with {nodeId, iconColor}. Updates the node\'s icon color '
+                  'and spinner state in place without a full re-fetch.'),
           'searchQuery': PropSpec(type: 'string',
-              description: 'Case-insensitive search text. Matching node labels get a warningContainer tint.'),
+              description: 'Static search text (use searchChannel for live search). '
+                  'Case-insensitive. Matching node labels get a warningContainer tint.'),
+          'searchChannel': PropSpec(type: 'string',
+              description: 'EventBus channel for live search input. Expects payload with {value}. '
+                  'Updates searchQuery dynamically as the user types.'),
+          'emptyIcon': PropSpec(type: 'string',
+              description: 'FA6 icon name for the empty state (when nodes list is empty)'),
+          'emptyTitle': PropSpec(type: 'string',
+              description: 'Title text for the empty state'),
+          'emptySubtitle': PropSpec(type: 'string',
+              description: 'Subtitle text for the empty state'),
         },
       ));
 
@@ -3670,8 +3690,10 @@ const Map<String, IconData> _iconMap = {
   'expand_more': FontAwesomeIcons.chevronDown,
   'expand_less': FontAwesomeIcons.chevronUp,
   'close': FontAwesomeIcons.xmark,
+  'expand': FontAwesomeIcons.expand,
   'fullscreen': FontAwesomeIcons.expand,
   'fullscreen_exit': FontAwesomeIcons.compress,
+  'compress': FontAwesomeIcons.compress,
 
   // Actions
   'add': FontAwesomeIcons.plus,
@@ -3848,6 +3870,8 @@ const Map<String, IconData> _iconMap = {
   'plus': FontAwesomeIcons.plus,
   'minus': FontAwesomeIcons.minus,
   'magnifying_glass': FontAwesomeIcons.magnifyingGlass,
+  'magnifying-glass-plus': FontAwesomeIcons.magnifyingGlassPlus,
+  'magnifying-glass-minus': FontAwesomeIcons.magnifyingGlassMinus,
   'floppy_disk': FontAwesomeIcons.solidFloppyDisk,
   'arrows_rotate': FontAwesomeIcons.arrowsRotate,
   'file_export': FontAwesomeIcons.fileExport,
@@ -3868,7 +3892,20 @@ const Map<String, IconData> _iconMap = {
   // Chat-related aliases (FA6 canonical names)
   'wrench': FontAwesomeIcons.wrench,
   'circle-exclamation': FontAwesomeIcons.circleExclamation,
+  'triangle-exclamation': FontAwesomeIcons.triangleExclamation,
   'paper-plane-top': FontAwesomeIcons.solidPaperPlane,
+
+  // Workflow step icons (FA6 canonical names from spec Section 5)
+  'cubes': FontAwesomeIcons.cubes,
+  'eye': FontAwesomeIcons.solidEye,
+  'code-merge': FontAwesomeIcons.codeMerge,
+  'codeMerge': FontAwesomeIcons.codeMerge,
+  'right-to-bracket': FontAwesomeIcons.rightToBracket,
+  'rightToBracket': FontAwesomeIcons.rightToBracket,
+  'right-from-bracket': FontAwesomeIcons.rightFromBracket,
+  'rightFromBracket': FontAwesomeIcons.rightFromBracket,
+  'wand-magic-sparkles': FontAwesomeIcons.wandMagicSparkles,
+  'wandMagicSparkles': FontAwesomeIcons.wandMagicSparkles,
 };
 
 /// Regular-weight overrides for icons that have both regular and solid variants.
@@ -4090,8 +4127,9 @@ class _WorkflowActionButtonState extends State<_WorkflowActionButton> {
       }
     }
 
+    final btnSize = theme.window.toolbarButtonSize;
     return SizedBox(
-      height: theme.controlHeight.md,
+      height: btnSize,
       child: ElevatedButton.icon(
         onPressed: () {
           widget.ctx.eventBus.publish(
@@ -4103,18 +4141,13 @@ class _WorkflowActionButtonState extends State<_WorkflowActionButton> {
             ),
           );
         },
-        icon: Icon(icon, size: theme.iconSize.sm),
+        icon: Icon(icon, size: theme.window.toolbarButtonIconSize),
         label: Text(label),
         style: ElevatedButton.styleFrom(
-          backgroundColor: theme.colors.primary,
-          foregroundColor: theme.colors.onPrimary,
+          minimumSize: Size(0, btnSize),
+          padding: EdgeInsets.symmetric(horizontal: theme.spacing.sm),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(theme.button.borderRadius),
-          ),
-          padding: EdgeInsets.symmetric(horizontal: theme.spacing.md),
-          textStyle: TextStyle(
-            fontSize: theme.textStyles.labelLarge.fontSize,
-            fontWeight: FontWeight.w600,
+            borderRadius: BorderRadius.circular(theme.window.toolbarButtonRadius),
           ),
         ),
       ),
@@ -5394,14 +5427,47 @@ Widget _buildDirectedGraph(
   final nodesRaw = node.props['nodes'];
   final edgesRaw = node.props['edges'];
   if (nodesRaw is! List || nodesRaw.isEmpty) {
+    final emptyIconName = PropConverter.to<String>(node.props['emptyIcon']);
+    final emptyTitle = PropConverter.to<String>(node.props['emptyTitle']);
+    final emptySubtitle = PropConverter.to<String>(node.props['emptySubtitle']);
+    final emptyIcon = emptyIconName != null ? _iconMap[emptyIconName] : null;
     return Center(
-      child: Text('No nodes', style: TextStyle(color: ctx.theme.colors.onSurfaceMuted)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (emptyIcon != null)
+            Icon(emptyIcon, size: 48, color: ctx.theme.colors.onSurfaceMuted),
+          if (emptyIcon != null) SizedBox(height: ctx.theme.spacing.sm + 4),
+          Text(
+            emptyTitle ?? 'No nodes',
+            style: ctx.theme.textStyles.resolve('bodyMedium')?.toTextStyle(
+                  color: ctx.theme.colors.onSurfaceMuted,
+                ) ??
+                TextStyle(color: ctx.theme.colors.onSurfaceMuted),
+          ),
+          if (emptySubtitle != null && emptySubtitle.isNotEmpty) ...[
+            SizedBox(height: ctx.theme.spacing.xs),
+            Text(
+              emptySubtitle,
+              style: ctx.theme.textStyles.resolve('bodySmall')?.toTextStyle(
+                    color: ctx.theme.colors.onSurfaceMuted,
+                  ) ??
+                  TextStyle(fontSize: 12, color: ctx.theme.colors.onSurfaceMuted),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
   final channel = PropConverter.to<String>(node.props['channel']) ?? 'graph.selection';
   final doubleTapChannel = PropConverter.to<String>(node.props['doubleTapChannel']);
+  final zoomInChannel = PropConverter.to<String>(node.props['zoomInChannel']);
+  final zoomOutChannel = PropConverter.to<String>(node.props['zoomOutChannel']);
+  final fitToWindowChannel = PropConverter.to<String>(node.props['fitToWindowChannel']);
+  final stepStateChannel = PropConverter.to<String>(node.props['stepStateChannel']);
   final searchQuery = PropConverter.to<String>(node.props['searchQuery']) ?? '';
+  final searchChannel = PropConverter.to<String>(node.props['searchChannel']);
 
   // Parse nodes
   final graphNodes = <_GraphNode>[];
@@ -5420,6 +5486,7 @@ Widget _buildDirectedGraph(
         fill: PropConverter.to<String>(n['fill']) ?? 'surface',
         borderColor: PropConverter.to<String>(n['borderColor']) ?? 'outline',
         subtitle: PropConverter.to<String>(n['subtitle']),
+        labelPosition: PropConverter.to<String>(n['labelPosition']) ?? 'inside',
       ));
     }
   }
@@ -5443,7 +5510,12 @@ Widget _buildDirectedGraph(
     edges: graphEdges,
     channel: channel,
     doubleTapChannel: doubleTapChannel,
+    zoomInChannel: zoomInChannel,
+    zoomOutChannel: zoomOutChannel,
+    fitToWindowChannel: fitToWindowChannel,
+    stepStateChannel: stepStateChannel,
     searchQuery: searchQuery,
+    searchChannel: searchChannel,
     theme: ctx.theme,
     eventBus: ctx.eventBus,
     sourceWidgetId: node.id,
@@ -5453,6 +5525,7 @@ Widget _buildDirectedGraph(
 class _GraphNode {
   final String id, label, shape, icon, iconColor, fill, borderColor;
   final String? subtitle;
+  final String labelPosition; // 'inside' (default) or 'outside'
   final double x, y, width, height;
   _GraphNode({
     required this.id, required this.label,
@@ -5461,6 +5534,7 @@ class _GraphNode {
     required this.shape, required this.icon,
     required this.iconColor, required this.fill,
     required this.borderColor, this.subtitle,
+    this.labelPosition = 'inside',
   });
 }
 
@@ -5474,7 +5548,12 @@ class _DirectedGraphWidget extends StatefulWidget {
   final List<_GraphEdge> edges;
   final String channel;
   final String? doubleTapChannel;
+  final String? zoomInChannel;
+  final String? zoomOutChannel;
+  final String? fitToWindowChannel;
+  final String? stepStateChannel;
   final String searchQuery;
+  final String? searchChannel;
   final SduiTheme theme;
   final dynamic eventBus;
   final String sourceWidgetId;
@@ -5485,7 +5564,12 @@ class _DirectedGraphWidget extends StatefulWidget {
     required this.edges,
     required this.channel,
     this.doubleTapChannel,
+    this.zoomInChannel,
+    this.zoomOutChannel,
+    this.fitToWindowChannel,
+    this.stepStateChannel,
     this.searchQuery = '',
+    this.searchChannel,
     required this.theme,
     required this.eventBus,
     required this.sourceWidgetId,
@@ -5498,6 +5582,146 @@ class _DirectedGraphWidget extends StatefulWidget {
 class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
   String? _selectedId;
   final TransformationController _transformCtrl = TransformationController();
+  final List<StreamSubscription> _subs = [];
+  bool _initialFitApplied = false;
+  Size _viewportSize = Size.zero;
+
+  /// Live iconColor overrides from stepStateChanged events.
+  /// Key: nodeId, Value: new iconColor token (e.g. 'info', 'success', 'error').
+  final Map<String, String> _iconColorOverrides = {};
+
+  /// Live search query from searchChannel events.
+  String _liveSearchQuery = '';
+
+  // Zoom constants matching standalone mock
+  static const double _zoomStep = 1.25;
+  static const double _minScale = 0.1;
+  static const double _maxScale = 5.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeChannels();
+    _autoSelectRoot();
+  }
+
+  /// Auto-select the first node (workflow root) on load and publish selection.
+  void _autoSelectRoot() {
+    if (widget.nodes.isEmpty) return;
+    final root = widget.nodes.first;
+    _selectedId = root.id;
+    // Publish after the frame so listeners are ready.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.eventBus.publish(
+        widget.channel,
+        EventPayload(
+          type: 'selection',
+          sourceWidgetId: widget.sourceWidgetId,
+          data: {
+            'nodeId': root.id,
+            'label': root.label,
+            'iconColor': _effectiveIconColor(root),
+            'shape': root.shape,
+            'subtitle': root.subtitle,
+          },
+        ),
+      );
+    });
+  }
+
+  void _subscribeChannels() {
+    final bus = widget.eventBus;
+    if (bus == null) return;
+    void sub(String? ch, void Function() action) {
+      if (ch == null || ch.isEmpty) return;
+      _subs.add(bus.subscribe(ch).listen((_) => action()));
+    }
+    sub(widget.zoomInChannel, _zoomIn);
+    sub(widget.zoomOutChannel, _zoomOut);
+    sub(widget.fitToWindowChannel, _fitToWindow);
+
+    // Live search from toolbar: {value}
+    final sCh = widget.searchChannel;
+    if (sCh != null && sCh.isNotEmpty) {
+      _subs.add(bus.subscribe(sCh).listen((event) {
+        final value = event.data['value']?.toString() ?? '';
+        if (value != _liveSearchQuery) {
+          setState(() => _liveSearchQuery = value);
+        }
+      }));
+    }
+
+    // Incremental step state updates: {nodeId, iconColor}
+    final stCh = widget.stepStateChannel;
+    if (stCh != null && stCh.isNotEmpty) {
+      _subs.add(bus.subscribe(stCh).listen((event) {
+        final nodeId = event.data['nodeId']?.toString();
+        final iconColor = event.data['iconColor']?.toString();
+        if (nodeId != null && iconColor != null) {
+          setState(() => _iconColorOverrides[nodeId] = iconColor);
+        }
+      }));
+    }
+  }
+
+  /// Get effective iconColor for a node — override takes priority.
+  String _effectiveIconColor(_GraphNode node) {
+    return _iconColorOverrides[node.id] ?? node.iconColor;
+  }
+
+  double get _currentScale => _transformCtrl.value.getMaxScaleOnAxis();
+
+  void _zoomIn() {
+    final scale = (_currentScale * _zoomStep).clamp(_minScale, _maxScale);
+    _applyScale(scale);
+  }
+
+  void _zoomOut() {
+    final scale = (_currentScale / _zoomStep).clamp(_minScale, _maxScale);
+    _applyScale(scale);
+  }
+
+  void _applyScale(double newScale) {
+    final matrix = _transformCtrl.value;
+    final oldScale = matrix.getMaxScaleOnAxis();
+    if (oldScale == 0) return;
+    final ratio = newScale / oldScale;
+    // Preserve current pan offset, only change scale
+    final tx = matrix.storage[12] * ratio;
+    final ty = matrix.storage[13] * ratio;
+    final m = Matrix4.diagonal3Values(newScale, newScale, 1.0);
+    m.storage[12] = tx;
+    m.storage[13] = ty;
+    _transformCtrl.value = m;
+  }
+
+  void _fitToWindow() {
+    if (widget.nodes.isEmpty || _viewportSize == Size.zero) return;
+    final bounds = _contentBounds();
+    if (bounds.width <= 0 || bounds.height <= 0) return;
+    final scaleX = _viewportSize.width / bounds.width;
+    final scaleY = _viewportSize.height / bounds.height;
+    final fitScale = (scaleX < scaleY ? scaleX : scaleY).clamp(_minScale, 1.0);
+    _transformCtrl.value = Matrix4.diagonal3Values(fitScale, fitScale, 1.0);
+  }
+
+  /// Compute bounding box of all nodes (with padding).
+  (double, double) _contentExtent() {
+    double maxX = 0, maxY = 0;
+    for (final n in widget.nodes) {
+      final right = n.x + (n.width > 0 ? n.width : 140);
+      final bottom = n.y + n.height + 20;
+      if (right > maxX) maxX = right;
+      if (bottom > maxY) maxY = bottom;
+    }
+    return (maxX + 40, maxY + 40);
+  }
+
+  Size _contentBounds() {
+    final (w, h) = _contentExtent();
+    return Size(w, h);
+  }
 
   /// Walk ancestors of [nodeId] and collect all IDs on the path.
   Set<String> _ancestorPath(String nodeId) {
@@ -5527,7 +5751,7 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
         data: {
           'nodeId': node.id,
           'label': node.label,
-          'iconColor': node.iconColor,
+          'iconColor': _effectiveIconColor(node),
           'shape': node.shape,
           'subtitle': node.subtitle,
         },
@@ -5554,14 +5778,21 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
     );
   }
 
+  /// Effective search query — live channel takes priority over static prop.
+  String get _activeSearchQuery =>
+      _liveSearchQuery.isNotEmpty ? _liveSearchQuery : widget.searchQuery;
+
   bool _isSearchMatch(_GraphNode node) {
-    final q = widget.searchQuery;
+    final q = _activeSearchQuery;
     if (q.isEmpty) return false;
     return node.label.toLowerCase().contains(q.toLowerCase());
   }
 
   @override
   void dispose() {
+    for (final s in _subs) {
+      s.cancel();
+    }
     _transformCtrl.dispose();
     super.dispose();
   }
@@ -5573,21 +5804,19 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
     final edges = widget.edges;
     final highlightPath = _selectedId != null ? _ancestorPath(_selectedId!) : <String>{};
 
-    // Compute canvas size from node positions
-    double maxX = 0, maxY = 0;
-    for (final n in nodes) {
-      final right = n.x + (n.width > 0 ? n.width : 140);
-      final bottom = n.y + n.height + 20;
-      if (right > maxX) maxX = right;
-      if (bottom > maxY) maxY = bottom;
-    }
-    maxX += 40;
-    maxY += 40;
+    final (canvasW, canvasH) = _contentExtent();
 
     return LayoutBuilder(
       builder: (context, constraints) {
     final viewWidth = constraints.maxWidth.isFinite ? constraints.maxWidth : 800.0;
     final viewHeight = constraints.maxHeight.isFinite ? constraints.maxHeight : 600.0;
+    _viewportSize = Size(viewWidth, viewHeight);
+
+    // Auto fit-to-window on first render
+    if (!_initialFitApplied && nodes.isNotEmpty) {
+      _initialFitApplied = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fitToWindow());
+    }
 
     return SizedBox(
       width: viewWidth,
@@ -5595,12 +5824,12 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
       child: InteractiveViewer(
       transformationController: _transformCtrl,
       constrained: false,
-      minScale: 0.1,
-      maxScale: 5.0,
-      boundaryMargin: const EdgeInsets.all(200),
+      minScale: _minScale,
+      maxScale: _maxScale,
+      boundaryMargin: const EdgeInsets.all(double.infinity),
       child: SizedBox(
-        width: maxX,
-        height: maxY,
+        width: canvasW,
+        height: canvasH,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -5635,11 +5864,44 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
     );
   }
 
+  /// Running state tokens → show spinner instead of static icon.
+  static const _runningIconColors = {'info', 'warning'};
+
+  bool _isRunning(_GraphNode node) => _runningIconColors.contains(node.iconColor);
+
+  /// Returns a spinner or static icon depending on the node's state.
+  Widget _nodeIconOrSpinner(_GraphNode node, Color iconColor, IconData icon, double iconSize, SduiTheme theme) {
+    if (_isRunning(node)) {
+      final spinnerSize = iconSize + 2;
+      return SizedBox(
+        width: spinnerSize,
+        height: spinnerSize,
+        child: CircularProgressIndicator(
+          strokeWidth: theme.lineWeight.emphasis,
+          valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+        ),
+      );
+    }
+    return Icon(icon, size: iconSize, color: iconColor);
+  }
+
   Widget _buildGraphNode(_GraphNode node, SduiTheme theme, Set<String> highlight) {
     final isSelected = _selectedId == node.id;
     final isMatch = _isSearchMatch(node);
+    // Apply live iconColor override if present
+    final effectiveColor = _effectiveIconColor(node);
+    final effectiveNode = effectiveColor != node.iconColor
+        ? _GraphNode(
+            id: node.id, label: node.label,
+            x: node.x, y: node.y, width: node.width, height: node.height,
+            shape: node.shape, icon: node.icon,
+            iconColor: effectiveColor, fill: node.fill,
+            borderColor: node.borderColor, subtitle: node.subtitle,
+            labelPosition: node.labelPosition,
+          )
+        : node;
     // Search match → warningContainer tint on fill
-    final baseFill = _resolveColor(node.fill, theme) ?? theme.colors.surface;
+    final baseFill = _resolveColor(effectiveNode.fill, theme) ?? theme.colors.surface;
     final fillColor = isMatch
         ? Color.alphaBlend(theme.colors.warningContainer.withAlpha(160), baseFill)
         : baseFill;
@@ -5647,21 +5909,21 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
         ? theme.colors.primary
         : isMatch
             ? theme.colors.warning
-            : (_resolveColor(node.borderColor, theme) ?? theme.colors.outline);
-    final borderWidth = isSelected ? 2.0 : 1.5;
-    final iconColor = _resolveColor(node.iconColor, theme) ?? theme.colors.onSurfaceVariant;
-    final iconData = _iconMap[node.icon] ?? FontAwesomeIcons.circle;
+            : (_resolveColor(effectiveNode.borderColor, theme) ?? theme.colors.outline);
+    final borderWidth = isSelected ? theme.lineWeight.emphasis : theme.lineWeight.standard;
+    final iconColor = _resolveColor(effectiveNode.iconColor, theme) ?? theme.colors.onSurfaceVariant;
+    final iconData = _iconMap[effectiveNode.icon] ?? FontAwesomeIcons.circle;
 
-    switch (node.shape) {
+    switch (effectiveNode.shape) {
       case 'circle':
-        return _graphCircle(node, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
+        return _graphCircle(effectiveNode, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
       case 'roundedSquare':
-        return _graphRoundedSquare(node, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
+        return _graphRoundedSquare(effectiveNode, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
       case 'hexagon':
-        return _graphHexagon(node, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
+        return _graphHexagon(effectiveNode, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
       case 'roundedRect':
       default:
-        return _graphRoundedRect(node, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
+        return _graphRoundedRect(effectiveNode, fillColor, borderColor, borderWidth, iconColor, iconData, theme);
     }
   }
 
@@ -5669,24 +5931,40 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
       Color iconColor, IconData icon, SduiTheme theme) {
     final size = node.height > 0 ? node.height : theme.controlHeight.md;
     final iconSize = size > 40 ? theme.iconSize.sm + 2 : theme.iconSize.sm - 2;
-    return SizedBox(
+    final circle = Container(
       width: size,
       height: size,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: fill, shape: BoxShape.circle,
-              border: Border.all(color: border, width: bw),
-            ),
-            child: Center(child: Icon(icon, size: iconSize, color: iconColor)),
-          ),
-        ],
+      decoration: BoxDecoration(
+        color: fill, shape: BoxShape.circle,
+        border: Border.all(color: border, width: bw),
       ),
+      child: Center(child: _nodeIconOrSpinner(node, iconColor, icon, iconSize, theme)),
     );
+    if (node.labelPosition == 'outside' && node.label.isNotEmpty) {
+      final isLarge = size >= 48;
+      final labelStyle = theme.textStyles.resolve(isLarge ? 'bodyMedium' : 'bodySmall')?.toTextStyle(
+            color: theme.colors.onSurface,
+          ) ??
+          TextStyle(
+            fontSize: isLarge ? theme.textStyles.bodyMedium.fontSize : theme.textStyles.bodySmall.fontSize,
+            color: theme.colors.onSurface,
+            fontWeight: isLarge ? FontWeight.w600 : FontWeight.w400,
+          );
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          circle,
+          SizedBox(width: theme.spacing.xs + 2),
+          Text(node.label, style: labelStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ],
+      );
+    }
+    // Icon-only circle: show label as tooltip on hover
+    if (node.label.isNotEmpty) {
+      return Tooltip(message: node.label, child: circle);
+    }
+    return circle;
   }
 
   Widget _graphRoundedRect(_GraphNode node, Color fill, Color border, double bw,
@@ -5709,7 +5987,7 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: theme.textStyles.bodyMedium.fontSize, color: iconColor),
+          _nodeIconOrSpinner(node, iconColor, icon, theme.textStyles.bodyMedium.fontSize ?? 14, theme),
           SizedBox(width: theme.spacing.xs),
           Flexible(
             child: Text(node.label, style: labelStyle,
@@ -5722,15 +6000,20 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
 
   Widget _graphRoundedSquare(_GraphNode node, Color fill, Color border, double bw,
       Color iconColor, IconData icon, SduiTheme theme) {
-    return Container(
+    Widget shape = Container(
       width: theme.controlHeight.md, height: theme.controlHeight.md,
       decoration: BoxDecoration(
         color: fill,
         borderRadius: BorderRadius.circular(theme.radius.sm),
         border: Border.all(color: border, width: bw),
       ),
-      child: Center(child: Icon(icon, size: theme.textStyles.bodyMedium.fontSize, color: iconColor)),
+      child: Center(child: _nodeIconOrSpinner(node, iconColor, icon, theme.textStyles.bodyMedium.fontSize ?? 14, theme)),
     );
+    // Icon-only shape: show label as tooltip on hover
+    if (node.label.isNotEmpty) {
+      shape = Tooltip(message: node.label, child: shape);
+    }
+    return shape;
   }
 
   Widget _graphHexagon(_GraphNode node, Color fill, Color border, double bw,
@@ -5755,7 +6038,7 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(icon, size: theme.textStyles.bodyMedium.fontSize, color: iconColor),
+                      _nodeIconOrSpinner(node, iconColor, icon, theme.textStyles.bodyMedium.fontSize ?? 14, theme),
                       if (showLabel) ...[
                         SizedBox(width: theme.spacing.xs),
                         Text(node.label, style: labelStyle,
@@ -5796,7 +6079,7 @@ class _GraphConnectorPainter extends CustomPainter {
 
     final defaultPaint = Paint()
       ..color = theme.colors.outlineVariant
-      ..strokeWidth = theme.lineWeight.emphasis
+      ..strokeWidth = theme.lineWeight.vizData
       ..style = PaintingStyle.stroke;
 
     final highlightPaint = Paint()
@@ -5960,16 +6243,29 @@ class _WindowToolbar extends StatelessWidget {
     // Read StateManager for stateKey/enabledStateKey bindings.
     final manager = StateManagerScope.maybeOf(context);
 
+    // Build action widgets, marking search fields as flexible.
+    final built = <Widget>[];
+    final flexFlags = <bool>[];
+    for (int i = 0; i < actions.length; i++) {
+      if (i > 0) {
+        built.add(SizedBox(width: wt.toolbarGap));
+        flexFlags.add(false);
+      }
+      final raw = actions[i];
+      final isSearch = raw is Map && PropConverter.to<bool>(raw['isSearch']) == true;
+      built.add(_buildActionButton(raw, context, manager));
+      flexFlags.add(isSearch);
+    }
+
     return Container(
       height: wt.toolbarHeight,
       padding: EdgeInsets.symmetric(horizontal: theme.spacing.sm),
-      color: theme.colors.surface,
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(color: theme.colors.surface),
       child: Row(
         children: [
-          for (int i = 0; i < actions.length; i++) ...[
-            if (i > 0) SizedBox(width: wt.toolbarGap),
-            _buildActionButton(actions[i], context, manager),
-          ],
+          for (int i = 0; i < built.length; i++)
+            flexFlags[i] ? Flexible(child: built[i]) : built[i],
         ],
       ),
     );
@@ -5979,6 +6275,46 @@ class _WindowToolbar extends StatelessWidget {
     if (raw is! Map) return const SizedBox.shrink();
     final m = Map<String, dynamic>.from(raw);
     final theme = ctx.theme;
+
+    // Search field — a standard toolbar control like any other.
+    if (PropConverter.to<bool>(m['isSearch']) == true) {
+      final hint = PropConverter.to<String>(m['hint']) ?? 'Search\u2026';
+      final searchChannel = PropConverter.to<String>(m['channel']);
+      return _ToolbarSearchField(
+        hint: hint,
+        width: PropConverter.to<double>(m['width']) ?? 200,
+        theme: theme,
+        eventBus: ctx.eventBus,
+        parentNodeId: parentNodeId,
+        searchChannel: searchChannel,
+      );
+    }
+
+    // WorkflowActionButton — context-sensitive Run/Stop/Reset in the toolbar.
+    if (PropConverter.to<bool>(m['isWorkflowAction']) == true) {
+      final selChannel = PropConverter.to<String>(m['selectionChannel']) ?? '';
+      final workflowId = PropConverter.to<String>(m['workflowId']) ?? '';
+      final fakeNode = SduiNode(
+        type: 'WorkflowActionButton',
+        id: '$parentNodeId-wfaction',
+        props: {
+          'selectionChannel': selChannel,
+          'workflowId': workflowId,
+          'runWorkflowChannel': PropConverter.to<String>(m['runWorkflowChannel']) ?? 'workflow.runWorkflow',
+          'stopWorkflowChannel': PropConverter.to<String>(m['stopWorkflowChannel']) ?? 'workflow.stopWorkflow',
+          'resetWorkflowChannel': PropConverter.to<String>(m['resetWorkflowChannel']) ?? 'workflow.resetWorkflow',
+          'runStepChannel': PropConverter.to<String>(m['runStepChannel']) ?? 'workflow.runStep',
+          'stopStepChannel': PropConverter.to<String>(m['stopStepChannel']) ?? 'workflow.stopStep',
+          'resetStepChannel': PropConverter.to<String>(m['resetStepChannel']) ?? 'workflow.resetStep',
+        },
+        children: [],
+      );
+      return _WorkflowActionButton(
+        key: ValueKey('wab-$parentNodeId'),
+        node: fakeNode,
+        ctx: ctx,
+      );
+    }
 
     // State-driven toggle: swap icon/tooltip/label when stateKey is true.
     final stateKey = PropConverter.to<String>(m['stateKey']);
@@ -6118,6 +6454,7 @@ class _LabeledShellButtonState extends State<_LabeledShellButton> {
                 SizedBox(width: t.spacing.sm),
               ],
               Text(widget.label, style: TextStyle(
+                fontFamily: t.fontFamily,
                 fontSize: t.textStyles.labelSmall.fontSize,
                 fontWeight: FontWeight.w600,
                 color: fg,
@@ -6208,6 +6545,132 @@ class _IconShellButtonState extends State<_IconShellButton> {
             child: Icon(widget.icon, size: wt.toolbarButtonIconSize, color: fg),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Toolbar search field with accent ring when active and clear button.
+class _ToolbarSearchField extends StatefulWidget {
+  final String hint;
+  final double width;
+  final SduiTheme theme;
+  final dynamic eventBus;
+  final String parentNodeId;
+  final String? searchChannel;
+
+  const _ToolbarSearchField({
+    required this.hint,
+    required this.width,
+    required this.theme,
+    required this.eventBus,
+    required this.parentNodeId,
+    this.searchChannel,
+  });
+
+  @override
+  State<_ToolbarSearchField> createState() => _ToolbarSearchFieldState();
+}
+
+class _ToolbarSearchFieldState extends State<_ToolbarSearchField> {
+  final TextEditingController _controller = TextEditingController();
+  bool _focused = false;
+
+  bool get _hasText => _controller.text.isNotEmpty;
+
+  void _publishSearch(String value) {
+    // Publish to the explicit search channel if provided, else use the generic input channel.
+    final channel = widget.searchChannel ??
+        'input.${widget.parentNodeId}-search.changed';
+    widget.eventBus.publish(
+      channel,
+      EventPayload(
+        type: 'input.changed',
+        sourceWidgetId: widget.parentNodeId,
+        data: {'value': value},
+      ),
+    );
+  }
+
+  void _clear() {
+    _controller.clear();
+    _publishSearch('');
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final wt = theme.window;
+    final btnSize = wt.toolbarButtonSize;
+    final isActive = _focused || _hasText;
+    final borderColor = isActive ? theme.colors.primary : theme.colors.outline;
+    final borderWidth = isActive ? theme.lineWeight.emphasis : theme.lineWeight.subtle;
+
+    return AnimatedContainer(
+      duration: theme.animation.fast,
+      constraints: BoxConstraints(maxWidth: widget.width, minWidth: btnSize),
+      height: btnSize,
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor, width: borderWidth),
+        borderRadius: BorderRadius.circular(wt.toolbarButtonRadius),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: btnSize,
+            child: Icon(FontAwesomeIcons.magnifyingGlass,
+                size: wt.toolbarButtonIconSize - 2,
+                color: isActive ? theme.colors.primary : theme.colors.onSurfaceMuted),
+          ),
+          Expanded(
+            child: Focus(
+              onFocusChange: (hasFocus) => setState(() => _focused = hasFocus),
+              child: TextField(
+                controller: _controller,
+                style: TextStyle(
+                    fontFamily: theme.fontFamily,
+                    fontSize: theme.textStyles.bodySmall.fontSize),
+                decoration: InputDecoration(
+                  hintText: widget.hint,
+                  hintStyle: TextStyle(
+                      fontFamily: theme.fontFamily,
+                      fontSize: theme.textStyles.bodySmall.fontSize,
+                      color: theme.colors.onSurfaceMuted),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                      vertical: (btnSize - (theme.textStyles.bodySmall.fontSize ?? 12) - 2) / 2),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                onChanged: (value) {
+                  _publishSearch(value);
+                  setState(() {});
+                },
+              ),
+            ),
+          ),
+          if (_hasText)
+            GestureDetector(
+              onTap: _clear,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: SizedBox(
+                  width: btnSize,
+                  child: Icon(FontAwesomeIcons.xmark,
+                      size: wt.toolbarButtonIconSize - 2,
+                      color: theme.colors.onSurfaceMuted),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
