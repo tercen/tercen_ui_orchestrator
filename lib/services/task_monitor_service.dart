@@ -266,6 +266,16 @@ class TaskMonitorService {
     }
   }
 
+  /// Find a tracked (running) task ID for a given workflowId.
+  String? findTaskForWorkflow(String workflowId) {
+    for (final entry in _tracked.values) {
+      if (entry.workflowId == workflowId && !entry.status.isFinal) {
+        return entry.taskId;
+      }
+    }
+    return null;
+  }
+
   /// Cancel a running task.
   Future<void> cancelTask(String taskId) async {
     final factory = _factory;

@@ -110,6 +110,12 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   Map<String, dynamic>? _loadedCatalog; // cached for home layout reload
   TaskMonitorService? _taskMonitor;
 
+  /// Active workflow task IDs keyed by workflowId, for cancel/stop support.
+  final Map<String, String> _activeWorkflowTasks = {};
+
+  /// Active step state pollers keyed by workflowId.
+  final Map<String, Timer> _stepStatePollers = {};
+
   /// Stable chat message stream that survives backend swaps.
   /// When _chatBackend changes, we re-pipe from the new backend's stream.
   final _chatBridge = StreamController<Map<String, dynamic>>.broadcast();
@@ -217,6 +223,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       return;
     }
     final windowId = 'workflow-$workflowId';
+    // If the workflow has running steps, start a state poller so the
+    // graph updates live even if this session didn't start the task.
+    _checkAndPollRunningWorkflow(workflowId);
+
     _openWidgetAsTab(
       widgetType: 'WorkflowViewer',
       windowId: windowId,
@@ -276,6 +286,299 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         workflowName: event.data['workflowName'] as String? ?? 'Workflow',
       );
     });
+
+    // --- Run ---
+    _sduiContext.eventBus.subscribe('workflow.runWorkflow').listen((event) {
+      final workflowId = event.data['workflowId'] as String? ?? '';
+      if (workflowId.isEmpty) return;
+      _runWorkflow(workflowId);
+    });
+
+    _sduiContext.eventBus.subscribe('workflow.runStep').listen((event) {
+      final workflowId = event.data['workflowId'] as String? ?? '';
+      final stepId = event.data['stepId'] as String? ?? '';
+      if (workflowId.isEmpty || stepId.isEmpty) return;
+      _runWorkflow(workflowId, stepIds: [stepId]);
+    });
+
+    // --- Stop ---
+    _sduiContext.eventBus.subscribe('workflow.stopWorkflow').listen((event) {
+      final workflowId = event.data['workflowId'] as String? ?? '';
+      if (workflowId.isEmpty) return;
+      _stopWorkflowTask(workflowId);
+    });
+
+    _sduiContext.eventBus.subscribe('workflow.stopStep').listen((event) {
+      final workflowId = event.data['workflowId'] as String? ?? '';
+      if (workflowId.isEmpty) return;
+      // Step tasks run under the workflow task — cancel the whole task
+      _stopWorkflowTask(workflowId);
+    });
+
+    // --- Reset ---
+    _sduiContext.eventBus.subscribe('workflow.resetWorkflow').listen((event) {
+      final workflowId = event.data['workflowId'] as String? ?? '';
+      if (workflowId.isEmpty) return;
+      _resetWorkflow(workflowId);
+    });
+
+    _sduiContext.eventBus.subscribe('workflow.resetStep').listen((event) {
+      final workflowId = event.data['workflowId'] as String? ?? '';
+      final stepId = event.data['stepId'] as String? ?? '';
+      if (workflowId.isEmpty || stepId.isEmpty) return;
+      _resetWorkflow(workflowId, stepIds: [stepId]);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Workflow execution helpers
+  // ---------------------------------------------------------------------------
+
+  /// Run a workflow (all steps or specific ones).
+  /// Creates a RunWorkflowTask, starts it, and begins polling for step states.
+  Future<void> _runWorkflow(String workflowId, {List<String>? stepIds}) async {
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) {
+      debugPrint('[workflow] Cannot run — no ServiceFactory');
+      return;
+    }
+
+    try {
+      // Fetch workflow to get projectId, owner, and rev
+      final workflow = await factory.workflowService.get(workflowId);
+
+      final task = sci.RunWorkflowTask()
+        ..workflowId = workflowId
+        ..workflowRev = workflow.rev
+        ..projectId = workflow.projectId
+        ..owner = workflow.acl.owner;
+
+      if (stepIds != null && stepIds.isNotEmpty) {
+        for (final id in stepIds) {
+          task.stepsToRun.add(id);
+        }
+        debugPrint('[workflow] Running steps $stepIds in $workflowId');
+      } else {
+        debugPrint('[workflow] Running all steps in $workflowId');
+      }
+
+      final created =
+          await factory.taskService.create(task) as sci.RunWorkflowTask;
+      await factory.taskService.runTask(created.id);
+
+      _activeWorkflowTasks[workflowId] = created.id;
+      debugPrint('[workflow] Task ${created.id} started for $workflowId');
+
+      // Start polling step states
+      _startStepStatePoller(workflowId);
+    } catch (e) {
+      debugPrint('[workflow] Run failed for $workflowId: $e');
+      _sduiContext.eventBus.publish(
+        'system.error',
+        EventPayload(type: 'error', data: {
+          'message': 'Failed to run workflow: $e',
+        }),
+      );
+    }
+  }
+
+  /// Cancel/stop the active task for a workflow.
+  /// Falls back to TaskMonitorService if this session didn't start the task.
+  Future<void> _stopWorkflowTask(String workflowId) async {
+    var taskId = _activeWorkflowTasks[workflowId];
+    taskId ??= _taskMonitor?.findTaskForWorkflow(workflowId);
+    if (taskId == null) {
+      debugPrint('[workflow] No active task to stop for $workflowId');
+      return;
+    }
+
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) return;
+
+    try {
+      await factory.taskService.cancelTask(taskId);
+      debugPrint('[workflow] Cancelled task $taskId for $workflowId');
+      // Poller will pick up the CanceledState and clean up
+    } catch (e) {
+      debugPrint('[workflow] Cancel failed for $taskId: $e');
+    }
+  }
+
+  /// Reset a workflow (all steps or specific ones) by running with stepsToReset.
+  Future<void> _resetWorkflow(String workflowId, {List<String>? stepIds}) async {
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) return;
+
+    try {
+      final workflow = await factory.workflowService.get(workflowId);
+
+      final task = sci.RunWorkflowTask()
+        ..workflowId = workflowId
+        ..workflowRev = workflow.rev
+        ..projectId = workflow.projectId
+        ..owner = workflow.acl.owner;
+
+      if (stepIds != null && stepIds.isNotEmpty) {
+        for (final id in stepIds) {
+          task.stepsToReset.add(id);
+        }
+        debugPrint('[workflow] Resetting steps $stepIds in $workflowId');
+      } else {
+        // Reset all steps — add every step ID to stepsToReset
+        final wfJson = Map<String, dynamic>.from(
+            factory.workflowService.toJson(workflow));
+        final steps = wfJson['steps'] as List? ?? [];
+        for (final s in steps) {
+          final sm = s as Map;
+          final id = sm['id'] as String? ?? '';
+          if (id.isNotEmpty) {
+            task.stepsToReset.add(id);
+          }
+        }
+        debugPrint('[workflow] Resetting all steps in $workflowId');
+      }
+
+      final created =
+          await factory.taskService.create(task) as sci.RunWorkflowTask;
+      await factory.taskService.runTask(created.id);
+
+      _activeWorkflowTasks[workflowId] = created.id;
+      debugPrint('[workflow] Reset task ${created.id} started for $workflowId');
+
+      // Start polling — will see steps move to InitState
+      _startStepStatePoller(workflowId);
+    } catch (e) {
+      debugPrint('[workflow] Reset failed for $workflowId: $e');
+    }
+  }
+
+  /// Check if a workflow has non-final steps and start a poller if so.
+  /// Handles the case where a workflow was running before this page loaded.
+  Future<void> _checkAndPollRunningWorkflow(String workflowId) async {
+    if (_stepStatePollers.containsKey(workflowId)) return; // already polling
+
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) return;
+
+    try {
+      final workflow = await factory.workflowService.get(workflowId);
+      final wfJson = Map<String, dynamic>.from(
+          factory.workflowService.toJson(workflow));
+      final steps = wfJson['steps'] as List? ?? [];
+
+      final hasRunning = steps.any((s) {
+        final sm = s as Map;
+        final state = sm['state'] as Map? ?? {};
+        final kind = (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
+        return kind == 'RunningState' ||
+            kind == 'RunningDependentState' ||
+            kind == 'PendingState';
+      });
+
+      if (hasRunning) {
+        debugPrint('[workflow] Detected running steps in $workflowId — starting poller');
+        _startStepStatePoller(workflowId);
+      }
+    } catch (e) {
+      debugPrint('[workflow] Check running failed for $workflowId: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Step state poller — publishes workflow.stepStateChanged for DirectedGraph
+  // ---------------------------------------------------------------------------
+
+  /// Polls the workflow every 2s and publishes step state changes to the
+  /// DirectedGraph via `workflow.stepStateChanged` events.
+  void _startStepStatePoller(String workflowId) {
+    // Cancel any existing poller for this workflow
+    _stepStatePollers[workflowId]?.cancel();
+
+    final factory = tercen.ServiceFactory.CURRENT;
+    if (factory == null) return;
+
+    // Track last-known icon colors to only publish changes
+    final lastColors = <String, String>{};
+
+    // Map from ServiceCallDispatcher — must stay in sync
+    String taskStateToColor(String taskState) => switch (taskState) {
+      'DoneState' => 'success',
+      'RunningState' => 'info',
+      'RunningDependentState' => 'warning',
+      'FailedState' => 'error',
+      'CanceledState' => 'onSurfaceMuted',
+      'PendingState' => 'onSurfaceMuted',
+      _ => 'onSurfaceVariant',
+    };
+
+    bool isFinalState(String taskState) =>
+        taskState == 'DoneState' ||
+        taskState == 'FailedState' ||
+        taskState == 'CanceledState';
+
+    Future<void> poll() async {
+      try {
+        final workflow = await factory.workflowService.get(workflowId);
+        final wfJson = Map<String, dynamic>.from(
+            factory.workflowService.toJson(workflow));
+        final steps = wfJson['steps'] as List? ?? [];
+
+        bool allFinal = true;
+
+        for (final s in steps) {
+          final sm = s as Map;
+          final stepId = sm['id'] as String? ?? '';
+          if (stepId.isEmpty) continue;
+
+          final state = sm['state'] as Map? ?? {};
+          final taskState =
+              (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
+          final iconColor = taskStateToColor(taskState);
+
+          if (!isFinalState(taskState)) {
+            allFinal = false;
+          }
+
+          // Only publish if color changed
+          if (lastColors[stepId] != iconColor) {
+            lastColors[stepId] = iconColor;
+            _sduiContext.eventBus.publish(
+              'workflow.stepStateChanged',
+              EventPayload(
+                type: 'stepStateChanged',
+                sourceWidgetId: 'orchestrator',
+                data: {'nodeId': stepId, 'iconColor': iconColor},
+              ),
+            );
+          }
+        }
+
+        if (allFinal) {
+          debugPrint('[workflow] All steps final for $workflowId — stopping poller');
+          _stepStatePollers[workflowId]?.cancel();
+          _stepStatePollers.remove(workflowId);
+          _activeWorkflowTasks.remove(workflowId);
+
+          // Trigger a full graph refresh so DataSource picks up final state
+          _sduiContext.eventBus.publish(
+            'workflow.workflowUpdated',
+            EventPayload(
+              type: 'workflowUpdated',
+              sourceWidgetId: 'orchestrator',
+              data: {'workflowId': workflowId},
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('[workflow] Poll failed for $workflowId: $e');
+      }
+    }
+
+    // Do an immediate poll, then every 2 seconds
+    poll();
+    _stepStatePollers[workflowId] =
+        Timer.periodic(const Duration(seconds: 2), (_) => poll());
+    debugPrint('[workflow] Step state poller started for $workflowId');
   }
 
   void _listenHeaderIntents() {
@@ -1782,6 +2085,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   @override
   void dispose() {
+    for (final timer in _stepStatePollers.values) {
+      timer.cancel();
+    }
+    _stepStatePollers.clear();
     _taskMonitor?.dispose();
     _layoutPersistence?.dispose();
     _selectionSub?.cancel();
