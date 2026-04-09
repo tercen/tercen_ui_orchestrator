@@ -4341,7 +4341,11 @@
               "payload": { "workflowId": "{{props.workflowId}}" },
               "isPrimary": true,
               "tooltip": "Run all steps"
-            }
+            },
+            { "icon": "magnifying-glass-plus", "tooltip": "Zoom in", "channel": "workflow.{{widgetId}}.zoomIn" },
+            { "icon": "magnifying-glass-minus", "tooltip": "Zoom out", "channel": "workflow.{{widgetId}}.zoomOut" },
+            { "icon": "expand", "tooltip": "Fit to window", "channel": "workflow.{{widgetId}}.fitToWindow" },
+            { "isSearch": true, "hint": "Search steps\u2026" }
           ]
         },
         "children": [
