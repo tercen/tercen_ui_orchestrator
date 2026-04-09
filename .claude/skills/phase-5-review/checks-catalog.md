@@ -191,17 +191,40 @@ Template must handle all four body states using `Conditional` nodes:
 
 Empty state can be handled by ForEach's built-in "No data" or a separate Conditional.
 
-### H2: Toolbar present
+### H2: Toolbar uses WindowShell
 
-Template should have a toolbar row at the top (before the body content). May be omitted only if the spec explicitly says "no toolbar".
+All window widgets must use `WindowShell` as the template root. WindowShell provides the standard 48px toolbar via `toolbarActions` prop. **FAIL** if:
+
+- The template uses a manual `Container` with `height: 48` as a toolbar instead of WindowShell
+- Toolbar height is set to any value other than the system default (48px is built into WindowShell)
+- Any toolbar control sets an explicit pixel height — the system enforces 32px for all toolbar controls
+
+The only exception is `MainHeader`, which is not a window widget.
+
+### H2a: Toolbar control heights are 32px
+
+All controls inside the toolbar (buttons, text fields, dropdowns) must render at `window.toolbarButtonSize` (32px). **FAIL** if:
+
+- A button uses `controlHeight.md` (36px) or any other height inside a toolbar
+- A TextField sets an explicit height other than 32px (use `size: "sm"` for 32px toolbar fields)
+- Any toolbar control uses `controlHeight.md`, `controlHeight.lg`, or hardcoded pixel heights
+
+There is no distinction between "primary" and "secondary" action buttons in toolbars — all buttons are the same height.
+
+### H2b: No manual toolbar height or padding
+
+Toolbar dimensions must come from the theme via WindowShell, not from manual `Container` props. **FAIL** if:
+
+- A `Container` node has `height: 48` and is used as a toolbar
+- Toolbar padding is set as a raw number instead of via WindowShell
 
 ### H3: handlesIntent defined
 
 If the spec says this window opens in response to intents, `metadata.handlesIntent` must be defined with correct `propsMap`.
 
-### H4: PromptRequired for configurable values
+### H4: Props passed via intent
 
-If the widget needs IDs (projectId, workflowId) that may not be in context, the template must be wrapped in `PromptRequired`.
+If the widget needs IDs (projectId, workflowId), these are passed as props via `handlesIntent[].propsMap` and available as `{{props.X}}` in the template. Do not use `PromptRequired` — it checks the global resolver, not template scope.
 
 ### H5: Intent propsMap matches widget props
 

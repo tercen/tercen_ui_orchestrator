@@ -89,11 +89,35 @@ Write gap report to `packages/tercen_ui_widgets/widgets/{name}/_mock/sdui-gaps.m
 }
 ```
 
+### Template root: WindowShell
+
+All window widgets MUST use `WindowShell` as the template root. WindowShell provides:
+- Standard 48px toolbar (height from `theme.window.toolbarHeight`)
+- Toolbar buttons via `toolbarActions` prop (all rendered at 32px = `theme.window.toolbarButtonSize`)
+- Body area for content children
+
+```json
+{
+  "type": "WindowShell",
+  "id": "{{widgetId}}-root",
+  "props": {
+    "toolbarActions": [
+      { "icon": "play", "label": "Run All", "channel": "workflow.run", "isPrimary": true },
+      { "icon": "search", "isSearch": true }
+    ]
+  },
+  "children": [ /* body content */ ]
+}
+```
+
+Do NOT build toolbars manually with `Container` + `Row` + buttons. All toolbar controls are 32px height — no exceptions, no manual overrides.
+
 ### Template tree primitives
 - **Layout**: `Row`, `Column`, `Container`, `Expanded`, `SizedBox`, `Padding`, `Spacer`
 - **Display**: `Text`, `Icon`, `CircleAvatar`, `Divider`, `Image`, `Chip`, `Tooltip`
 - **Interactive**: `PrimaryButton`, `SecondaryButton`, `IconButton`, `PopupMenu`, `TextField`, `Switch`, `Checkbox`, `DropdownButton`
 - **Behavior**: `DataSource`, `ForEach`, `Action`, `Conditional`, `Sort`, `Filter`, `EventScope`
+- **Shell**: `WindowShell` (template root for all window widgets)
 
 ### Data connections
 

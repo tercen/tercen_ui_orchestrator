@@ -81,6 +81,16 @@ SduiTheme.dart (packages/sdui/)       <- MASTER
 
 When values conflict, **SduiTheme.dart wins**.
 
+## Toolbar Standard
+
+All window widgets use `WindowShell` as the template root. WindowShell provides the toolbar — do not build toolbars manually with Container + Row.
+
+- Toolbar height: 48px (`theme.window.toolbarHeight`) — set by WindowShell, never manually
+- All toolbar controls: 32px (`theme.window.toolbarButtonSize`) — buttons, search fields, dropdowns
+- Toolbar buttons defined via `toolbarActions` prop on WindowShell
+- No height overrides on any toolbar control — the system enforces 32px
+- MainHeader is the only exception (it is not a window widget)
+
 ## Key Constraints
 
 - FontAwesome 6 Solid is the only icon library
