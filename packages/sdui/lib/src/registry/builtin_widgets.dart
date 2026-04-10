@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 import '../error_reporter.dart';
 import '../event_bus/event_bus.dart';
@@ -842,18 +841,39 @@ void registerBuiltinWidgets(WidgetRegistry registry) {
         type: 'AnnotatedImageViewer',
         description: 'Multi-image viewer with browser-style tabs and annotation tools. '
             'Accepts the images array from getStepImages. Provides 6 drawing tools '
-            '(polygon, rectangle, circle, arrow, freehand, text), zoom/pan, '
-            'send-to-chat (publishes annotation bundle), and save-to-project (browser download). '
-            'Built-in toolbar with tool toggles, clear, send, save, and zoom controls.',
+            '(polygon, rectangle, circle, arrow, freehand, text), zoom/pan, and '
+            'send-to-chat (publishes annotation bundle). '
+            'No built-in toolbar — use WindowShell toolbarActions to control via EventBus channels.',
         props: {
           'images': PropSpec(type: 'list', required: true,
               description: 'List of {schemaId, filename, mimetype, url} from getStepImages'),
           'authToken': PropSpec(type: 'string',
               description: 'Authorization token for authenticated image URLs'),
-          'sendChannel': PropSpec(type: 'string', defaultValue: 'visualization.annotations.send',
-              description: 'EventBus channel to publish annotation bundle when Send to Chat is pressed'),
+          'sendChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for send-to-chat command. '
+                  'When triggered, packages annotations and publishes bundle to annotationOutputChannel.'),
+          'annotationOutputChannel': PropSpec(type: 'string', defaultValue: 'visualization.annotations.send',
+              description: 'EventBus channel to publish annotation bundle to (outbound)'),
           'annotationColor': PropSpec(type: 'string', defaultValue: '#FF5722',
               description: 'Stroke/fill colour for annotations (hex)'),
+          'toolChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for tool selection. '
+                  'Payload: {tool: "polygon"|"rectangle"|"circle"|"arrow"|"freehand"|"text"|"none"}'),
+          'clearChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for clear-all-annotations command'),
+          'zoomInChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for zoom-in command'),
+          'zoomOutChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for zoom-out command'),
+          'fitChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for fit-to-window command'),
+          'saveChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for save-to-project command'),
+          'deleteChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to subscribe for delete-selected-annotation command'),
+          'selectionChannel': PropSpec(type: 'string',
+              description: 'EventBus channel to publish selection state. '
+                  'Publishes {hasSelection: bool} when selection changes.'),
         },
       ));
 
@@ -3895,6 +3915,17 @@ const Map<String, IconData> _iconMap = {
   'triangle-exclamation': FontAwesomeIcons.triangleExclamation,
   'paper-plane-top': FontAwesomeIcons.solidPaperPlane,
 
+  // PNG Viewer annotation tool icons
+  'draw-polygon': FontAwesomeIcons.drawPolygon,
+  'drawPolygon': FontAwesomeIcons.drawPolygon,
+  'square-outline': FontAwesomeIcons.square,
+  'circle-outline': FontAwesomeIcons.circle,
+  'arrow-right': FontAwesomeIcons.arrowRight,
+  'font': FontAwesomeIcons.font,
+  'trash-can': FontAwesomeIcons.solidTrashCan,
+  'paper-plane': FontAwesomeIcons.solidPaperPlane,
+  'floppy-disk': FontAwesomeIcons.solidFloppyDisk,
+
   // Workflow step icons (FA6 canonical names from spec Section 5)
   'cubes': FontAwesomeIcons.cubes,
   'eye': FontAwesomeIcons.solidEye,
@@ -4694,8 +4725,17 @@ Widget _buildAnnotatedImageViewer(
   }
 
   final authToken = PropConverter.to<String>(node.props['authToken']);
-  final sendChannel = PropConverter.to<String>(node.props['sendChannel']) ?? 'visualization.annotations.send';
+  final sendChannel = PropConverter.to<String>(node.props['sendChannel']);
+  final annotationOutputChannel = PropConverter.to<String>(node.props['annotationOutputChannel']) ?? 'visualization.annotations.send';
   final annotationColorHex = PropConverter.to<String>(node.props['annotationColor']) ?? '#FF5722';
+  final toolChannel = PropConverter.to<String>(node.props['toolChannel']);
+  final clearChannel = PropConverter.to<String>(node.props['clearChannel']);
+  final zoomInChannel = PropConverter.to<String>(node.props['zoomInChannel']);
+  final zoomOutChannel = PropConverter.to<String>(node.props['zoomOutChannel']);
+  final fitChannel = PropConverter.to<String>(node.props['fitChannel']);
+  final saveChannel = PropConverter.to<String>(node.props['saveChannel']);
+  final deleteChannel = PropConverter.to<String>(node.props['deleteChannel']);
+  final selectionChannel = PropConverter.to<String>(node.props['selectionChannel']);
 
   final imageDefs = <_ImageDef>[];
   for (final img in images) {
@@ -4721,7 +4761,16 @@ Widget _buildAnnotatedImageViewer(
     images: imageDefs,
     authToken: authToken,
     sendChannel: sendChannel,
+    annotationOutputChannel: annotationOutputChannel,
     annotationColorHex: annotationColorHex,
+    toolChannel: toolChannel,
+    clearChannel: clearChannel,
+    zoomInChannel: zoomInChannel,
+    zoomOutChannel: zoomOutChannel,
+    fitChannel: fitChannel,
+    saveChannel: saveChannel,
+    deleteChannel: deleteChannel,
+    selectionChannel: selectionChannel,
     theme: ctx.theme,
     eventBus: ctx.eventBus,
     sourceWidgetId: node.id,
@@ -4765,8 +4814,17 @@ class _Annotation {
 class _AnnotatedImageViewerWidget extends StatefulWidget {
   final List<_ImageDef> images;
   final String? authToken;
-  final String sendChannel;
+  final String? sendChannel;
+  final String annotationOutputChannel;
   final String annotationColorHex;
+  final String? toolChannel;
+  final String? clearChannel;
+  final String? zoomInChannel;
+  final String? zoomOutChannel;
+  final String? fitChannel;
+  final String? saveChannel;
+  final String? deleteChannel;
+  final String? selectionChannel;
   final SduiTheme theme;
   final dynamic eventBus;
   final String sourceWidgetId;
@@ -4775,8 +4833,17 @@ class _AnnotatedImageViewerWidget extends StatefulWidget {
     super.key,
     required this.images,
     required this.authToken,
-    required this.sendChannel,
+    this.sendChannel,
+    required this.annotationOutputChannel,
     required this.annotationColorHex,
+    this.toolChannel,
+    this.clearChannel,
+    this.zoomInChannel,
+    this.zoomOutChannel,
+    this.fitChannel,
+    this.saveChannel,
+    this.deleteChannel,
+    this.selectionChannel,
     required this.theme,
     required this.eventBus,
     required this.sourceWidgetId,
@@ -4796,8 +4863,12 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
   // In-progress drawing state
   List<Offset> _currentPoints = [];
   bool _isDrawing = false;
-  int? _movingAnnotationIdx;
-  Offset? _moveStart;
+  Offset? _hoverPosition; // live mouse position for polygon rubber-band
+
+  // Selection & move state
+  int? _selectedAnnotationIdx;
+  bool _isDraggingSelected = false;
+  Offset? _dragStart;
 
   // Text input
   bool _showTextInput = false;
@@ -4808,8 +4879,166 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
   // Zoom/pan
   final TransformationController _transformCtrl = TransformationController();
 
+  // EventBus subscriptions
+  final List<dynamic> _subscriptions = [];
+
   List<_Annotation> get _currentAnnotations =>
       _annotations.putIfAbsent(_selectedTab, () => []);
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeChannels();
+  }
+
+  void _subscribeChannels() {
+    final eb = widget.eventBus;
+    if (eb == null) return;
+
+    if (widget.toolChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.toolChannel!).listen((event) {
+        final toolName = (event.data['tool'] ?? '').toString();
+        final tool = _DrawingTool.values.firstWhere(
+          (t) => t.name == toolName,
+          orElse: () => _DrawingTool.none,
+        );
+        _selectTool(tool);
+      }));
+    }
+    // clearChannel kept for backwards compat — same behaviour as deleteChannel with no selection
+    if (widget.clearChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.clearChannel!).listen((_) {
+        _deleteOrClear();
+      }));
+    }
+    if (widget.zoomInChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.zoomInChannel!).listen((_) {
+        final m = _transformCtrl.value.clone()..scale(1.25);
+        _transformCtrl.value = m;
+      }));
+    }
+    if (widget.zoomOutChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.zoomOutChannel!).listen((_) {
+        final m = _transformCtrl.value.clone()..scale(0.8);
+        _transformCtrl.value = m;
+      }));
+    }
+    if (widget.fitChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.fitChannel!).listen((_) {
+        _transformCtrl.value = Matrix4.identity();
+      }));
+    }
+    if (widget.saveChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.saveChannel!).listen((_) {
+        // Save handled by browser download — placeholder for future implementation
+      }));
+    }
+    if (widget.sendChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.sendChannel!).listen((_) {
+        _sendToChat();
+      }));
+    }
+    if (widget.deleteChannel != null) {
+      _subscriptions.add(eb.subscribe(widget.deleteChannel!).listen((_) {
+        _deleteOrClear();
+      }));
+    }
+  }
+
+  /// If an annotation is selected, delete it. Otherwise clear all.
+  void _deleteOrClear() {
+    if (_selectedAnnotationIdx != null) {
+      setState(() {
+        _currentAnnotations.removeAt(_selectedAnnotationIdx!);
+        _selectedAnnotationIdx = null;
+      });
+      _publishSelection(false);
+    } else {
+      _clearAnnotations();
+    }
+  }
+
+  void _selectAnnotation(int? idx) {
+    setState(() => _selectedAnnotationIdx = idx);
+    _publishSelection(idx != null);
+  }
+
+  void _publishSelection(bool hasSelection) {
+    final eb = widget.eventBus;
+    if (eb == null || widget.selectionChannel == null) return;
+    eb.publish(
+      widget.selectionChannel!,
+      EventPayload(
+        type: 'selectionChanged',
+        sourceWidgetId: widget.sourceWidgetId,
+        data: {'hasSelection': hasSelection},
+      ),
+    );
+  }
+
+  int? _hitTestAnnotation(Offset pos) {
+    // Test in reverse order (topmost first)
+    for (var i = _currentAnnotations.length - 1; i >= 0; i--) {
+      final a = _currentAnnotations[i];
+      final threshold = 10.0;
+
+      switch (a.type) {
+        case _DrawingTool.rectangle:
+          if (a.points.length == 2) {
+            final rect = Rect.fromPoints(a.points[0], a.points[1]);
+            // Hit test on the border (inflated rect minus inner rect)
+            if (rect.inflate(threshold).contains(pos) &&
+                !rect.deflate(threshold.clamp(0, rect.shortestSide / 2)).contains(pos)) {
+              return i;
+            }
+          }
+        case _DrawingTool.circle:
+          if (a.points.isNotEmpty && a.radius != null) {
+            final dist = (pos - a.points.first).distance;
+            if ((dist - a.radius!).abs() < threshold) return i;
+          }
+        case _DrawingTool.arrow:
+          if (a.points.length == 2) {
+            final d = _distToSegment(pos, a.points[0], a.points[1]);
+            if (d < threshold) return i;
+          }
+        case _DrawingTool.polygon:
+          if (a.points.length >= 2) {
+            for (var j = 0; j < a.points.length; j++) {
+              final p1 = a.points[j];
+              final p2 = a.points[(j + 1) % a.points.length];
+              if (_distToSegment(pos, p1, p2) < threshold) return i;
+            }
+          }
+        case _DrawingTool.freehand:
+          for (var j = 0; j < a.points.length - 1; j++) {
+            if (_distToSegment(pos, a.points[j], a.points[j + 1]) < threshold) return i;
+          }
+        case _DrawingTool.text:
+          if (a.points.isNotEmpty && a.label != null) {
+            // Approximate text bounds
+            final textRect = Rect.fromLTWH(
+              a.points.first.dx, a.points.first.dy,
+              a.label!.length * 10.0, 20.0,
+            );
+            if (textRect.inflate(threshold).contains(pos)) return i;
+          }
+        default:
+          break;
+      }
+    }
+    return null;
+  }
+
+  static double _distToSegment(Offset p, Offset a, Offset b) {
+    final ab = b - a;
+    final lenSq = ab.dx * ab.dx + ab.dy * ab.dy;
+    if (lenSq == 0) return (p - a).distance;
+    var t = ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / lenSq;
+    t = t.clamp(0.0, 1.0);
+    final proj = Offset(a.dx + t * ab.dx, a.dy + t * ab.dy);
+    return (p - proj).distance;
+  }
 
   Color get _annotationColor {
     final hex = widget.annotationColorHex.replaceFirst('#', '');
@@ -4824,7 +5053,9 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
       _currentPoints = [];
       _isDrawing = false;
       _showTextInput = false;
+      _selectedAnnotationIdx = null;
     });
+    _publishSelection(false);
   }
 
   void _clearAnnotations() {
@@ -4838,7 +5069,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     if (annots.isEmpty) return;
     final current = widget.images[_selectedTab];
     widget.eventBus.publish(
-      widget.sendChannel,
+      widget.annotationOutputChannel,
       EventPayload(
         type: 'annotationBundle',
         sourceWidgetId: widget.sourceWidgetId,
@@ -4854,39 +5085,50 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     );
   }
 
-  void _onPanStart(DragStartDetails details) {
+  // --- Image-space gesture handlers (inside InteractiveViewer, no transform needed) ---
+
+  void _onImagePanStart(DragStartDetails details) {
+    final pos = details.localPosition;
+
+    // If no tool active, check for dragging a selected annotation
     if (_activeTool == _DrawingTool.none) {
-      // Check if tapping an existing annotation to move it
-      final localPos = _screenToImage(details.localPosition);
-      final hitIdx = _hitTest(localPos);
-      if (hitIdx != null) {
-        setState(() {
-          _movingAnnotationIdx = hitIdx;
-          _moveStart = localPos;
-        });
-        return;
+      if (_selectedAnnotationIdx != null) {
+        final a = _currentAnnotations[_selectedAnnotationIdx!];
+        final hitIdx = _hitTestAnnotation(pos);
+        if (hitIdx == _selectedAnnotationIdx) {
+          // Start dragging the selected annotation
+          setState(() {
+            _isDraggingSelected = true;
+            _dragStart = pos;
+          });
+          return;
+        }
       }
-      return; // Let InteractiveViewer handle pan
+      return;
     }
-    final pos = _screenToImage(details.localPosition);
+
+    // Drawing mode
     setState(() {
       _isDrawing = true;
       _currentPoints = [pos];
     });
   }
 
-  void _onPanUpdate(DragUpdateDetails details) {
-    final pos = _screenToImage(details.localPosition);
-    if (_movingAnnotationIdx != null && _moveStart != null) {
-      final dx = pos.dx - _moveStart!.dx;
-      final dy = pos.dy - _moveStart!.dy;
+  void _onImagePanUpdate(DragUpdateDetails details) {
+    final pos = details.localPosition;
+
+    // Dragging a selected annotation
+    if (_isDraggingSelected && _selectedAnnotationIdx != null && _dragStart != null) {
+      final dx = pos.dx - _dragStart!.dx;
+      final dy = pos.dy - _dragStart!.dy;
       setState(() {
-        final annot = _currentAnnotations[_movingAnnotationIdx!];
+        final annot = _currentAnnotations[_selectedAnnotationIdx!];
         annot.points = annot.points.map((p) => Offset(p.dx + dx, p.dy + dy)).toList();
-        _moveStart = pos;
+        _dragStart = pos;
       });
       return;
     }
+
     if (!_isDrawing) return;
     setState(() {
       switch (_activeTool) {
@@ -4906,14 +5148,16 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     });
   }
 
-  void _onPanEnd(DragEndDetails details) {
-    if (_movingAnnotationIdx != null) {
+  void _onImagePanEnd(DragEndDetails details) {
+    // End dragging selected annotation
+    if (_isDraggingSelected) {
       setState(() {
-        _movingAnnotationIdx = null;
-        _moveStart = null;
+        _isDraggingSelected = false;
+        _dragStart = null;
       });
       return;
     }
+
     if (!_isDrawing || _currentPoints.length < 2) {
       setState(() { _isDrawing = false; _currentPoints = []; });
       return;
@@ -4952,8 +5196,22 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     });
   }
 
-  void _onTapUp(TapUpDetails details) {
-    final pos = _screenToImage(details.localPosition);
+  void _onImageTapUp(TapUpDetails details) {
+    final pos = details.localPosition;
+
+    // Commit text on click-away
+    if (_showTextInput) {
+      _commitText();
+      return;
+    }
+
+    // If no tool active, handle selection
+    if (_activeTool == _DrawingTool.none) {
+      final hitIdx = _hitTestAnnotation(pos);
+      _selectAnnotation(hitIdx);
+      return;
+    }
+
     switch (_activeTool) {
       case _DrawingTool.polygon:
         setState(() {
@@ -5003,26 +5261,14 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     }
   }
 
-  Offset _screenToImage(Offset screenPos) {
-    // Inverse of the transform controller to get image-space coords
-    final matrix = _transformCtrl.value;
-    final inv = Matrix4.inverted(matrix);
-    final v = inv.transform3(Vector3(screenPos.dx, screenPos.dy, 0));
-    return Offset(v.x, v.y);
-  }
-
-  int? _hitTest(Offset pos) {
-    for (var i = _currentAnnotations.length - 1; i >= 0; i--) {
-      final a = _currentAnnotations[i];
-      final threshold = 15.0;
-      final r = a.bounds.inflate(threshold);
-      if (r.contains(pos)) return i;
-    }
-    return null;
-  }
+  // _screenToImage removed — gesture layer is now inside InteractiveViewer,
+  // so localPosition is already in image-space coordinates.
 
   @override
   void dispose() {
+    for (final sub in _subscriptions) {
+      sub.cancel();
+    }
     _transformCtrl.dispose();
     _textController.dispose();
     _textFocusNode.dispose();
@@ -5035,7 +5281,6 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     final images = widget.images;
     if (_selectedTab >= images.length) _selectedTab = 0;
     final current = images[_selectedTab];
-    final hasAnnotations = _currentAnnotations.isNotEmpty;
 
     final tabStyle = theme.textStyles.resolve('labelSmall')?.toTextStyle(
           color: theme.colors.onSurface,
@@ -5046,51 +5291,6 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Toolbar — drawing tools | actions | zoom
-        Container(
-          height: theme.window.toolbarHeight,
-          color: theme.colors.surface,
-          padding: EdgeInsets.symmetric(horizontal: theme.spacing.sm),
-          child: Row(
-            children: [
-              // Drawing tools
-              for (final tool in [
-                (_DrawingTool.polygon, FontAwesomeIcons.drawPolygon, 'Polygon'),
-                (_DrawingTool.rectangle, FontAwesomeIcons.square, 'Rectangle'),
-                (_DrawingTool.circle, FontAwesomeIcons.circle, 'Circle'),
-                (_DrawingTool.arrow, FontAwesomeIcons.arrowRight, 'Arrow'),
-                (_DrawingTool.freehand, FontAwesomeIcons.pencil, 'Freehand'),
-                (_DrawingTool.text, FontAwesomeIcons.font, 'Text'),
-              ]) ...[
-                _toolButton(tool.$1, tool.$2, tool.$3, theme),
-                SizedBox(width: theme.spacing.xs),
-              ],
-              const Spacer(),
-              // Actions
-              _actionButton(FontAwesomeIcons.trashCan, 'Clear all', hasAnnotations, _clearAnnotations, theme),
-              SizedBox(width: theme.spacing.xs),
-              _actionButton(FontAwesomeIcons.paperPlane, 'Send to Chat', hasAnnotations, _sendToChat, theme),
-              SizedBox(width: theme.spacing.xs),
-              _actionButton(FontAwesomeIcons.floppyDisk, 'Save', true, () {/* save handled by browser */}, theme),
-              const Spacer(),
-              // Zoom
-              _actionButton(FontAwesomeIcons.magnifyingGlassPlus, 'Zoom in', true, () {
-                final m = _transformCtrl.value.clone()..scale(1.25);
-                _transformCtrl.value = m;
-              }, theme),
-              SizedBox(width: theme.spacing.xs),
-              _actionButton(FontAwesomeIcons.magnifyingGlassMinus, 'Zoom out', true, () {
-                final m = _transformCtrl.value.clone()..scale(0.8);
-                _transformCtrl.value = m;
-              }, theme),
-              SizedBox(width: theme.spacing.xs),
-              _actionButton(FontAwesomeIcons.upRightAndDownLeftFromCenter, 'Fit', true, () {
-                _transformCtrl.value = Matrix4.identity();
-              }, theme),
-            ],
-          ),
-        ),
-        Divider(height: 1, color: theme.colors.outlineVariant),
         // Tab bar (only if multiple images)
         if (images.length > 1)
           Container(
@@ -5127,150 +5327,143 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
           ),
         // Canvas area
         Expanded(
-          child: Stack(
-            children: [
-              // Image + annotation overlay in InteractiveViewer
-              GestureDetector(
-                onPanStart: _activeTool != _DrawingTool.none || _movingAnnotationIdx != null
-                    ? _onPanStart : null,
-                onPanUpdate: _activeTool != _DrawingTool.none || _movingAnnotationIdx != null
-                    ? _onPanUpdate : null,
-                onPanEnd: _activeTool != _DrawingTool.none || _movingAnnotationIdx != null
-                    ? _onPanEnd : null,
-                onTapUp: (_activeTool == _DrawingTool.polygon || _activeTool == _DrawingTool.text)
-                    ? _onTapUp : null,
-                child: InteractiveViewer(
-                  transformationController: _transformCtrl,
-                  constrained: false,
-                  minScale: 0.1,
-                  maxScale: 10.0,
-                  boundaryMargin: const EdgeInsets.all(200),
-                  panEnabled: _activeTool == _DrawingTool.none && _movingAnnotationIdx == null,
-                  scaleEnabled: _activeTool == _DrawingTool.none,
-                  child: Stack(
-                    children: [
-                      Image.network(
-                        current.url,
-                        fit: BoxFit.contain,
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          final pct = progress.expectedTotalBytes != null
-                              ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                              : null;
-                          return Center(child: CircularProgressIndicator(value: pct));
-                        },
-                        errorBuilder: (context, error, stack) => Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(FontAwesomeIcons.image, size: 48, color: theme.colors.onSurfaceMuted),
-                              SizedBox(height: theme.spacing.sm),
-                              Text('Failed to load image', style: TextStyle(color: theme.colors.onSurfaceMuted)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Annotation paint overlay
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _AnnotationPainter(
-                            annotations: _currentAnnotations,
-                            inProgressPoints: _currentPoints,
-                            inProgressTool: _activeTool,
-                            movingIdx: _movingAnnotationIdx,
-                            annotationColor: _annotationColor,
-                            textFontSize: widget.theme.textStyles.bodyMedium.fontSize,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Text input overlay
-              if (_showTextInput && _textAnchor != null)
-                Positioned(
-                  left: 20,
-                  top: 20,
-                  child: Material(
-                    elevation: 4,
-                    borderRadius: BorderRadius.circular(theme.radius.sm),
-                    child: SizedBox(
-                      width: 200,
-                      child: TextField(
-                        controller: _textController,
-                        focusNode: _textFocusNode,
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          hintText: 'Enter text...',
-                          isDense: true,
-                          contentPadding: EdgeInsets.all(theme.spacing.sm),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(theme.radius.sm),
-                          ),
-                        ),
-                        onSubmitted: (_) => _commitText(),
+          child: MouseRegion(
+            cursor: _activeTool != _DrawingTool.none
+                ? SystemMouseCursors.precise
+                : _selectedAnnotationIdx != null
+                    ? SystemMouseCursors.move
+                    : SystemMouseCursors.grab,
+            child: InteractiveViewer(
+              transformationController: _transformCtrl,
+              constrained: false,
+              minScale: 0.1,
+              maxScale: 10.0,
+              boundaryMargin: const EdgeInsets.all(200),
+              panEnabled: _activeTool == _DrawingTool.none && _selectedAnnotationIdx == null,
+              scaleEnabled: _activeTool == _DrawingTool.none && _selectedAnnotationIdx == null,
+              child: Stack(
+                children: [
+                  Image.network(
+                    current.url,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      final pct = progress.expectedTotalBytes != null
+                          ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                          : null;
+                      return Center(child: CircularProgressIndicator(value: pct));
+                    },
+                    errorBuilder: (context, error, stack) => Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(FontAwesomeIcons.image, size: 48, color: theme.colors.onSurfaceMuted),
+                          SizedBox(height: theme.spacing.sm),
+                          Text('Failed to load image', style: TextStyle(color: theme.colors.onSurfaceMuted)),
+                        ],
                       ),
                     ),
                   ),
-                ),
-            ],
+                  // Annotation paint overlay
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _AnnotationPainter(
+                        annotations: _currentAnnotations,
+                        inProgressPoints: _currentPoints,
+                        inProgressTool: _activeTool,
+                        hoverPosition: _hoverPosition,
+                        selectedIdx: _selectedAnnotationIdx,
+                        annotationColor: _annotationColor,
+                        textFontSize: widget.theme.textStyles.bodyMedium.fontSize,
+                      ),
+                    ),
+                  ),
+                  // Gesture layer — INSIDE InteractiveViewer so coords are in image-space.
+                  // Drawing mode: pan + tap for shape creation.
+                  if (_activeTool != _DrawingTool.none)
+                    Positioned.fill(
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerHover: (event) {
+                          if (_activeTool == _DrawingTool.polygon) {
+                            setState(() => _hoverPosition = event.localPosition);
+                          }
+                        },
+                        onPointerMove: (event) {
+                          if (_activeTool == _DrawingTool.polygon && !_isDrawing) {
+                            setState(() => _hoverPosition = event.localPosition);
+                          }
+                        },
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onPanStart: _onImagePanStart,
+                          onPanUpdate: _onImagePanUpdate,
+                          onPanEnd: _onImagePanEnd,
+                          onTapUp: _onImageTapUp,
+                        ),
+                      ),
+                    ),
+                  // Selection mode: tap to select, pan to move selected.
+                  // Only when no tool active and annotations exist.
+                  if (_activeTool == _DrawingTool.none && _currentAnnotations.isNotEmpty)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTapUp: (details) {
+                          // Commit text if open
+                          if (_showTextInput) { _commitText(); return; }
+                          final hitIdx = _hitTestAnnotation(details.localPosition);
+                          _selectAnnotation(hitIdx);
+                        },
+                        onPanStart: _selectedAnnotationIdx != null ? _onImagePanStart : null,
+                        onPanUpdate: _selectedAnnotationIdx != null ? _onImagePanUpdate : null,
+                        onPanEnd: _selectedAnnotationIdx != null ? _onImagePanEnd : null,
+                      ),
+                    ),
+                  // Text annotation input — bare text in annotation colour, no chrome
+                  if (_showTextInput && _textAnchor != null)
+                    Positioned(
+                      left: _textAnchor!.dx,
+                      top: _textAnchor!.dy - 2,
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: IntrinsicWidth(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minWidth: 40),
+                            child: EditableText(
+                              controller: _textController,
+                              focusNode: _textFocusNode,
+                              autofocus: true,
+                              style: TextStyle(
+                                color: _annotationColor,
+                                fontSize: widget.theme.textStyles.bodyMedium.fontSize,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              cursorColor: _annotationColor,
+                              backgroundCursorColor: Colors.transparent,
+                              onSubmitted: (_) => _commitText(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _toolButton(_DrawingTool tool, IconData icon, String tooltip, SduiTheme theme) {
-    final isActive = _activeTool == tool;
-    return SizedBox(
-      width: theme.window.toolbarButtonSize,
-      height: theme.window.toolbarButtonSize,
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        iconSize: theme.iconSize.sm,
-        tooltip: tooltip,
-        icon: Icon(icon, color: isActive ? theme.colors.onPrimary : theme.colors.primary),
-        style: IconButton.styleFrom(
-          backgroundColor: isActive ? theme.colors.primary : Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(theme.radius.sm),
-            side: isActive
-                ? BorderSide.none
-                : BorderSide(color: theme.colors.primary, width: theme.window.toolbarButtonBorderWidth),
-          ),
-        ),
-        onPressed: () => _selectTool(tool),
-      ),
-    );
-  }
-
-  Widget _actionButton(IconData icon, String tooltip, bool enabled, VoidCallback onPressed, SduiTheme theme) {
-    return SizedBox(
-      width: theme.window.toolbarButtonSize,
-      height: theme.window.toolbarButtonSize,
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        iconSize: theme.iconSize.sm,
-        tooltip: tooltip,
-        icon: Icon(icon, color: enabled ? theme.colors.primary : theme.colors.onSurfaceMuted),
-        style: IconButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(theme.radius.sm),
-            side: BorderSide(color: enabled ? theme.colors.primary : theme.colors.outlineVariant, width: theme.window.toolbarButtonBorderWidth),
-          ),
-        ),
-        onPressed: enabled ? onPressed : null,
-      ),
-    );
-  }
 }
 
 class _AnnotationPainter extends CustomPainter {
   final List<_Annotation> annotations;
   final List<Offset> inProgressPoints;
   final _DrawingTool inProgressTool;
-  final int? movingIdx;
+  final Offset? hoverPosition;
+  final int? selectedIdx;
   final Color annotationColor;
   final double textFontSize;
 
@@ -5278,7 +5471,8 @@ class _AnnotationPainter extends CustomPainter {
     required this.annotations,
     required this.inProgressPoints,
     required this.inProgressTool,
-    this.movingIdx,
+    this.hoverPosition,
+    this.selectedIdx,
     required this.annotationColor,
     required this.textFontSize,
   });
@@ -5292,16 +5486,19 @@ class _AnnotationPainter extends CustomPainter {
     final fill = Paint()
       ..color = annotationColor.withAlpha(50)
       ..style = PaintingStyle.fill;
-    final movingStroke = Paint()
+    final selectedStroke = Paint()
       ..color = const Color(0xFF2196F3)
-      ..strokeWidth = 2
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
+    final selectedFill = Paint()
+      ..color = const Color(0xFF2196F3).withAlpha(40)
+      ..style = PaintingStyle.fill;
 
     // Draw completed annotations
     for (var i = 0; i < annotations.length; i++) {
       final a = annotations[i];
-      final s = i == movingIdx ? movingStroke : stroke;
-      _drawAnnotation(canvas, a, s, fill);
+      final isSelected = i == selectedIdx;
+      _drawAnnotation(canvas, a, isSelected ? selectedStroke : stroke, isSelected ? selectedFill : fill);
     }
 
     // Draw in-progress shape
@@ -5316,13 +5513,25 @@ class _AnnotationPainter extends CustomPainter {
 
       switch (inProgressTool) {
         case _DrawingTool.polygon:
-          if (inProgressPoints.length >= 2) {
+          if (inProgressPoints.isNotEmpty) {
             final path = Path()..moveTo(inProgressPoints.first.dx, inProgressPoints.first.dy);
-            for (final p in inProgressPoints.skip(1)) path.lineTo(p.dx, p.dy);
+            for (final p in inProgressPoints.skip(1)) {
+              path.lineTo(p.dx, p.dy);
+            }
+            // Rubber-band line from last point to current mouse position
+            if (hoverPosition != null) {
+              path.lineTo(hoverPosition!.dx, hoverPosition!.dy);
+            }
             canvas.drawPath(path, ghost);
           }
+          // Draw vertex dots
           for (final p in inProgressPoints) {
             canvas.drawCircle(p, 4, ghost);
+          }
+          // Draw close-target indicator near first point
+          if (inProgressPoints.length >= 3 && hoverPosition != null &&
+              (inProgressPoints.first - hoverPosition!).distance < 15) {
+            canvas.drawCircle(inProgressPoints.first, 8, ghostFill);
           }
         case _DrawingTool.rectangle:
           if (inProgressPoints.length == 2) {

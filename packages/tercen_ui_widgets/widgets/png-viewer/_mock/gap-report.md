@@ -131,17 +131,17 @@ The following Dart colour names are referenced in the widget but have been delet
 
 ### 4.5  SDUI Primitive coverage
 
-| UI element | Nearest SDUI primitive | Notes |
-|---|---|---|
-| Toolbar (48px, 3-zone) | `WindowToolbar` | Custom 3-zone layout extends WindowToolbar — needs `trailingLeading` slot or a new `PngViewerToolbar` primitive |
-| Toggle button (on/off) | `ToolbarAction` via `WindowToolbar` | `isPrimary` flag maps to active state; SDUI needs a `isToggled` boolean |
-| Loading state | `LoadingState` | Direct 1:1 mapping |
-| Empty state | `EmptyState` | Direct 1:1. `actionLabel`/`onAction` wired as null in this widget — confirm no action button needed |
-| Error state | `ErrorState` | Direct 1:1. `onRetry` → `provider.retryLoad()` |
-| Active canvas | **No current SDUI primitive** | Pannable/zoomable canvas with annotation overlay is entirely bespoke. Needs new `ImageCanvas` SDUI component. |
-| Annotation painter | **No current SDUI primitive** | 6 tool types, custom `CustomPainter`. Canvas interaction (gestures, hit-test, rubber-band) is pure Dart logic. |
-| Send to Chat | EventBus `visualization.annotations.send` | SDUI event binding needed |
-| Load Image | EventBus `visualization.{windowId}.loadImage` | SDUI event subscription needed |
+| UI element | Nearest SDUI primitive | Status | Notes |
+|---|---|---|---|
+| Toolbar (48px) | `WindowShell` + `toolbarActions` | **RESOLVED** | Built-in toolbar stripped from AnnotatedImageViewer. Toolbar now provided by WindowShell with standard left-aligned actions. |
+| Toggle button (on/off) | `WindowShell` toolbar action with `stateKey` | **RESOLVED** | Drawing tool toggles use standard toolbar toggle pattern via EventBus. |
+| Loading state | `LoadingState` | Ready | Direct 1:1 mapping |
+| Empty state | `EmptyState` | Ready | Direct 1:1. No action button. |
+| Error state | `ErrorState` | Ready | Direct 1:1. `onRetry` retries image fetch. |
+| Active canvas | `AnnotatedImageViewer` | **RESOLVED** | Existing primitive retained for canvas, annotations, zoom/pan. Toolbar stripped; now controlled via EventBus channels (toolChannel, clearChannel, zoomIn/Out/FitChannel, sendChannel, saveChannel). |
+| Annotation painter | `AnnotatedImageViewer` (internal) | **RESOLVED** | 6 tool types, CustomPainter, gesture handling — all kept inside the primitive as body-level concerns. |
+| Send to Chat | EventBus `visualization.annotations.send` | **RESOLVED** | Toolbar "Send to Chat" button publishes to sendChannel; primitive subscribes, packages annotations, publishes bundle to annotationOutputChannel. |
+| Load Image | EventBus `visualization.{windowId}.loadImage` | Pending | SDUI event subscription — wired via catalog template inbound event. |
 
 ---
 

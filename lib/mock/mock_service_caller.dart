@@ -318,13 +318,14 @@ class MockServiceCaller extends ChangeNotifier {
 
   Map<String, dynamic> _stepImages() {
     return {
-      'images': List.generate(2, (i) {
-        return <String, dynamic>{
-          'id': 'img-$i',
-          'name': 'Plot ${i + 1}',
-          'url': 'https://via.placeholder.com/400x300?text=Plot+${i + 1}',
-        };
-      }),
+      'images': [
+        <String, dynamic>{
+          'schemaId': 'schema-img-0',
+          'filename': 'View UMAP vs. clusters.png',
+          'mimetype': 'image/png',
+          'url': 'https://picsum.photos/800/600',
+        },
+      ],
     };
   }
 

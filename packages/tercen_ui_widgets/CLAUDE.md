@@ -20,11 +20,9 @@ This repo produces **JSON catalog entries** for SDUI widgets (window and header 
 ## Phase Pipeline
 
 1. **Spec** — functional specification (`phase-1-spec`)
-2. **Mock** — HTML wireframe + styled rendering + gap evaluation (`phase-2-mock`)
-3. **Reconcile** — diff mock against spec, produce binding design-decisions.md (`phase-3-reconcile`)
-4. **Primitives** — fill gaps in sdui package / tokens (`phase-3-primitives`)
-5. **Catalog** — author catalog.json entry (`phase-4-catalog`)
-6. **Review** — validation and sign-off (`phase-5-review`)
+2. **Primitives** — fill gaps in sdui package / tokens (`phase-3-primitives`)
+3. **Catalog** — author catalog.json entry, test in mock shell (`phase-4-catalog`)
+4. **Review** — validation and sign-off (`phase-5-review`)
 
 ## Sibling packages (read directly, no copies)
 
