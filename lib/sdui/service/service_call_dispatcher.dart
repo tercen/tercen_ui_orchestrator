@@ -790,7 +790,7 @@ class ServiceCallDispatcher {
 
   /// Recursively walks a relation tree (JSON) and collects all SimpleRelation IDs.
   /// Transforms a workflow into a generic directed graph for the DirectedGraph widget.
-  /// Returns {name, nodes: [{id, label, x, y, width, height, shape, icon, iconColor, fill, borderColor, subtitle}], edges: [{from, to}]}
+  /// Returns {name, nodes: [{id, label, x, y, width, height, shape, icon, iconColor, fill, borderColor, subtitle, labelPosition?}], edges: [{from, to}]}
   Future<Map<String, dynamic>> _getWorkflowGraph(String workflowId) async {
     final workflow = await factory.workflowService.get(workflowId);
     final wfJson = Map<String, dynamic>.from(
@@ -800,32 +800,9 @@ class ServiceCallDispatcher {
     final wfName = wfJson['name'] as String? ?? workflowId;
 
     final nodes = <Map<String, dynamic>>[];
-    for (final s in steps) {
-      final sm = Map<String, dynamic>.from(s as Map);
-      final kind = sm['kind'] as String? ?? '';
-      final name = sm['name'] as String? ?? '';
-      final id = sm['id'] as String? ?? '';
-      final rect = sm['rectangle'] as Map? ?? {};
-      final tl = rect['topLeft'] as Map? ?? {};
-      final ext = rect['extent'] as Map? ?? {};
-      final state = sm['state'] as Map? ?? {};
-      final taskState = (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
-
-      nodes.add({
-        'id': id,
-        'label': name,
-        'x': PropConverter.to<double>(tl['x']) ?? 0,
-        'y': PropConverter.to<double>(tl['y']) ?? 0,
-        'width': PropConverter.to<double>(ext['x']) ?? 0,
-        'height': PropConverter.to<double>(ext['y']) ?? 36,
-        'shape': _stepKindToShape(kind),
-        'icon': _stepKindToIcon(kind),
-        'iconColor': _taskStateToColor(taskState),
-        'fill': 'surface',
-        'borderColor': 'outline',
-        'subtitle': kind,
-      });
-    }
+    final stepIds = <String>{};
+    // Track which steps are targets of a link (have an incoming edge).
+    final hasIncoming = <String>{};
 
     // Resolve link port IDs → step IDs
     final edges = <Map<String, String>>[];
@@ -842,6 +819,88 @@ class ServiceCallDispatcher {
           : inputId;
       if (fromStep.isNotEmpty && toStep.isNotEmpty) {
         edges.add({'from': fromStep, 'to': toStep});
+        hasIncoming.add(toStep);
+      }
+    }
+
+    for (final s in steps) {
+      final sm = Map<String, dynamic>.from(s as Map);
+      final kind = sm['kind'] as String? ?? '';
+      final name = sm['name'] as String? ?? '';
+      final id = sm['id'] as String? ?? '';
+      final rect = sm['rectangle'] as Map? ?? {};
+      final tl = rect['topLeft'] as Map? ?? {};
+      final ext = rect['extent'] as Map? ?? {};
+      final state = sm['state'] as Map? ?? {};
+      final taskState = (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
+      final shape = _stepKindToShape(kind);
+
+      stepIds.add(id);
+      nodes.add({
+        'id': id,
+        'label': name,
+        'x': PropConverter.to<double>(tl['x']) ?? 0,
+        'y': PropConverter.to<double>(tl['y']) ?? 0,
+        'width': PropConverter.to<double>(ext['x']) ?? 0,
+        'height': PropConverter.to<double>(ext['y']) ?? 36,
+        'shape': shape,
+        'icon': _stepKindToIcon(kind),
+        'iconColor': _taskStateToColor(taskState),
+        'fill': 'surface',
+        'borderColor': 'outline',
+        'subtitle': kind,
+        if (shape == 'circle') 'labelPosition': 'outside',
+      });
+    }
+
+    // Synthesize a workflow root node (circle badge, 48px) at row 0.
+    // Connects to all entry-point steps (steps with no incoming edges).
+    if (nodes.isNotEmpty) {
+      // Find bounding box top to position root above all steps.
+      double minY = double.infinity, sumX = 0;
+      int count = 0;
+      for (final n in nodes) {
+        final y = (n['y'] as num?)?.toDouble() ?? 0;
+        final x = (n['x'] as num?)?.toDouble() ?? 0;
+        if (y < minY) minY = y;
+        sumX += x;
+        count++;
+      }
+      final rootX = count > 0 ? sumX / count : 0.0;
+      final rootY = minY - 80;
+
+      // Derive aggregate state for root icon color.
+      final allStates = nodes.map((n) => n['iconColor'] as String).toList();
+      String rootIconColor;
+      if (allStates.any((c) => c == 'info' || c == 'warning')) {
+        rootIconColor = 'info';
+      } else if (allStates.any((c) => c == 'onSurfaceVariant' || c == 'onSurfaceMuted')) {
+        rootIconColor = 'onSurfaceVariant';
+      } else {
+        rootIconColor = 'success';
+      }
+
+      nodes.insert(0, {
+        'id': 'workflow-root',
+        'label': wfName,
+        'x': rootX,
+        'y': rootY,
+        'width': 48.0,
+        'height': 48.0,
+        'shape': 'circle',
+        'icon': 'sitemap',
+        'iconColor': rootIconColor,
+        'fill': 'surface',
+        'borderColor': 'outline',
+        'subtitle': 'Workflow',
+        'labelPosition': 'outside',
+      });
+
+      // Connect root to entry-point steps (no incoming edges).
+      for (final id in stepIds) {
+        if (!hasIncoming.contains(id)) {
+          edges.add({'from': 'workflow-root', 'to': id});
+        }
       }
     }
 
@@ -863,17 +922,17 @@ class ServiceCallDispatcher {
   };
 
   static String _stepKindToIcon(String kind) => switch (kind) {
-    'TableStep' => 'table_chart',
-    'DataStep' => 'hub',
+    'TableStep' => 'table',
+    'DataStep' => 'cubes',
     'MeltStep' => 'shuffle',
-    'JoinStep' => 'call_merge',
-    'ViewStep' => 'visibility',
-    'InStep' => 'input',
-    'OutStep' => 'output',
-    'ExportStep' => 'insert_drive_file',
-    'WizardStep' => 'auto_fix_high',
-    'GroupStep' => 'account_tree',
-    _ => 'widgets',
+    'JoinStep' => 'code-merge',
+    'ViewStep' => 'eye',
+    'InStep' => 'right-to-bracket',
+    'OutStep' => 'right-from-bracket',
+    'ExportStep' => 'right-from-bracket',
+    'WizardStep' => 'wand-magic-sparkles',
+    'GroupStep' => 'sitemap',
+    _ => 'cubes',
   };
 
   static String _taskStateToColor(String taskState) => switch (taskState) {
