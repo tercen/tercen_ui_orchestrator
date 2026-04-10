@@ -4051,20 +4051,21 @@ class _WorkflowActionButtonState extends State<_WorkflowActionButton> {
   void initState() {
     super.initState();
     final selChannel = PropConverter.to<String>(widget.node.props['selectionChannel']) ?? '';
+    debugPrint('[WfActionBtn] Subscribing to selectionChannel: "$selChannel"');
     if (selChannel.isNotEmpty) {
       _selectionSub = widget.ctx.eventBus.subscribe(selChannel).listen((event) {
+        final nodeId = event.data['nodeId']?.toString();
+        final iconColor = event.data['iconColor']?.toString();
+        final shape = event.data['shape']?.toString();
+        debugPrint('[WfActionBtn] Selection: nodeId=$nodeId iconColor=$iconColor shape=$shape');
         setState(() {
-          final nodeId = event.data['nodeId']?.toString();
           if (nodeId == null || nodeId == _selectedNodeId) {
-            // Toggle off — back to workflow root
             _selectedNodeId = null;
             _selectedIconColor = null;
             _isStepSelected = false;
           } else {
             _selectedNodeId = nodeId;
-            _selectedIconColor = event.data['iconColor']?.toString();
-            // Circle shape = workflow/group root → not a step
-            final shape = event.data['shape']?.toString();
+            _selectedIconColor = iconColor;
             _isStepSelected = shape != 'circle';
           }
         });
@@ -5698,30 +5699,53 @@ class _DirectedGraphWidgetState extends State<_DirectedGraphWidget> {
 
   void _fitToWindow() {
     if (widget.nodes.isEmpty || _viewportSize == Size.zero) return;
-    final bounds = _contentBounds();
-    if (bounds.width <= 0 || bounds.height <= 0) return;
-    final scaleX = _viewportSize.width / bounds.width;
-    final scaleY = _viewportSize.height / bounds.height;
+    final rect = _nodesBoundingRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const padding = 40.0;
+    final paddedW = rect.width + padding * 2;
+    final paddedH = rect.height + padding * 2;
+
+    final scaleX = _viewportSize.width / paddedW;
+    final scaleY = _viewportSize.height / paddedH;
     final fitScale = (scaleX < scaleY ? scaleX : scaleY).clamp(_minScale, 1.0);
-    _transformCtrl.value = Matrix4.diagonal3Values(fitScale, fitScale, 1.0);
+
+    // Center the content bounding rect in the viewport
+    final scaledW = paddedW * fitScale;
+    final scaledH = paddedH * fitScale;
+    final tx = (_viewportSize.width - scaledW) / 2 - (rect.left - padding) * fitScale;
+    final ty = (_viewportSize.height - scaledH) / 2 - (rect.top - padding) * fitScale;
+
+    final m = Matrix4.identity();
+    m.storage[12] = tx;
+    m.storage[13] = ty;
+    m.storage[0] = fitScale;
+    m.storage[5] = fitScale;
+    _transformCtrl.value = m;
   }
 
-  /// Compute bounding box of all nodes (with padding).
-  (double, double) _contentExtent() {
-    double maxX = 0, maxY = 0;
+  /// Compute tight bounding rect around all nodes.
+  Rect _nodesBoundingRect() {
+    double minX = double.infinity, minY = double.infinity;
+    double maxX = double.negativeInfinity, maxY = double.negativeInfinity;
     for (final n in widget.nodes) {
-      final right = n.x + (n.width > 0 ? n.width : 140);
-      final bottom = n.y + n.height + 20;
-      if (right > maxX) maxX = right;
-      if (bottom > maxY) maxY = bottom;
+      final w = n.width > 0 ? n.width : 140.0;
+      // Account for outside labels below the node
+      final labelExtra = n.labelPosition == 'outside' ? 20.0 : 0.0;
+      if (n.x < minX) minX = n.x;
+      if (n.y < minY) minY = n.y;
+      if (n.x + w > maxX) maxX = n.x + w;
+      if (n.y + n.height + labelExtra > maxY) maxY = n.y + n.height + labelExtra;
     }
-    return (maxX + 40, maxY + 40);
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
 
-  Size _contentBounds() {
-    final (w, h) = _contentExtent();
-    return Size(w, h);
+  /// Compute canvas extent for the SizedBox wrapping the Stack.
+  (double, double) _contentExtent() {
+    final rect = _nodesBoundingRect();
+    return (rect.right + 40, rect.bottom + 40);
   }
+
 
   /// Walk ancestors of [nodeId] and collect all IDs on the path.
   Set<String> _ancestorPath(String nodeId) {
@@ -6123,15 +6147,39 @@ class _GraphConnectorPainter extends CustomPainter {
 
   /// Exit port: bottom-center of the node.
   Offset? _exitPort(_GraphNode n) {
-    final w = n.width > 0 ? n.width : (n.shape == 'roundedRect' ? 100.0 : 36.0);
-    final h = n.height > 0 ? n.height : 36.0;
+    final (w, h) = _nodeVisualSize(n);
     return Offset(n.x + w / 2, n.y + h);
   }
 
   /// Entry port: top-center of the node.
   Offset? _entryPort(_GraphNode n) {
-    final w = n.width > 0 ? n.width : (n.shape == 'roundedRect' ? 100.0 : 36.0);
+    final (w, _) = _nodeVisualSize(n);
     return Offset(n.x + w / 2, n.y);
+  }
+
+  /// Returns the visual (width, height) matching what the build methods render.
+  (double, double) _nodeVisualSize(_GraphNode n) {
+    final ctrlH = theme.controlHeight.md;
+    switch (n.shape) {
+      case 'circle':
+        // _graphCircle uses node.height as diameter
+        final d = n.height > 0 ? n.height : ctrlH;
+        return (d, d);
+      case 'roundedSquare':
+        // _graphRoundedSquare uses controlHeight.md for both dimensions
+        return (ctrlH, ctrlH);
+      case 'hexagon':
+        // _graphHexagon: height is controlHeight.md, width is intrinsic
+        final w = n.width > 50 ? (n.width > 0 ? n.width : 80.0) : ctrlH;
+        return (w, ctrlH);
+      case 'roundedRect':
+      default:
+        // _graphRoundedRect: height is controlHeight.md,
+        // width clamped to 80..200 (or node.width if in range)
+        final raw = n.width > 0 ? n.width : 100.0;
+        final w = raw.clamp(80.0, 200.0);
+        return (w, ctrlH);
+    }
   }
 
   @override

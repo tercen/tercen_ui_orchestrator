@@ -113,8 +113,6 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   /// Active workflow task IDs keyed by workflowId, for cancel/stop support.
   final Map<String, String> _activeWorkflowTasks = {};
 
-  /// Active step state pollers keyed by workflowId.
-  final Map<String, Timer> _stepStatePollers = {};
 
   /// Stable chat message stream that survives backend swaps.
   /// When _chatBackend changes, we re-pipe from the new backend's stream.
@@ -223,10 +221,6 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       return;
     }
     final windowId = 'workflow-$workflowId';
-    // If the workflow has running steps, start a state poller so the
-    // graph updates live even if this session didn't start the task.
-    _checkAndPollRunningWorkflow(workflowId);
-
     _openWidgetAsTab(
       widgetType: 'WorkflowViewer',
       windowId: windowId,
@@ -367,10 +361,10 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       await factory.taskService.runTask(created.id);
 
       _activeWorkflowTasks[workflowId] = created.id;
-      debugPrint('[workflow] Task ${created.id} started for $workflowId');
+      debugPrint('[workflow] Task ${created.id} (channel=${created.channelId}) started for $workflowId');
 
-      // Start polling step states
-      _startStepStatePoller(workflowId);
+      // Wait for task completion (server-side blocking) then refresh graph
+      _waitForTaskCompletion(workflowId, created.id, factory);
     } catch (e) {
       debugPrint('[workflow] Run failed for $workflowId: $e');
       _sduiContext.eventBus.publish(
@@ -404,181 +398,185 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     }
   }
 
-  /// Reset a workflow (all steps or specific ones) by running with stepsToReset.
+  /// Reset workflow steps by setting their state to InitState directly.
+  /// Never resets TableStep or GroupStep (structural steps).
   Future<void> _resetWorkflow(String workflowId, {List<String>? stepIds}) async {
     final factory = tercen.ServiceFactory.CURRENT;
     if (factory == null) return;
 
     try {
       final workflow = await factory.workflowService.get(workflowId);
+      const nonResettableKinds = {'TableStep', 'GroupStep'};
 
-      final task = sci.RunWorkflowTask()
-        ..workflowId = workflowId
-        ..workflowRev = workflow.rev
-        ..projectId = workflow.projectId
-        ..owner = workflow.acl.owner;
-
+      // Build a set of target step IDs to reset
+      final targetIds = <String>{};
       if (stepIds != null && stepIds.isNotEmpty) {
-        for (final id in stepIds) {
-          task.stepsToReset.add(id);
-        }
-        debugPrint('[workflow] Resetting steps $stepIds in $workflowId');
-      } else {
-        // Reset all steps — add every step ID to stepsToReset
-        final wfJson = Map<String, dynamic>.from(
-            factory.workflowService.toJson(workflow));
-        final steps = wfJson['steps'] as List? ?? [];
-        for (final s in steps) {
-          final sm = s as Map;
-          final id = sm['id'] as String? ?? '';
-          if (id.isNotEmpty) {
-            task.stepsToReset.add(id);
-          }
-        }
-        debugPrint('[workflow] Resetting all steps in $workflowId');
+        targetIds.addAll(stepIds);
       }
 
-      final created =
-          await factory.taskService.create(task) as sci.RunWorkflowTask;
-      await factory.taskService.runTask(created.id);
+      bool changed = false;
+      for (final step in workflow.steps) {
+        if (nonResettableKinds.contains(step.kind)) continue;
+        if (targetIds.isNotEmpty && !targetIds.contains(step.id)) continue;
+        if (step.state.taskState is sci.InitState) continue; // already reset
 
-      _activeWorkflowTasks[workflowId] = created.id;
-      debugPrint('[workflow] Reset task ${created.id} started for $workflowId');
+        step.state.taskState = sci.InitState();
+        step.state.taskId = '';
+        changed = true;
+        debugPrint('[workflow] Reset step ${step.id} (${step.kind}) → InitState');
+      }
 
-      // Start polling — will see steps move to InitState
-      _startStepStatePoller(workflowId);
+      if (!changed) {
+        debugPrint('[workflow] No steps needed resetting');
+        return;
+      }
+
+      await factory.workflowService.update(workflow);
+      debugPrint('[workflow] Workflow updated with reset states');
+
+      // Refresh the graph
+      await _refreshAndPublishStepStates(workflowId, factory);
+      _sduiContext.eventBus.publish(
+        'workflow.workflowUpdated',
+        EventPayload(
+          type: 'workflowUpdated',
+          sourceWidgetId: 'orchestrator',
+          data: {'workflowId': workflowId},
+        ),
+      );
     } catch (e) {
       debugPrint('[workflow] Reset failed for $workflowId: $e');
     }
   }
 
-  /// Check if a workflow has non-final steps and start a poller if so.
-  /// Handles the case where a workflow was running before this page loaded.
-  Future<void> _checkAndPollRunningWorkflow(String workflowId) async {
-    if (_stepStatePollers.containsKey(workflowId)) return; // already polling
+  // ---------------------------------------------------------------------------
+  // Task completion — waitDone() blocks server-side, then refreshes the graph
+  // ---------------------------------------------------------------------------
 
-    final factory = tercen.ServiceFactory.CURRENT;
-    if (factory == null) return;
+  static String _taskStateKindToColor(String kind) => switch (kind) {
+    'DoneState' => 'success',
+    'RunningState' => 'info',
+    'RunningDependentState' => 'warning',
+    'FailedState' => 'error',
+    'CanceledState' => 'onSurfaceMuted',
+    'PendingState' => 'onSurfaceMuted',
+    _ => 'onSurfaceVariant',
+  };
 
+  /// Runs a task to completion with live step state updates.
+  /// Polls step states every 1s while waitDone blocks server-side.
+  /// On completion, does a final incremental refresh (no full widget rebuild).
+  void _waitForTaskCompletion(
+      String workflowId, String taskId, tercen.ServiceFactory factory) {
+    () async {
+      final lastColors = <String, String>{};
+      int pollCount = 0;
+
+      // Poll every 1s for responsive spinner/color updates
+      final pollTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        pollCount++;
+        debugPrint('[workflow] Poll #$pollCount for $workflowId');
+        _pollStepStates(workflowId, factory, lastColors);
+      });
+
+      try {
+        debugPrint('[workflow] waitDone started for task $taskId');
+        final done = await factory.taskService.waitDone(taskId);
+
+        if (done.state is sci.FailedState) {
+          final fs = done.state as sci.FailedState;
+          debugPrint('[workflow] FAILED for $workflowId: '
+              'error=${fs.error} reason=${fs.reason}');
+        } else {
+          debugPrint('[workflow] Completed: ${done.state.kind} for $workflowId '
+              '(polled $pollCount times)');
+        }
+      } catch (e) {
+        debugPrint('[workflow] waitDone error for $taskId: $e');
+      } finally {
+        pollTimer.cancel();
+        _activeWorkflowTasks.remove(workflowId);
+
+        // Final incremental update — no workflowUpdated to avoid jarring rebuild
+        await _pollStepStates(workflowId, factory, lastColors);
+      }
+    }();
+  }
+
+  /// Single poll cycle: fetch workflow, publish stepStateChanged for changes.
+  Future<void> _pollStepStates(String workflowId,
+      tercen.ServiceFactory factory, Map<String, String> lastColors) async {
+    try {
+      final workflow = await factory.workflowService.get(workflowId);
+      final wfJson = Map<String, dynamic>.from(
+          factory.workflowService.toJson(workflow));
+      final steps = wfJson['steps'] as List? ?? [];
+      int changed = 0;
+
+      for (final s in steps) {
+        final sm = s as Map;
+        final stepId = sm['id'] as String? ?? '';
+        if (stepId.isEmpty) continue;
+
+        final state = sm['state'] as Map? ?? {};
+        final taskState =
+            (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
+        final iconColor = _taskStateKindToColor(taskState);
+
+        if (lastColors[stepId] != iconColor) {
+          lastColors[stepId] = iconColor;
+          changed++;
+          _sduiContext.eventBus.publish(
+            'workflow.stepStateChanged',
+            EventPayload(
+              type: 'stepStateChanged',
+              sourceWidgetId: 'orchestrator',
+              data: {'nodeId': stepId, 'iconColor': iconColor},
+            ),
+          );
+        }
+      }
+      if (changed > 0) {
+        debugPrint('[workflow] Poll: $changed step(s) changed in $workflowId');
+      }
+    } catch (e) {
+      debugPrint('[workflow] Poll failed: $e');
+    }
+  }
+
+  /// Fetch workflow and publish stepStateChanged for each step whose
+  /// iconColor differs from what the graph currently shows.
+  Future<void> _refreshAndPublishStepStates(
+      String workflowId, tercen.ServiceFactory factory) async {
     try {
       final workflow = await factory.workflowService.get(workflowId);
       final wfJson = Map<String, dynamic>.from(
           factory.workflowService.toJson(workflow));
       final steps = wfJson['steps'] as List? ?? [];
 
-      final hasRunning = steps.any((s) {
+      for (final s in steps) {
         final sm = s as Map;
+        final stepId = sm['id'] as String? ?? '';
+        if (stepId.isEmpty) continue;
+
         final state = sm['state'] as Map? ?? {};
-        final kind = (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
-        return kind == 'RunningState' ||
-            kind == 'RunningDependentState' ||
-            kind == 'PendingState';
-      });
+        final taskState =
+            (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
+        final iconColor = _taskStateKindToColor(taskState);
 
-      if (hasRunning) {
-        debugPrint('[workflow] Detected running steps in $workflowId — starting poller');
-        _startStepStatePoller(workflowId);
+        _sduiContext.eventBus.publish(
+          'workflow.stepStateChanged',
+          EventPayload(
+            type: 'stepStateChanged',
+            sourceWidgetId: 'orchestrator',
+            data: {'nodeId': stepId, 'iconColor': iconColor},
+          ),
+        );
       }
+      debugPrint('[workflow] Published step states for $workflowId (${steps.length} steps)');
     } catch (e) {
-      debugPrint('[workflow] Check running failed for $workflowId: $e');
+      debugPrint('[workflow] Refresh step states failed: $e');
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Step state poller — publishes workflow.stepStateChanged for DirectedGraph
-  // ---------------------------------------------------------------------------
-
-  /// Polls the workflow every 2s and publishes step state changes to the
-  /// DirectedGraph via `workflow.stepStateChanged` events.
-  void _startStepStatePoller(String workflowId) {
-    // Cancel any existing poller for this workflow
-    _stepStatePollers[workflowId]?.cancel();
-
-    final factory = tercen.ServiceFactory.CURRENT;
-    if (factory == null) return;
-
-    // Track last-known icon colors to only publish changes
-    final lastColors = <String, String>{};
-
-    // Map from ServiceCallDispatcher — must stay in sync
-    String taskStateToColor(String taskState) => switch (taskState) {
-      'DoneState' => 'success',
-      'RunningState' => 'info',
-      'RunningDependentState' => 'warning',
-      'FailedState' => 'error',
-      'CanceledState' => 'onSurfaceMuted',
-      'PendingState' => 'onSurfaceMuted',
-      _ => 'onSurfaceVariant',
-    };
-
-    bool isFinalState(String taskState) =>
-        taskState == 'DoneState' ||
-        taskState == 'FailedState' ||
-        taskState == 'CanceledState';
-
-    Future<void> poll() async {
-      try {
-        final workflow = await factory.workflowService.get(workflowId);
-        final wfJson = Map<String, dynamic>.from(
-            factory.workflowService.toJson(workflow));
-        final steps = wfJson['steps'] as List? ?? [];
-
-        bool allFinal = true;
-
-        for (final s in steps) {
-          final sm = s as Map;
-          final stepId = sm['id'] as String? ?? '';
-          if (stepId.isEmpty) continue;
-
-          final state = sm['state'] as Map? ?? {};
-          final taskState =
-              (state['taskState'] as Map?)?['kind'] as String? ?? 'InitState';
-          final iconColor = taskStateToColor(taskState);
-
-          if (!isFinalState(taskState)) {
-            allFinal = false;
-          }
-
-          // Only publish if color changed
-          if (lastColors[stepId] != iconColor) {
-            lastColors[stepId] = iconColor;
-            _sduiContext.eventBus.publish(
-              'workflow.stepStateChanged',
-              EventPayload(
-                type: 'stepStateChanged',
-                sourceWidgetId: 'orchestrator',
-                data: {'nodeId': stepId, 'iconColor': iconColor},
-              ),
-            );
-          }
-        }
-
-        if (allFinal) {
-          debugPrint('[workflow] All steps final for $workflowId — stopping poller');
-          _stepStatePollers[workflowId]?.cancel();
-          _stepStatePollers.remove(workflowId);
-          _activeWorkflowTasks.remove(workflowId);
-
-          // Trigger a full graph refresh so DataSource picks up final state
-          _sduiContext.eventBus.publish(
-            'workflow.workflowUpdated',
-            EventPayload(
-              type: 'workflowUpdated',
-              sourceWidgetId: 'orchestrator',
-              data: {'workflowId': workflowId},
-            ),
-          );
-        }
-      } catch (e) {
-        debugPrint('[workflow] Poll failed for $workflowId: $e');
-      }
-    }
-
-    // Do an immediate poll, then every 2 seconds
-    poll();
-    _stepStatePollers[workflowId] =
-        Timer.periodic(const Duration(seconds: 2), (_) => poll());
-    debugPrint('[workflow] Step state poller started for $workflowId');
   }
 
   void _listenHeaderIntents() {
@@ -1269,10 +1267,12 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
         }
       }
       if (catalog == null) {
-        // Fetch directly from GitHub (single source of truth)
-        final result = await _fetchCatalogFromGitHub();
-        catalog = result?.catalog;
-        catalogBaseUrl = result?.baseUrl;
+        // Load from local asset (packages/tercen_ui_widgets/catalog.json)
+        const catalogPath = 'packages/tercen_ui_widgets/catalog.json';
+        debugPrint('[catalog] Loading from local asset: $catalogPath');
+        final catalogStr = await rootBundle.loadString(catalogPath);
+        catalog = jsonDecode(catalogStr) as Map<String, dynamic>;
+        catalogBaseUrl = null;
       }
 
       if (catalog == null) return;
@@ -2085,10 +2085,6 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   @override
   void dispose() {
-    for (final timer in _stepStatePollers.values) {
-      timer.cancel();
-    }
-    _stepStatePollers.clear();
     _taskMonitor?.dispose();
     _layoutPersistence?.dispose();
     _selectionSub?.cancel();
