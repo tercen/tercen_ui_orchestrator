@@ -4726,32 +4726,40 @@
           "view",
           "annotate"
         ],
-        "selectionMode": "none"
+        "selectionMode": "none",
+        "state": {
+          "initialState": {
+            "pngTool.polygon": false,
+            "pngTool.rectangle": false,
+            "pngTool.circle": false,
+            "pngTool.arrow": false,
+            "pngTool.freehand": false,
+            "pngTool.text": false,
+            "pngSelection": false
+          }
+        }
       },
       "template": {
         "type": "WindowShell",
         "id": "{{widgetId}}-root",
         "props": {
           "toolbarActions": [
-            { "icon": "draw-polygon", "tooltip": "Polygon", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "polygon" } },
-            { "icon": "square-outline", "tooltip": "Rectangle", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "rectangle" } },
-            { "icon": "circle-outline", "tooltip": "Circle", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "circle" } },
-            { "icon": "arrow-right", "tooltip": "Arrow", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "arrow" } },
-            { "icon": "pen", "tooltip": "Freehand", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "freehand" } },
-            { "icon": "font", "tooltip": "Text", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "text" } },
-            { "icon": "trash-can", "tooltip": "Delete / Clear All", "channel": "pngviewer.{{widgetId}}.delete" },
-            { "icon": "paper-plane", "tooltip": "Send to Chat", "channel": "pngviewer.{{widgetId}}.send" },
+            { "icon": "draw-polygon", "tooltip": "Polygon", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "polygon" }, "primaryStateKey": "pngTool.polygon" },
+            { "icon": "square-outline", "tooltip": "Rectangle", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "rectangle" }, "primaryStateKey": "pngTool.rectangle" },
+            { "icon": "circle-outline", "tooltip": "Circle", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "circle" }, "primaryStateKey": "pngTool.circle" },
+            { "icon": "arrow-right", "tooltip": "Arrow", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "arrow" }, "primaryStateKey": "pngTool.arrow" },
+            { "icon": "pen", "tooltip": "Freehand", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "freehand" }, "primaryStateKey": "pngTool.freehand" },
+            { "icon": "font", "tooltip": "Text", "channel": "pngviewer.{{widgetId}}.tool", "payload": { "tool": "text" }, "primaryStateKey": "pngTool.text" },
+            { "isSeparator": true },
+            { "icon": "trash-can", "tooltip": "Clear All", "stateKey": "pngSelection", "toggleTooltip": "Delete", "channel": "pngviewer.{{widgetId}}.delete" },
             { "icon": "floppy-disk", "tooltip": "Save to Project", "channel": "pngviewer.{{widgetId}}.save" },
+            { "isSeparator": true },
             { "icon": "magnifying-glass-plus", "tooltip": "Zoom In", "channel": "pngviewer.{{widgetId}}.zoomIn" },
             { "icon": "magnifying-glass-minus", "tooltip": "Zoom Out", "channel": "pngviewer.{{widgetId}}.zoomOut" },
             { "icon": "expand", "tooltip": "Fit to Window", "channel": "pngviewer.{{widgetId}}.fit" }
           ]
         },
         "children": [
-          {
-            "type": "Expanded",
-            "id": "{{widgetId}}-body",
-            "children": [
               {
                 "type": "DataSource",
                 "id": "{{widgetId}}-ds",
@@ -4923,8 +4931,6 @@
                   }
                 ]
               }
-            ]
-          }
         ]
       }
     },

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_line_weights.dart';
 import '../../../domain/models/annotation_model.dart';
@@ -37,13 +38,20 @@ class _ActiveStateState extends State<ActiveState> {
   int? _movingAnnotationIndex;
   ImagePoint? _moveLastPoint;
 
+  // Tap-to-select: index of the currently selected annotation.
+  int? _selectedAnnotationIndex;
+
   // Whether the mouse is currently hovering over an annotation (pan mode).
   bool _hoveringAnnotation = false;
+
+  // Focus node for keyboard events (Delete/Backspace to remove selected annotation).
+  final FocusNode _canvasFocusNode = FocusNode();
 
   @override
   void dispose() {
     _textController.dispose();
     _textFocusNode.dispose();
+    _canvasFocusNode.dispose();
     super.dispose();
   }
 
@@ -111,6 +119,7 @@ class _ActiveStateState extends State<ActiveState> {
                     ? _mouseImagePoint
                     : null,
                 movingAnnotationIndex: _movingAnnotationIndex,
+                selectedAnnotationIndex: _selectedAnnotationIndex,
               ),
             ),
           ),
@@ -131,7 +140,24 @@ class _ActiveStateState extends State<ActiveState> {
     final imageCenterX = image.width * zoom / 2;
     final imageCenterY = image.height * zoom / 2;
 
-    return Listener(
+    return Focus(
+      focusNode: _canvasFocusNode,
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            _selectedAnnotationIndex != null &&
+            provider.activeTool == null) {
+          if (event.logicalKey == LogicalKeyboardKey.delete ||
+              event.logicalKey == LogicalKeyboardKey.backspace) {
+            final idx = _selectedAnnotationIndex!;
+            setState(() => _selectedAnnotationIndex = null);
+            provider.removeAnnotation(idx);
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Listener(
       onPointerSignal: (event) {
         if (event is PointerScrollEvent) {
           // Scroll-wheel zoom.
@@ -162,8 +188,10 @@ class _ActiveStateState extends State<ActiveState> {
                 if (hitIndex != null) {
                   setState(() {
                     _movingAnnotationIndex = hitIndex;
+                    _selectedAnnotationIndex = hitIndex;
                     _moveLastPoint = imgPt;
                   });
+                  _canvasFocusNode.requestFocus();
                 }
               }
             : null,
@@ -204,7 +232,24 @@ class _ActiveStateState extends State<ActiveState> {
         onTapUp: provider.activeTool != null
             ? (details) => _handleTap(provider, details, zoom, pan,
                 viewportCenterX, viewportCenterY, imageCenterX, imageCenterY)
-            : null,
+            : (details) {
+                // Selection mode: tap to select/deselect annotation.
+                final imgPt = _screenToImage(
+                  details.localPosition,
+                  provider.zoomLevel,
+                  provider.panOffset,
+                  viewportCenterX,
+                  viewportCenterY,
+                  imageCenterX,
+                  imageCenterY,
+                );
+                final hitIndex = _hitTestAnnotation(
+                    provider.annotations, imgPt, provider.zoomLevel);
+                setState(() => _selectedAnnotationIndex = hitIndex);
+                if (hitIndex != null) {
+                  _canvasFocusNode.requestFocus();
+                }
+              },
         onDoubleTapDown: provider.activeTool == DrawingTool.polygon
             ? (details) => _handleDoubleTap(provider, details, zoom, pan,
                 viewportCenterX, viewportCenterY, imageCenterX, imageCenterY)
@@ -266,6 +311,7 @@ class _ActiveStateState extends State<ActiveState> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -640,6 +686,7 @@ class _AnnotationPainter extends CustomPainter {
   final List<ImagePoint> polygonVertices;
   final ImagePoint? mousePoint;
   final int? movingAnnotationIndex;
+  final int? selectedAnnotationIndex;
 
   _AnnotationPainter({
     required this.annotations,
@@ -648,6 +695,7 @@ class _AnnotationPainter extends CustomPainter {
     this.polygonVertices = const [],
     this.mousePoint,
     this.movingAnnotationIndex,
+    this.selectedAnnotationIndex,
   });
 
   @override
@@ -666,8 +714,8 @@ class _AnnotationPainter extends CustomPainter {
 
     // Draw completed annotations.
     for (int i = 0; i < annotations.length; i++) {
-      final isMoving = i == movingAnnotationIndex;
-      final strokePaint = isMoving
+      final isHighlighted = i == movingAnnotationIndex || i == selectedAnnotationIndex;
+      final strokePaint = isHighlighted
           ? (Paint()
             ..color = const Color(0xFF2196F3)
             ..strokeWidth = AppLineWeights.vizData
@@ -675,7 +723,7 @@ class _AnnotationPainter extends CustomPainter {
             ..strokeCap = StrokeCap.round
             ..strokeJoin = StrokeJoin.round)
           : paint;
-      final fill = isMoving
+      final fill = isHighlighted
           ? (Paint()
             ..color = const Color(0x332196F3)
             ..style = PaintingStyle.fill)

@@ -163,6 +163,13 @@ class PngViewerProvider extends WindowStateProvider {
     }
   }
 
+  void removeAnnotation(int index) {
+    if (index >= 0 && index < _annotations.length) {
+      _annotations.removeAt(index);
+      notifyListeners();
+    }
+  }
+
   void clearAllAnnotations() {
     _annotations.clear();
     _inProgressPoints = null;

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:html' as html;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -4869,6 +4871,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
   int? _selectedAnnotationIdx;
   bool _isDraggingSelected = false;
   Offset? _dragStart;
+  bool _hoveringAnnotation = false; // true when mouse is over an existing annotation
 
   // Text input
   bool _showTextInput = false;
@@ -4878,6 +4881,11 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
 
   // Zoom/pan
   final TransformationController _transformCtrl = TransformationController();
+
+  // Cached decoded image for crop operations.
+  ui.Image? _cachedImage;
+  String? _cachedImageUrl;
+  bool _isPublishing = false;
 
   // EventBus subscriptions
   final List<dynamic> _subscriptions = [];
@@ -4889,6 +4897,21 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
   void initState() {
     super.initState();
     _subscribeChannels();
+    _cacheCurrentImage();
+  }
+
+  /// Pre-load and cache the decoded image for crop operations.
+  void _cacheCurrentImage() {
+    if (widget.images.isEmpty) return;
+    final url = widget.images[_selectedTab].url;
+    if (url == _cachedImageUrl) return;
+    _cachedImageUrl = url;
+    _cachedImage = null;
+    final provider = NetworkImage(url);
+    final stream = provider.resolve(const ImageConfiguration());
+    stream.addListener(ImageStreamListener((info, _) {
+      _cachedImage = info.image;
+    }));
   }
 
   void _subscribeChannels() {
@@ -4930,12 +4953,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     }
     if (widget.saveChannel != null) {
       _subscriptions.add(eb.subscribe(widget.saveChannel!).listen((_) {
-        // Save handled by browser download — placeholder for future implementation
-      }));
-    }
-    if (widget.sendChannel != null) {
-      _subscriptions.add(eb.subscribe(widget.sendChannel!).listen((_) {
-        _sendToChat();
+        _saveAnnotatedImage();
       }));
     }
     if (widget.deleteChannel != null) {
@@ -4956,6 +4974,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     } else {
       _clearAnnotations();
     }
+    _autoPublishAnnotations();
   }
 
   void _selectAnnotation(int? idx) {
@@ -4964,6 +4983,10 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
   }
 
   void _publishSelection(bool hasSelection) {
+    // Write to StateManager so toolbar buttons can react (e.g., delete tooltip).
+    final manager = StateManagerScope.maybeOf(context);
+    manager?.set('pngSelection', hasSelection);
+
     final eb = widget.eventBus;
     if (eb == null || widget.selectionChannel == null) return;
     eb.publish(
@@ -5056,6 +5079,17 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
       _selectedAnnotationIdx = null;
     });
     _publishSelection(false);
+    _publishToolState();
+  }
+
+  /// Write active tool state to StateManager so toolbar buttons reflect toggle.
+  void _publishToolState() {
+    final manager = StateManagerScope.maybeOf(context);
+    if (manager == null) return;
+    for (final t in _DrawingTool.values) {
+      if (t == _DrawingTool.none) continue;
+      manager.set('pngTool.${t.name}', _activeTool == t);
+    }
   }
 
   void _clearAnnotations() {
@@ -5064,54 +5098,228 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     });
   }
 
-  void _sendToChat() {
-    final annots = _currentAnnotations;
-    if (annots.isEmpty) return;
-    final current = widget.images[_selectedTab];
-    widget.eventBus.publish(
-      widget.annotationOutputChannel,
-      EventPayload(
-        type: 'annotationBundle',
-        sourceWidgetId: widget.sourceWidgetId,
-        data: {
-          'annotations': annots.map((a) => a.toJson()).toList(),
-          'sourceImage': {
-            'schemaId': current.schemaId,
-            'filename': current.filename,
-            'url': current.url,
-          },
-        },
-      ),
+  /// Crop a region-defining annotation from the cached image.
+  /// Returns base64-encoded PNG, or null if image not cached or bounds empty.
+  Future<String?> _cropAnnotation(_Annotation annotation) async {
+    if (_cachedImage == null) return null;
+    final imgW = _cachedImage!.width.toDouble();
+    final imgH = _cachedImage!.height.toDouble();
+    final bounds = annotation.bounds;
+    if (bounds.isEmpty) return null;
+
+    // Clamp to image dimensions.
+    final cropRect = bounds.intersect(Rect.fromLTWH(0, 0, imgW, imgH));
+    if (cropRect.isEmpty || cropRect.width < 1 || cropRect.height < 1) return null;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawImageRect(
+      _cachedImage!,
+      cropRect,
+      Rect.fromLTWH(0, 0, cropRect.width, cropRect.height),
+      Paint(),
     );
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(
+        cropRect.width.ceil(), cropRect.height.ceil());
+    final byteData = await rendered.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) return null;
+    return base64Encode(byteData.buffer.asUint8List());
   }
 
-  // --- Image-space gesture handlers (inside InteractiveViewer, no transform needed) ---
+  /// Auto-publish the full annotation snapshot with cropped image regions.
+  /// Called after every annotation state change (create, move, delete, text commit).
+  Future<void> _autoPublishAnnotations() async {
+    final eb = widget.eventBus;
+    if (eb == null || _isPublishing) return;
+    _isPublishing = true;
+
+    try {
+      final annots = List<_Annotation>.from(_currentAnnotations);
+      final current = widget.images[_selectedTab];
+
+      // Build crops for region-defining annotations.
+      final crops = <Map<String, dynamic>>[];
+      for (var i = 0; i < annots.length; i++) {
+        final a = annots[i];
+        if (a.type == _DrawingTool.rectangle ||
+            a.type == _DrawingTool.circle ||
+            a.type == _DrawingTool.polygon) {
+          final b64 = await _cropAnnotation(a);
+          if (b64 != null) {
+            crops.add({
+              'annotationIndex': i,
+              'type': a.type.name,
+              'imageBase64': b64,
+            });
+          }
+        }
+      }
+
+      eb.publish(
+        widget.annotationOutputChannel,
+        EventPayload(
+          type: 'annotationBundle',
+          sourceWidgetId: widget.sourceWidgetId,
+          data: {
+            'annotations': annots.map((a) => a.toJson()).toList(),
+            'sourceImage': {
+              'schemaId': current.schemaId,
+              'filename': current.filename,
+              'url': current.url,
+            },
+            if (crops.isNotEmpty) 'crops': crops,
+          },
+        ),
+      );
+    } finally {
+      _isPublishing = false;
+    }
+  }
+
+  /// Rasterize image + annotations into a new PNG and trigger browser download.
+  /// Saves as "{original}_annotated.png". Original file stays untouched.
+  Future<void> _saveAnnotatedImage() async {
+    if (_cachedImage == null || _currentAnnotations.isEmpty) return;
+
+    final imgW = _cachedImage!.width.toDouble();
+    final imgH = _cachedImage!.height.toDouble();
+
+    // Draw base image + all annotations onto a recording canvas.
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, imgW, imgH));
+
+    // 1. Draw the base image.
+    canvas.drawImage(_cachedImage!, Offset.zero, Paint());
+
+    // 2. Draw all annotations on top.
+    final stroke = Paint()
+      ..color = _annotationColor
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final fill = Paint()
+      ..color = _annotationColor.withAlpha(40)
+      ..style = PaintingStyle.fill;
+
+    for (final a in _currentAnnotations) {
+      switch (a.type) {
+        case _DrawingTool.polygon:
+          if (a.points.length >= 2) {
+            final path = Path()..moveTo(a.points.first.dx, a.points.first.dy);
+            for (final p in a.points.skip(1)) path.lineTo(p.dx, p.dy);
+            path.close();
+            canvas.drawPath(path, fill);
+            canvas.drawPath(path, stroke);
+          }
+        case _DrawingTool.rectangle:
+          if (a.points.length == 2) {
+            final rect = Rect.fromPoints(a.points[0], a.points[1]);
+            canvas.drawRect(rect, fill);
+            canvas.drawRect(rect, stroke);
+          }
+        case _DrawingTool.circle:
+          if (a.points.isNotEmpty && a.radius != null) {
+            canvas.drawCircle(a.points[0], a.radius!, fill);
+            canvas.drawCircle(a.points[0], a.radius!, stroke);
+          }
+        case _DrawingTool.arrow:
+          if (a.points.length == 2) {
+            canvas.drawLine(a.points[0], a.points[1], stroke);
+            // Arrowhead
+            final dir = a.points[1] - a.points[0];
+            final len = dir.distance;
+            if (len > 1) {
+              final unit = dir / len;
+              final headLen = (len * 0.3).clamp(0, 20).toDouble();
+              final headW = headLen * 0.5;
+              final perp = Offset(-unit.dy, unit.dx);
+              final p1 = a.points[1] - unit * headLen + perp * headW;
+              final p2 = a.points[1] - unit * headLen - perp * headW;
+              final arrowPath = Path()
+                ..moveTo(a.points[1].dx, a.points[1].dy)
+                ..lineTo(p1.dx, p1.dy)
+                ..lineTo(p2.dx, p2.dy)
+                ..close();
+              canvas.drawPath(arrowPath, Paint()..color = _annotationColor..style = PaintingStyle.fill);
+            }
+          }
+        case _DrawingTool.freehand:
+          if (a.points.length >= 2) {
+            final path = Path()..moveTo(a.points.first.dx, a.points.first.dy);
+            for (final p in a.points.skip(1)) path.lineTo(p.dx, p.dy);
+            canvas.drawPath(path, stroke);
+          }
+        case _DrawingTool.text:
+          if (a.points.isNotEmpty && a.label != null) {
+            final tp = TextPainter(
+              text: TextSpan(
+                text: a.label!,
+                style: TextStyle(
+                  color: _annotationColor,
+                  fontSize: widget.theme.textStyles.bodyMedium.fontSize,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              textDirection: TextDirection.ltr,
+            )..layout();
+            tp.paint(canvas, a.points.first);
+          }
+        default:
+          break;
+      }
+    }
+
+    // 3. Encode as PNG.
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(imgW.ceil(), imgH.ceil());
+    final byteData = await rendered.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) return;
+
+    final pngBytes = byteData.buffer.asUint8List();
+    final b64 = base64Encode(pngBytes);
+
+    // 4. Browser download.
+    final current = widget.images[_selectedTab];
+    final baseName = current.filename.replaceAll('.png', '').replaceAll('.PNG', '');
+    final fileName = '${baseName}_annotated.png';
+    final anchor = html.AnchorElement(href: 'data:image/png;base64,$b64')
+      ..setAttribute('download', fileName)
+      ..click();
+
+    debugPrint('[PngViewer] Saved annotated image: $fileName (${pngBytes.length} bytes, ${_currentAnnotations.length} annotations)');
+  }
+
+  // --- Unified gesture handlers (inside InteractiveViewer, image-space coords) ---
+  // Annotations are interactive zones: hover shows move cursor, click selects,
+  // drag moves. Clicking empty space starts a new drawing. No separate mode needed.
 
   void _onImagePanStart(DragStartDetails details) {
     final pos = details.localPosition;
 
-    // If no tool active, check for dragging a selected annotation
-    if (_activeTool == _DrawingTool.none) {
-      if (_selectedAnnotationIdx != null) {
-        final a = _currentAnnotations[_selectedAnnotationIdx!];
-        final hitIdx = _hitTestAnnotation(pos);
-        if (hitIdx == _selectedAnnotationIdx) {
-          // Start dragging the selected annotation
-          setState(() {
-            _isDraggingSelected = true;
-            _dragStart = pos;
-          });
-          return;
-        }
-      }
+    // Hit-test annotations — if dragging on one, select + drag in one motion.
+    final hitIdx = _hitTestAnnotation(pos);
+    if (hitIdx != null) {
+      setState(() {
+        _selectedAnnotationIdx = hitIdx;
+        _isDraggingSelected = true;
+        _dragStart = pos;
+      });
+      _publishSelection(true);
       return;
     }
 
-    // Drawing mode
+    // If no tool active, nothing to draw.
+    if (_activeTool == _DrawingTool.none) return;
+
+    // Start drawing a new shape — clear any selection first.
     setState(() {
+      _selectedAnnotationIdx = null;
       _isDrawing = true;
       _currentPoints = [pos];
     });
+    _publishSelection(false);
   }
 
   void _onImagePanUpdate(DragUpdateDetails details) {
@@ -5149,12 +5357,13 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
   }
 
   void _onImagePanEnd(DragEndDetails details) {
-    // End dragging selected annotation
+    // End dragging selected annotation — publish updated position.
     if (_isDraggingSelected) {
       setState(() {
         _isDraggingSelected = false;
         _dragStart = null;
       });
+      _autoPublishAnnotations();
       return;
     }
 
@@ -5194,6 +5403,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
       _isDrawing = false;
       _currentPoints = [];
     });
+    _autoPublishAnnotations();
   }
 
   void _onImageTapUp(TapUpDetails details) {
@@ -5205,13 +5415,22 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
       return;
     }
 
-    // If no tool active, handle selection
-    if (_activeTool == _DrawingTool.none) {
-      final hitIdx = _hitTestAnnotation(pos);
+    // Always check for annotation hit first — annotations are interactive zones.
+    final hitIdx = _hitTestAnnotation(pos);
+    if (hitIdx != null) {
       _selectAnnotation(hitIdx);
       return;
     }
 
+    // Tap on empty space — clear any selection.
+    if (_selectedAnnotationIdx != null) {
+      _selectAnnotation(null);
+    }
+
+    // If no tool active, nothing else to do.
+    if (_activeTool == _DrawingTool.none) return;
+
+    // Tool-specific tap behaviour on empty space.
     switch (_activeTool) {
       case _DrawingTool.polygon:
         setState(() {
@@ -5224,6 +5443,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
               points: List.from(_currentPoints),
             ));
             _currentPoints = [];
+            _autoPublishAnnotations();
           } else {
             _currentPoints.add(pos);
           }
@@ -5253,6 +5473,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
         _showTextInput = false;
         _textAnchor = null;
       });
+      _autoPublishAnnotations();
     } else {
       setState(() {
         _showTextInput = false;
@@ -5301,7 +5522,10 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
                 children: [
                   for (var i = 0; i < images.length; i++)
                     GestureDetector(
-                      onTap: () => setState(() => _selectedTab = i),
+                      onTap: () {
+                        setState(() => _selectedTab = i);
+                        _cacheCurrentImage();
+                      },
                       child: Container(
                         padding: EdgeInsets.symmetric(
                             horizontal: theme.internalTab.paddingH,
@@ -5327,73 +5551,90 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
           ),
         // Canvas area
         Expanded(
-          child: MouseRegion(
-            cursor: _activeTool != _DrawingTool.none
-                ? SystemMouseCursors.precise
-                : _selectedAnnotationIdx != null
-                    ? SystemMouseCursors.move
-                    : SystemMouseCursors.grab,
-            child: InteractiveViewer(
-              transformationController: _transformCtrl,
-              constrained: false,
-              minScale: 0.1,
-              maxScale: 10.0,
-              boundaryMargin: const EdgeInsets.all(200),
-              panEnabled: _activeTool == _DrawingTool.none && _selectedAnnotationIdx == null,
-              scaleEnabled: _activeTool == _DrawingTool.none && _selectedAnnotationIdx == null,
-              child: Stack(
-                children: [
-                  Image.network(
-                    current.url,
-                    fit: BoxFit.contain,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      final pct = progress.expectedTotalBytes != null
-                          ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
-                          : null;
-                      return Center(child: CircularProgressIndicator(value: pct));
-                    },
-                    errorBuilder: (context, error, stack) => Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(FontAwesomeIcons.image, size: 48, color: theme.colors.onSurfaceMuted),
-                          SizedBox(height: theme.spacing.sm),
-                          Text('Failed to load image', style: TextStyle(color: theme.colors.onSurfaceMuted)),
-                        ],
-                      ),
+          child: InteractiveViewer(
+            transformationController: _transformCtrl,
+            constrained: false,
+            minScale: 0.1,
+            maxScale: 10.0,
+            boundaryMargin: const EdgeInsets.all(200),
+            // Pan/scale only when no tool active and no annotation selected.
+            panEnabled: _activeTool == _DrawingTool.none && _selectedAnnotationIdx == null,
+            scaleEnabled: _activeTool == _DrawingTool.none && _selectedAnnotationIdx == null,
+            child: Stack(
+              children: [
+                Image.network(
+                  current.url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    final pct = progress.expectedTotalBytes != null
+                        ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                        : null;
+                    return Center(child: CircularProgressIndicator(value: pct));
+                  },
+                  errorBuilder: (context, error, stack) => Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(FontAwesomeIcons.image, size: 48, color: theme.colors.onSurfaceMuted),
+                        SizedBox(height: theme.spacing.sm),
+                        Text('Failed to load image', style: TextStyle(color: theme.colors.onSurfaceMuted)),
+                      ],
                     ),
                   ),
-                  // Annotation paint overlay
+                ),
+                // Annotation paint overlay
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _AnnotationPainter(
+                      annotations: _currentAnnotations,
+                      inProgressPoints: _currentPoints,
+                      inProgressTool: _activeTool,
+                      hoverPosition: _hoverPosition,
+                      selectedIdx: _selectedAnnotationIdx,
+                      annotationColor: _annotationColor,
+                      textFontSize: widget.theme.textStyles.bodyMedium.fontSize,
+                    ),
+                  ),
+                ),
+                // Unified gesture layer — always present when a tool is active
+                // OR when there are annotations to interact with.
+                if (_activeTool != _DrawingTool.none || _currentAnnotations.isNotEmpty)
                   Positioned.fill(
-                    child: CustomPaint(
-                      painter: _AnnotationPainter(
-                        annotations: _currentAnnotations,
-                        inProgressPoints: _currentPoints,
-                        inProgressTool: _activeTool,
-                        hoverPosition: _hoverPosition,
-                        selectedIdx: _selectedAnnotationIdx,
-                        annotationColor: _annotationColor,
-                        textFontSize: widget.theme.textStyles.bodyMedium.fontSize,
-                      ),
-                    ),
-                  ),
-                  // Gesture layer — INSIDE InteractiveViewer so coords are in image-space.
-                  // Drawing mode: pan + tap for shape creation.
-                  if (_activeTool != _DrawingTool.none)
-                    Positioned.fill(
-                      child: Listener(
-                        behavior: HitTestBehavior.translucent,
-                        onPointerHover: (event) {
-                          if (_activeTool == _DrawingTool.polygon) {
-                            setState(() => _hoverPosition = event.localPosition);
-                          }
-                        },
-                        onPointerMove: (event) {
-                          if (_activeTool == _DrawingTool.polygon && !_isDrawing) {
-                            setState(() => _hoverPosition = event.localPosition);
-                          }
-                        },
+                    child: Listener(
+                      behavior: HitTestBehavior.translucent,
+                      onPointerHover: (event) {
+                        // Polygon rubber-band tracking.
+                        if (_activeTool == _DrawingTool.polygon && _currentPoints.isNotEmpty) {
+                          setState(() => _hoverPosition = event.localPosition);
+                        }
+                        // Annotation hover detection — change cursor when over an annotation.
+                        final hit = _hitTestAnnotation(event.localPosition);
+                        final hovering = hit != null;
+                        if (hovering != _hoveringAnnotation) {
+                          setState(() => _hoveringAnnotation = hovering);
+                        }
+                      },
+                      onPointerDown: (event) {
+                        // Instant selection highlight on click — fires before
+                        // the gesture arena decides tap vs drag.
+                        final hitIdx = _hitTestAnnotation(event.localPosition);
+                        if (hitIdx != null && _selectedAnnotationIdx != hitIdx) {
+                          setState(() => _selectedAnnotationIdx = hitIdx);
+                          _publishSelection(true);
+                        }
+                      },
+                      onPointerMove: (event) {
+                        if (_activeTool == _DrawingTool.polygon && !_isDrawing) {
+                          setState(() => _hoverPosition = event.localPosition);
+                        }
+                      },
+                      child: MouseRegion(
+                        cursor: _isDraggingSelected || _hoveringAnnotation
+                            ? SystemMouseCursors.move
+                            : _activeTool != _DrawingTool.none
+                                ? SystemMouseCursors.precise
+                                : SystemMouseCursors.grab,
                         child: GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onPanStart: _onImagePanStart,
@@ -5403,52 +5644,35 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
                         ),
                       ),
                     ),
-                  // Selection mode: tap to select, pan to move selected.
-                  // Only when no tool active and annotations exist.
-                  if (_activeTool == _DrawingTool.none && _currentAnnotations.isNotEmpty)
-                    Positioned.fill(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTapUp: (details) {
-                          // Commit text if open
-                          if (_showTextInput) { _commitText(); return; }
-                          final hitIdx = _hitTestAnnotation(details.localPosition);
-                          _selectAnnotation(hitIdx);
-                        },
-                        onPanStart: _selectedAnnotationIdx != null ? _onImagePanStart : null,
-                        onPanUpdate: _selectedAnnotationIdx != null ? _onImagePanUpdate : null,
-                        onPanEnd: _selectedAnnotationIdx != null ? _onImagePanEnd : null,
-                      ),
-                    ),
-                  // Text annotation input — bare text in annotation colour, no chrome
-                  if (_showTextInput && _textAnchor != null)
-                    Positioned(
-                      left: _textAnchor!.dx,
-                      top: _textAnchor!.dy - 2,
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: IntrinsicWidth(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minWidth: 40),
-                            child: EditableText(
-                              controller: _textController,
-                              focusNode: _textFocusNode,
-                              autofocus: true,
-                              style: TextStyle(
-                                color: _annotationColor,
-                                fontSize: widget.theme.textStyles.bodyMedium.fontSize,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              cursorColor: _annotationColor,
-                              backgroundCursorColor: Colors.transparent,
-                              onSubmitted: (_) => _commitText(),
+                  ),
+                // Text annotation input
+                if (_showTextInput && _textAnchor != null)
+                  Positioned(
+                    left: _textAnchor!.dx,
+                    top: _textAnchor!.dy - 2,
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: IntrinsicWidth(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: 40),
+                          child: EditableText(
+                            controller: _textController,
+                            focusNode: _textFocusNode,
+                            autofocus: true,
+                            style: TextStyle(
+                              color: _annotationColor,
+                              fontSize: widget.theme.textStyles.bodyMedium.fontSize,
+                              fontWeight: FontWeight.w600,
                             ),
+                            cursorColor: _annotationColor,
+                            backgroundCursorColor: Colors.transparent,
+                            onSubmitted: (_) => _commitText(),
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -5597,7 +5821,7 @@ class _AnnotationPainter extends CustomPainter {
           final tp = TextPainter(
             text: TextSpan(
               text: a.label!,
-              style: TextStyle(color: annotationColor, fontSize: textFontSize, fontWeight: FontWeight.w600),
+              style: TextStyle(color: stroke.color, fontSize: textFontSize, fontWeight: FontWeight.w600),
             ),
             textDirection: TextDirection.ltr,
           )..layout();
@@ -6514,17 +6738,29 @@ class _WindowToolbar extends StatelessWidget {
       flexFlags.add(isSearch);
     }
 
+    final hasFlexible = flexFlags.any((f) => f);
+
+    final row = Row(
+      children: [
+        for (int i = 0; i < built.length; i++)
+          // Flexible only works in bounded Row — skip when scrollable.
+          (flexFlags[i] && hasFlexible) ? Flexible(child: built[i]) : built[i],
+      ],
+    );
+
     return Container(
       height: wt.toolbarHeight,
       padding: EdgeInsets.symmetric(horizontal: theme.spacing.sm),
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(color: theme.colors.surface),
-      child: Row(
-        children: [
-          for (int i = 0; i < built.length; i++)
-            flexFlags[i] ? Flexible(child: built[i]) : built[i],
-        ],
-      ),
+      // If any items need flex (search fields), use bounded Row.
+      // Otherwise, scroll horizontally when toolbar is too narrow.
+      child: hasFlexible
+          ? row
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: row,
+            ),
     );
   }
 
@@ -6532,6 +6768,19 @@ class _WindowToolbar extends StatelessWidget {
     if (raw is! Map) return const SizedBox.shrink();
     final m = Map<String, dynamic>.from(raw);
     final theme = ctx.theme;
+
+    // Separator — vertical divider for visual grouping of toolbar buttons.
+    if (PropConverter.to<bool>(m['isSeparator']) == true) {
+      final wt = theme.window;
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: theme.spacing.xs),
+        child: Container(
+          width: theme.lineWeight.standard,
+          height: wt.toolbarButtonSize * 0.6,
+          color: theme.colors.outlineVariant,
+        ),
+      );
+    }
 
     // Search field — a standard toolbar control like any other.
     if (PropConverter.to<bool>(m['isSearch']) == true) {
