@@ -33,6 +33,7 @@ Each window type has a fixed colour from the Tercen 4x4 pixel-art logo:
 | Data Viewer | Blue | `#0099FF` |
 | Visualization | Green | `#66FF7F` |
 | Audit Trail | Teal | `#0D9488` |
+| Team Manager | Blue | `#0000FF` |
 
 ### EventBus Communication
 

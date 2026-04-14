@@ -5272,15 +5272,24 @@
         "type": "TeamManager",
         "kind": "window",
         "tier": 2,
-        "description": "Team member management. View, add, and remove team members. Use when the user wants to manage team membership.",
-        "handlesIntent": {
-          "intent": "openTeamWidget",
-          "propsMap": {
-            "teamId": "teamId"
-          },
-          "windowTitle": "Team Manager",
-          "windowSize": "large"
-        },
+        "description": "Team membership hub. Lists teams, manages members, privileges, and team lifecycle. Use when the user wants to manage team membership.",
+        "props": {},
+        "emittedEvents": [
+          "team.{{widgetId}}.create",
+          "team.{{widgetId}}.delete",
+          "team.{{widgetId}}.addMember",
+          "team.{{widgetId}}.removeMember",
+          "team.{{widgetId}}.changePrivilege"
+        ],
+        "acceptedActions": [],
+        "handlesIntent": [
+          {
+            "intent": "openTeamManager",
+            "windowTitle": "Team Manager",
+            "windowSize": "large"
+          }
+        ],
+        "typeColor": "#0000FF",
         "domain": "team",
         "capabilities": [
           "browse",
@@ -5288,57 +5297,88 @@
           "delete"
         ],
         "selectionMode": "none",
-        "dataSource": "teamService.getMembers"
+        "state": {
+          "initialState": {
+            "canDelete": false,
+            "selectedTeamId": "",
+            "selectedTeamRev": "",
+            "selectedTeamName": "",
+            "showCreateDialog": false,
+            "showDeleteDialog": false
+          }
+        }
       },
       "template": {
-        "type": "Column",
+        "type": "WindowShell",
         "id": "{{widgetId}}-root",
         "props": {
-          "crossAxisAlignment": "stretch"
+          "toolbarActions": [
+            {
+              "icon": "plus",
+              "label": "Create Team",
+              "tooltip": "Create a new team",
+              "channel": "team.{{widgetId}}.showCreate",
+              "isPrimary": true
+            },
+            {
+              "icon": "trash-can",
+              "tooltip": "Delete selected team",
+              "channel": "team.{{widgetId}}.showDelete",
+              "enabledStateKey": "canDelete"
+            },
+            { "isSeparator": true },
+            {
+              "icon": "sort",
+              "tooltip": "Sort teams",
+              "channel": "team.{{widgetId}}.sortChanged"
+            }
+          ]
         },
         "children": [
           {
-            "type": "Container",
-            "id": "{{widgetId}}-toolbar",
+            "_comment": "── Create Team dialog ──",
+            "type": "FormDialog",
+            "id": "{{widgetId}}-create-dlg",
             "props": {
-              "color": "surfaceContainerHigh",
-              "padding": "sm"
+              "title": "Create Team",
+              "visible": "{{state.showCreateDialog}}"
             },
             "children": [
               {
-                "type": "Row",
-                "id": "{{widgetId}}-toolbar-row",
-                "props": {
-                  "mainAxisAlignment": "spaceBetween"
-                },
+                "type": "Column",
+                "id": "{{widgetId}}-create-col",
+                "props": { "crossAxisAlignment": "stretch" },
                 "children": [
                   {
+                    "type": "TextField",
+                    "id": "{{widgetId}}-create-name",
+                    "props": {
+                      "hint": "Team name",
+                      "label": "Name",
+                      "autofocus": true
+                    }
+                  },
+                  { "type": "SizedBox", "id": "{{widgetId}}-create-gap", "props": { "height": 16 } },
+                  {
                     "type": "Row",
-                    "id": "{{widgetId}}-toolbar-left",
+                    "id": "{{widgetId}}-create-actions",
+                    "props": { "mainAxisAlignment": "end" },
                     "children": [
                       {
-                        "type": "Icon",
-                        "id": "{{widgetId}}-toolbar-icon",
+                        "type": "GhostButton",
+                        "id": "{{widgetId}}-create-cancel",
                         "props": {
-                          "icon": "group",
-                          "size": 16,
-                          "color": "primary"
+                          "text": "Cancel",
+                          "channel": "team.{{widgetId}}.cancelCreate"
                         }
                       },
+                      { "type": "SizedBox", "id": "{{widgetId}}-create-btn-gap", "props": { "width": 8 } },
                       {
-                        "type": "SizedBox",
-                        "id": "{{widgetId}}-toolbar-gap",
+                        "type": "PrimaryButton",
+                        "id": "{{widgetId}}-create-confirm",
                         "props": {
-                          "width": 8.0
-                        }
-                      },
-                      {
-                        "type": "Text",
-                        "id": "{{widgetId}}-title",
-                        "props": {
-                          "text": "Team Manager",
-                          "textStyle": "labelMedium",
-                          "color": "onSurface"
+                          "text": "Create",
+                          "channel": "team.{{widgetId}}.create"
                         }
                       }
                     ]
@@ -5348,21 +5388,413 @@
             ]
           },
           {
-            "type": "Expanded",
-            "id": "{{widgetId}}-body",
+            "_comment": "── Delete Team confirmation dialog ──",
+            "type": "FormDialog",
+            "id": "{{widgetId}}-delete-dlg",
+            "props": {
+              "title": "Delete Team",
+              "visible": "{{state.showDeleteDialog}}"
+            },
             "children": [
               {
-                "type": "Center",
-                "id": "{{widgetId}}-placeholder",
+                "type": "Column",
+                "id": "{{widgetId}}-delete-col",
+                "props": { "crossAxisAlignment": "stretch" },
                 "children": [
                   {
                     "type": "Text",
-                    "id": "{{widgetId}}-placeholder-text",
+                    "id": "{{widgetId}}-delete-msg",
                     "props": {
-                      "text": "Team management coming soon",
-                      "textStyle": "labelSmall",
-                      "color": "onSurfaceMuted"
+                      "text": "Are you sure you want to delete this team? This action cannot be undone.",
+                      "textStyle": "bodyMedium",
+                      "color": "onSurface"
                     }
+                  },
+                  { "type": "SizedBox", "id": "{{widgetId}}-delete-gap", "props": { "height": 16 } },
+                  {
+                    "type": "Row",
+                    "id": "{{widgetId}}-delete-actions",
+                    "props": { "mainAxisAlignment": "end" },
+                    "children": [
+                      {
+                        "type": "GhostButton",
+                        "id": "{{widgetId}}-delete-cancel",
+                        "props": {
+                          "text": "Cancel",
+                          "channel": "team.{{widgetId}}.cancelDelete"
+                        }
+                      },
+                      { "type": "SizedBox", "id": "{{widgetId}}-delete-btn-gap", "props": { "width": 8 } },
+                      {
+                        "type": "DangerButton",
+                        "id": "{{widgetId}}-delete-confirm",
+                        "props": {
+                          "text": "Delete",
+                          "channel": "team.{{widgetId}}.delete",
+                          "payload": {
+                            "teamId": "{{state.selectedTeamId}}",
+                            "teamRev": "{{state.selectedTeamRev}}"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "_comment": "── Main body: DataSource for team list ──",
+            "type": "DataSource",
+            "id": "{{widgetId}}-ds",
+            "props": {
+              "service": "teamService",
+              "method": "findTeamByMember",
+              "args": ["{{context.userId}}"],
+              "refreshOn": "team.{{widgetId}}.refresh"
+            },
+            "children": [
+              {
+                "_comment": "Loading state",
+                "type": "Conditional",
+                "id": "{{widgetId}}-loading-cond",
+                "props": { "visible": "{{loading}}" },
+                "children": [
+                  {
+                    "type": "Center",
+                    "id": "{{widgetId}}-loading-center",
+                    "children": [
+                      { "type": "LoadingIndicator", "id": "{{widgetId}}-spinner", "props": { "variant": "spinner" } }
+                    ]
+                  }
+                ]
+              },
+              {
+                "_comment": "Error state",
+                "type": "Conditional",
+                "id": "{{widgetId}}-error-cond",
+                "props": { "visible": "{{error}}" },
+                "children": [
+                  {
+                    "type": "Center",
+                    "id": "{{widgetId}}-err-center",
+                    "children": [
+                      {
+                        "type": "Column",
+                        "id": "{{widgetId}}-err-col",
+                        "props": { "mainAxisAlignment": "center", "mainAxisSize": "min" },
+                        "children": [
+                          { "type": "Icon", "id": "{{widgetId}}-err-icon", "props": { "icon": "triangle-exclamation", "size": 32, "color": "error" } },
+                          { "type": "SizedBox", "id": "{{widgetId}}-err-g1", "props": { "height": 8 } },
+                          { "type": "Text", "id": "{{widgetId}}-err-title", "props": { "text": "Failed to load teams", "textStyle": "bodyMedium", "color": "error" } },
+                          { "type": "SizedBox", "id": "{{widgetId}}-err-g2", "props": { "height": 4 } },
+                          { "type": "Text", "id": "{{widgetId}}-err-msg", "props": { "text": "{{errorMessage}}", "textStyle": "bodySmall", "color": "onSurfaceMuted" } },
+                          { "type": "SizedBox", "id": "{{widgetId}}-err-g3", "props": { "height": 16 } },
+                          { "type": "SecondaryButton", "id": "{{widgetId}}-retry-btn", "props": { "text": "Retry", "channel": "team.{{widgetId}}.refresh" } }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "_comment": "Ready state -- team accordion list",
+                "type": "Conditional",
+                "id": "{{widgetId}}-ready-cond",
+                "props": { "visible": "{{ready}}" },
+                "children": [
+                  {
+                    "type": "Sort",
+                    "id": "{{widgetId}}-sort",
+                    "props": {
+                      "items": "{{data}}",
+                      "key": "name",
+                      "direction": "asc"
+                    },
+                    "children": [
+                      {
+                        "type": "Accordion",
+                        "id": "{{widgetId}}-accordion",
+                        "props": {
+                          "items": "{{sorted}}",
+                          "itemVariable": "team",
+                          "panelIdKey": "id",
+                          "expandChannel": "team.{{widgetId}}.expanded",
+                          "collapseChannel": "team.{{widgetId}}.collapsed"
+                        },
+                        "children": [
+                          {
+                            "_comment": "Header template (child 0) — {{team}} is the Accordion item",
+                            "type": "Row",
+                            "id": "{{widgetId}}-hdr-{{team.id}}",
+                            "props": { "crossAxisAlignment": "center" },
+                            "children": [
+                              {
+                                "type": "Expanded",
+                                "id": "{{widgetId}}-hdr-name-wrap-{{team.id}}",
+                                "children": [
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-hdr-name-{{team.id}}",
+                                    "props": {
+                                      "text": "{{team.name}}",
+                                      "textStyle": "bodyMedium",
+                                      "color": "onSurface",
+                                      "maxLines": 1,
+                                      "overflow": "ellipsis"
+                                    }
+                                  }
+                                ]
+                              },
+                              { "type": "SizedBox", "id": "{{widgetId}}-hdr-g1-{{team.id}}", "props": { "width": 8 } },
+                              {
+                                "type": "Badge",
+                                "id": "{{widgetId}}-hdr-badge-{{team.id}}",
+                                "props": {
+                                  "text": "Member",
+                                  "variant": "neutral"
+                                }
+                              },
+                              { "type": "SizedBox", "id": "{{widgetId}}-hdr-g2-{{team.id}}", "props": { "width": 8 } },
+                              {
+                                "type": "Text",
+                                "id": "{{widgetId}}-hdr-count-{{team.id}}",
+                                "props": {
+                                  "text": "members",
+                                  "textStyle": "bodySmall",
+                                  "color": "onSurfaceMuted"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "_comment": "Body template (child 1): nested DataSource for team members. {{team}} from Accordion scope.",
+                            "type": "DataSource",
+                            "id": "{{widgetId}}-members-ds-{{team.id}}",
+                            "props": {
+                              "service": "userService",
+                              "method": "findKeys",
+                              "args": ["teamMembers", ["{{team.id}}"]],
+                              "refreshOn": "team.{{widgetId}}.refresh"
+                            },
+                            "children": [
+                              {
+                                "type": "Conditional",
+                                "id": "{{widgetId}}-members-loading-{{team.id}}",
+                                "props": { "visible": "{{loading}}" },
+                                "children": [
+                                  {
+                                    "type": "Padding",
+                                    "id": "{{widgetId}}-members-load-pad-{{team.id}}",
+                                    "props": { "padding": "md" },
+                                    "children": [
+                                      {
+                                        "type": "Center",
+                                        "id": "{{widgetId}}-members-load-center-{{team.id}}",
+                                        "children": [
+                                          { "type": "LoadingIndicator", "id": "{{widgetId}}-members-spinner-{{team.id}}", "props": { "variant": "spinner", "size": 16 } }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Conditional",
+                                "id": "{{widgetId}}-members-error-{{team.id}}",
+                                "props": { "visible": "{{error}}" },
+                                "children": [
+                                  {
+                                    "type": "Padding",
+                                    "id": "{{widgetId}}-members-err-pad-{{team.id}}",
+                                    "props": { "padding": "md" },
+                                    "children": [
+                                      {
+                                        "type": "Text",
+                                        "id": "{{widgetId}}-members-err-text-{{team.id}}",
+                                        "props": {
+                                          "text": "{{errorMessage}}",
+                                          "textStyle": "bodySmall",
+                                          "color": "error"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Conditional",
+                                "id": "{{widgetId}}-members-ready-{{team.id}}",
+                                "props": { "visible": "{{ready}}" },
+                                "children": [
+                                  {
+                                    "type": "Column",
+                                    "id": "{{widgetId}}-members-col-{{team.id}}",
+                                    "props": { "crossAxisAlignment": "stretch" },
+                                    "children": [
+                                      {
+                                        "_comment": "Member list",
+                                        "type": "ForEach",
+                                        "id": "{{widgetId}}-members-fe-{{team.id}}",
+                                        "props": {
+                                          "items": "{{data}}",
+                                          "emptyText": "No members"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "Padding",
+                                            "id": "{{widgetId}}-member-pad-{{team.id}}-{{_index}}",
+                                            "props": { "padding": [4, 16] },
+                                            "children": [
+                                              {
+                                                "type": "Row",
+                                                "id": "{{widgetId}}-member-row-{{team.id}}-{{_index}}",
+                                                "props": { "crossAxisAlignment": "center" },
+                                                "children": [
+                                                  {
+                                                    "type": "Icon",
+                                                    "id": "{{widgetId}}-member-icon-{{team.id}}-{{_index}}",
+                                                    "props": {
+                                                      "icon": "person",
+                                                      "size": 16,
+                                                      "color": "onSurfaceMuted"
+                                                    }
+                                                  },
+                                                  { "type": "SizedBox", "id": "{{widgetId}}-member-g1-{{team.id}}-{{_index}}", "props": { "width": 8 } },
+                                                  {
+                                                    "type": "Expanded",
+                                                    "id": "{{widgetId}}-member-name-wrap-{{team.id}}-{{_index}}",
+                                                    "children": [
+                                                      {
+                                                        "type": "Text",
+                                                        "id": "{{widgetId}}-member-name-{{team.id}}-{{_index}}",
+                                                        "props": {
+                                                          "text": "{{item.name}}",
+                                                          "textStyle": "bodySmall",
+                                                          "color": "onSurface",
+                                                          "maxLines": 1,
+                                                          "overflow": "ellipsis"
+                                                        }
+                                                      }
+                                                    ]
+                                                  },
+                                                  { "type": "SizedBox", "id": "{{widgetId}}-member-g2-{{team.id}}-{{_index}}", "props": { "width": 8 } },
+                                                  {
+                                                    "type": "SizedBox",
+                                                    "id": "{{widgetId}}-member-priv-box-{{team.id}}-{{_index}}",
+                                                    "props": { "width": 240 },
+                                                    "children": [
+                                                      {
+                                                        "type": "DropdownButton",
+                                                        "id": "{{widgetId}}-member-priv-{{team.id}}-{{_index}}",
+                                                        "props": {
+                                                          "value": "ReadWrite",
+                                                          "items": [
+                                                            {"value": "Admin", "label": "Admin"},
+                                                            {"value": "ReadWrite", "label": "Read/Write"},
+                                                            {"value": "Read", "label": "Read"}
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  },
+                                                  { "type": "SizedBox", "id": "{{widgetId}}-member-g3-{{team.id}}-{{_index}}", "props": { "width": 4 } },
+                                                  {
+                                                    "type": "IconButton",
+                                                    "id": "{{widgetId}}-member-remove-{{team.id}}-{{_index}}",
+                                                    "props": {
+                                                      "icon": "xmark",
+                                                      "tooltip": "Remove member",
+                                                      "channel": "team.{{widgetId}}.removeMember",
+                                                      "payload": {
+                                                        "username": "{{item.name}}",
+                                                        "teamId": "{{team.id}}"
+                                                      },
+                                                      "size": 14,
+                                                      "color": "onSurfaceMuted"
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "_comment": "Add member row",
+                                        "type": "Padding",
+                                        "id": "{{widgetId}}-add-pad-{{team.id}}",
+                                        "props": { "padding": [4, 16] },
+                                        "children": [
+                                          {
+                                            "type": "Row",
+                                            "id": "{{widgetId}}-add-row-{{team.id}}",
+                                            "props": { "crossAxisAlignment": "center" },
+                                            "children": [
+                                              { "type": "SizedBox", "id": "{{widgetId}}-add-indent-{{team.id}}", "props": { "width": 24 } },
+                                              {
+                                                "type": "Expanded",
+                                                "id": "{{widgetId}}-add-field-wrap-{{team.id}}",
+                                                "props": { "flex": 3 },
+                                                "children": [
+                                                  {
+                                                    "type": "TextField",
+                                                    "id": "{{widgetId}}-add-field-{{team.id}}",
+                                                    "props": {
+                                                      "hint": "Username or email",
+                                                      "size": "sm",
+                                                      "clearOn": "team.{{widgetId}}.memberAdded"
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              { "type": "SizedBox", "id": "{{widgetId}}-add-g1-{{team.id}}", "props": { "width": 8 } },
+                                              {
+                                                "type": "Expanded",
+                                                "id": "{{widgetId}}-add-priv-box-{{team.id}}",
+                                                "props": { "flex": 1 },
+                                                "children": [
+                                                  {
+                                                    "type": "DropdownButton",
+                                                    "id": "{{widgetId}}-add-priv-{{team.id}}",
+                                                    "props": {
+                                                      "value": "ReadWrite",
+                                                      "items": [
+                                                        {"value": "Admin", "label": "Admin"},
+                                                        {"value": "ReadWrite", "label": "Read/Write"},
+                                                        {"value": "Read", "label": "Read"}
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              },
+                                              { "type": "SizedBox", "id": "{{widgetId}}-add-g2-{{team.id}}", "props": { "width": 4 } },
+                                              {
+                                                "type": "IconButton",
+                                                "id": "{{widgetId}}-add-btn-{{team.id}}",
+                                                "props": {
+                                                  "icon": "plus",
+                                                  "tooltip": "Add member",
+                                                  "channel": "team.{{widgetId}}.addMember",
+                                                  "payload": {
+                                                    "teamId": "{{team.id}}"
+                                                  },
+                                                  "color": "primary"
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }

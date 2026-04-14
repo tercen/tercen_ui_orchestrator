@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sci_base/sci_client_base.dart';
 import 'package:sci_base/sci_service.dart';
 import 'package:sci_tercen_client/sci_client_service_factory.dart';
+import 'package:sci_tercen_model/sci_model.dart' as model;
 import 'package:sci_tercen_context/sci_tercen_context.dart' show OperatorContext, AbstractOperatorContext, Table;
 import 'package:sdui/sdui.dart' show PropConverter;
 
@@ -221,6 +222,15 @@ class ServiceCallDispatcher {
       case 'profiles':
         final result = await svc.profiles(args[0] as String);
         return result.toJson();
+      case 'setTeamPrivilege':
+        // args: [username, teamId, privilegeType]
+        final username = args[0] as String;
+        final teamId = args[1] as String;
+        final privType = args[2] as String;
+        final principal = model.Principal()..principalId = teamId;
+        final privilege = model.Privilege()..type = privType;
+        final result = await svc.setTeamPrivilege(username, principal, privilege);
+        return {'success': true, 'result': result};
       default:
         throw ArgumentError('Method "$method" not found on userService');
     }
