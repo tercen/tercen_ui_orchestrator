@@ -876,6 +876,10 @@ void registerBuiltinWidgets(WidgetRegistry registry) {
           'selectionChannel': PropSpec(type: 'string',
               description: 'EventBus channel to publish selection state. '
                   'Publishes {hasSelection: bool} when selection changes.'),
+          'projectId': PropSpec(type: 'string',
+              description: 'Tercen project ID for save-to-project upload'),
+          'folderId': PropSpec(type: 'string',
+              description: 'Folder ID within project for save-to-project upload'),
         },
       ));
 
@@ -4738,6 +4742,8 @@ Widget _buildAnnotatedImageViewer(
   final saveChannel = PropConverter.to<String>(node.props['saveChannel']);
   final deleteChannel = PropConverter.to<String>(node.props['deleteChannel']);
   final selectionChannel = PropConverter.to<String>(node.props['selectionChannel']);
+  final projectId = PropConverter.to<String>(node.props['projectId']);
+  final folderId = PropConverter.to<String>(node.props['folderId']);
 
   final imageDefs = <_ImageDef>[];
   for (final img in images) {
@@ -4773,6 +4779,9 @@ Widget _buildAnnotatedImageViewer(
     saveChannel: saveChannel,
     deleteChannel: deleteChannel,
     selectionChannel: selectionChannel,
+    projectId: projectId,
+    folderId: folderId,
+    serviceCaller: ctx.serviceCaller,
     theme: ctx.theme,
     eventBus: ctx.eventBus,
     sourceWidgetId: node.id,
@@ -4827,6 +4836,9 @@ class _AnnotatedImageViewerWidget extends StatefulWidget {
   final String? saveChannel;
   final String? deleteChannel;
   final String? selectionChannel;
+  final String? projectId;
+  final String? folderId;
+  final ServiceCaller? serviceCaller;
   final SduiTheme theme;
   final dynamic eventBus;
   final String sourceWidgetId;
@@ -4846,6 +4858,9 @@ class _AnnotatedImageViewerWidget extends StatefulWidget {
     this.saveChannel,
     this.deleteChannel,
     this.selectionChannel,
+    this.projectId,
+    this.folderId,
+    this.serviceCaller,
     required this.theme,
     required this.eventBus,
     required this.sourceWidgetId,
@@ -4882,6 +4897,9 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
   // Zoom/pan
   final TransformationController _transformCtrl = TransformationController();
 
+  // Available viewport size for fit-to-window calculations.
+  Size _viewportSize = Size.zero;
+
   // Cached decoded image for crop operations.
   ui.Image? _cachedImage;
   String? _cachedImageUrl;
@@ -4911,7 +4929,29 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     final stream = provider.resolve(const ImageConfiguration());
     stream.addListener(ImageStreamListener((info, _) {
       _cachedImage = info.image;
+      // Auto-fit when the first image finishes loading.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fitToWindow();
+      });
     }));
+  }
+
+  /// Scale the transform so the full image fits inside the available viewport.
+  void _fitToWindow() {
+    if (_cachedImage == null) return;
+    final vw = _viewportSize.width;
+    final vh = _viewportSize.height;
+    if (vw <= 0 || vh <= 0) return;
+
+    final iw = _cachedImage!.width.toDouble();
+    final ih = _cachedImage!.height.toDouble();
+    if (iw <= 0 || ih <= 0) return;
+
+    final scale = (vw / iw).clamp(0.0, 1.0).toDouble();
+    final scaleY = (vh / ih).clamp(0.0, 1.0).toDouble();
+    final fitScale = scale < scaleY ? scale : scaleY;
+
+    _transformCtrl.value = Matrix4.identity()..scale(fitScale);
   }
 
   void _subscribeChannels() {
@@ -4948,7 +4988,7 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     }
     if (widget.fitChannel != null) {
       _subscriptions.add(eb.subscribe(widget.fitChannel!).listen((_) {
-        _transformCtrl.value = Matrix4.identity();
+        _fitToWindow();
       }));
     }
     if (widget.saveChannel != null) {
@@ -5156,6 +5196,8 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
         }
       }
 
+      debugPrint('[PngViewer] Publishing ${annots.length} annotations '
+          '(${crops.length} crops) to ${widget.annotationOutputChannel}');
       eb.publish(
         widget.annotationOutputChannel,
         EventPayload(
@@ -5280,15 +5322,43 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
     final pngBytes = byteData.buffer.asUint8List();
     final b64 = base64Encode(pngBytes);
 
-    // 4. Browser download.
+    // 4. Upload to Tercen project.
     final current = widget.images[_selectedTab];
     final baseName = current.filename.replaceAll('.png', '').replaceAll('.PNG', '');
     final fileName = '${baseName}_annotated.png';
-    final anchor = html.AnchorElement(href: 'data:image/png;base64,$b64')
-      ..setAttribute('download', fileName)
-      ..click();
 
-    debugPrint('[PngViewer] Saved annotated image: $fileName (${pngBytes.length} bytes, ${_currentAnnotations.length} annotations)');
+    if (widget.serviceCaller != null &&
+        widget.projectId != null &&
+        widget.projectId!.isNotEmpty) {
+      try {
+        await widget.serviceCaller!('fileService', 'upload', [
+          widget.projectId!,
+          widget.folderId ?? '',
+          fileName,
+          b64,
+        ]);
+        debugPrint('[PngViewer] Uploaded $fileName to project ${widget.projectId} '
+            '(${pngBytes.length} bytes, ${_currentAnnotations.length} annotations)');
+        // Notify Project Navigator to refresh its file list.
+        widget.eventBus.publish(
+          'navigator.contentChanged',
+          EventPayload(
+            type: 'contentChanged',
+            sourceWidgetId: widget.sourceWidgetId,
+            data: {},
+          ),
+        );
+      } catch (e) {
+        debugPrint('[PngViewer] Upload failed: $e');
+      }
+    } else {
+      // Fallback: browser download (mock mode or missing project context).
+      final anchor = html.AnchorElement(href: 'data:image/png;base64,$b64')
+        ..setAttribute('download', fileName)
+        ..click();
+      debugPrint('[PngViewer] Downloaded $fileName '
+          '(${pngBytes.length} bytes, ${_currentAnnotations.length} annotations)');
+    }
   }
 
   // --- Unified gesture handlers (inside InteractiveViewer, image-space coords) ---
@@ -5551,7 +5621,10 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
           ),
         // Canvas area
         Expanded(
-          child: InteractiveViewer(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
+              return InteractiveViewer(
             transformationController: _transformCtrl,
             constrained: false,
             minScale: 0.1,
@@ -5674,6 +5747,8 @@ class _AnnotatedImageViewerState extends State<_AnnotatedImageViewerWidget> {
                   ),
               ],
             ),
+          );
+          },
           ),
         ),
       ],

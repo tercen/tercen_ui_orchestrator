@@ -146,6 +146,7 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
     _listenFileDownload();
     _listenTypeFilter();
     _listenFocusRelay();
+    _listenAnnotationContext();
 
     if (_serverUrl.isNotEmpty) {
       // Dev mode: WebSocket to local Dart server
@@ -685,6 +686,25 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
             documentName: nodeName,
             projectId: _selections['selectedProjectId'] as String? ?? _defaultProjectId ?? '',
             sourceWindowId: event.sourceWidgetId,
+          );
+        }
+
+        // Open PNG files in PngViewer (via IntentRouter)
+        if (nodeType == 'FileDocument' && lowerName.endsWith('.png')) {
+          _sduiContext.eventBus.publish(
+            'system.intent',
+            EventPayload(
+              type: 'openImage',
+              sourceWidgetId: event.sourceWidgetId,
+              data: {
+                'intent': 'openImage',
+                'fileId': nodeId,
+                'fileName': nodeName,
+                'projectId': _selections['selectedProjectId'] as String? ??
+                    _defaultProjectId ?? '',
+                'folderId': '',
+              },
+            ),
           );
         }
 
@@ -1566,6 +1586,41 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
 
   Map<String, dynamic> _focusContext = {};
 
+  /// Latest annotation bundle from PngViewer, attached to the next LLM message.
+  Map<String, dynamic>? _annotationContext;
+
+  /// Listen for PngViewer annotation bundles and store as LLM context.
+  void _listenAnnotationContext() {
+    _sduiContext.eventBus
+        .subscribe('visualization.annotations.send')
+        .listen((event) {
+      final count =
+          (event.data['annotations'] as List?)?.length ?? 0;
+      if (count == 0) {
+        _annotationContext = null;
+        debugPrint('[annotation] Cleared annotation context (0 shapes)');
+        return;
+      }
+      _annotationContext = Map<String, dynamic>.from(event.data);
+      debugPrint('[annotation] Stored annotation context ($count shapes)');
+
+      // Relay to system.focus so ChatBox shows a visual indicator.
+      _focusContext = {
+        'label': 'Annotation: $count shape${count == 1 ? '' : 's'}',
+        'type': 'annotation',
+        'source': 'PngViewer',
+      };
+      _sduiContext.eventBus.publish(
+        'system.focus',
+        EventPayload(
+          type: 'focus',
+          sourceWidgetId: event.sourceWidgetId,
+          data: _focusContext,
+        ),
+      );
+    });
+  }
+
   /// Relay audit trail selection events to system.selection (for LLM context)
   /// and system.focus (for ChatBox focus indicator).
   void _listenAuditSelectionRelay() {
@@ -1880,6 +1935,17 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
       'focus': Map<String, dynamic>.from(_focusContext),
       'windows': wm.layoutState, // full toJson() per window
     };
+
+    // Include annotation context from PngViewer if present.
+    if (_annotationContext != null) {
+      final annotCount = (_annotationContext!['annotations'] as List?)?.length ?? 0;
+      final cropCount = (_annotationContext!['crops'] as List?)?.length ?? 0;
+      debugPrint('[annotation] Attaching to uiState: $annotCount annotations, $cropCount crops');
+      state['annotations'] = _annotationContext!;
+      // Keep annotation context — it persists as long as annotations exist
+      // on the PngViewer. It gets replaced when auto-publish fires with
+      // updated annotations, or nulled when annotations are cleared.
+    }
 
     return state;
   }

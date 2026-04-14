@@ -109,7 +109,11 @@ class AgentClient extends ChatBackend {
       if (uiStateCollector != null) {
         final uiState = uiStateCollector!();
         if (uiState.isNotEmpty) {
-          envPairs.add(_pair('uiState', jsonEncode(uiState)));
+          final uiJson = jsonEncode(uiState);
+          final hasAnnotations = uiState.containsKey('annotations');
+          debugPrint('[agent] uiState: ${uiJson.length} chars, '
+              'annotations=${hasAnnotations}');
+          envPairs.add(_pair('uiState', uiJson));
         }
       }
 

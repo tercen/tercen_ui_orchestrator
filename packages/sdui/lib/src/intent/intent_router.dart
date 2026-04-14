@@ -97,18 +97,27 @@ class IntentRouter {
     debugPrint('[IntentRouter] Routing "$intentName" → ${route.widgetType} '
         '(window: $windowId, title: $title)');
 
+    // Resolve placement: explicit in intent data, or default to newPane.
+    final placement = PropConverter.to<String>(intentData['placement']) ?? 'newPane';
+    // Forward the source widget ID so the window opens next to the caller.
+    final sourceId = (event.sourceWidgetId ?? '').isNotEmpty
+        ? event.sourceWidgetId
+        : PropConverter.to<String>(intentData['sourceWidgetId']);
+
     // Publish addWindow layout op
     eventBus.publish(
       'system.layout.op',
       EventPayload(
         type: 'layout.op',
-        sourceWidgetId: 'intent-router',
+        sourceWidgetId: sourceId ?? 'intent-router',
         data: {
           'op': 'addWindow',
           'id': windowId,
           'size': spec.windowSize,
           'align': spec.windowAlign,
           'title': title,
+          'placement': placement,
+          'sourceWidgetId': sourceId,
           'content': {
             'type': route.widgetType,
             'id': '$windowId-root',

@@ -1,15 +1,114 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:sdui/sdui.dart';
 import 'package:tercen_ui_orchestrator/sdui/contracts/contract_registry.dart';
 
+import 'package:tercen_ui_orchestrator/sdui/widgets/task_stream.dart';
+
 import 'event_inspector.dart';
 import 'item_inspector.dart';
 import 'mock_service_caller.dart';
 
 /// Scope builder types that require a real backend and won't work in mock mode.
-const _unsupportedScopeTypes = {'ChatStream', 'TaskStream'};
+const _unsupportedScopeTypes = {'ChatStream'};
+
+/// Mock task data for the TaskStream scope builder.
+TaskStreamProvider _createMockTaskStreamProvider() {
+  final controller = StreamController<List<Map<String, dynamic>>>.broadcast();
+  final now = DateTime.now();
+
+  final mockTasks = <Map<String, dynamic>>[
+    // Running tasks
+    {
+      'taskId': 'task-001',
+      'workflowId': 'wf-abc',
+      'workflowName': 'RNA-seq Pipeline',
+      'projectName': 'Genomics Study',
+      'stepName': 'PCA step',
+      'taskType': 'Workflow',
+      'status': 'running',
+      'isFinal': false,
+      'isRunning': true,
+      'isPending': false,
+      'isDone': false,
+      'isFailed': false,
+      'isCancelled': false,
+      'elapsed': '2m 34s',
+      'startedAt': now.subtract(const Duration(minutes: 2, seconds: 34)).toIso8601String(),
+    },
+    {
+      'taskId': 'task-002',
+      'workflowId': 'wf-def',
+      'workflowName': 'Clustering Analysis',
+      'projectName': 'Proteomics Q2',
+      'stepName': '',
+      'taskType': 'Workflow',
+      'status': 'pending',
+      'isFinal': false,
+      'isRunning': false,
+      'isPending': true,
+      'isDone': false,
+      'isFailed': false,
+      'isCancelled': false,
+      'elapsed': '0s',
+      'startedAt': now.toIso8601String(),
+    },
+    // Recent completed tasks
+    {
+      'taskId': 'task-003',
+      'workflowId': 'wf-ghi',
+      'workflowName': 'Normalization',
+      'projectName': 'Genomics Study',
+      'stepName': '',
+      'taskType': 'Workflow',
+      'status': 'done',
+      'isFinal': true,
+      'isRunning': false,
+      'isPending': false,
+      'isDone': true,
+      'isFailed': false,
+      'isCancelled': false,
+      'elapsed': '1m 12s',
+      'startedAt': now.subtract(const Duration(minutes: 5)).toIso8601String(),
+      'completedAt': now.subtract(const Duration(minutes: 3, seconds: 48)).toIso8601String(),
+    },
+    {
+      'taskId': 'task-004',
+      'workflowId': 'wf-jkl',
+      'workflowName': 'Data Import',
+      'projectName': 'Proteomics Q2',
+      'stepName': '',
+      'taskType': 'Workflow',
+      'status': 'failed',
+      'isFinal': true,
+      'isRunning': false,
+      'isPending': false,
+      'isDone': false,
+      'isFailed': true,
+      'isCancelled': false,
+      'elapsed': '45s',
+      'startedAt': now.subtract(const Duration(minutes: 10)).toIso8601String(),
+      'completedAt': now.subtract(const Duration(minutes: 9, seconds: 15)).toIso8601String(),
+    },
+  ];
+
+  // Re-emit periodically so late subscribers always get data.
+  Timer.periodic(const Duration(seconds: 2), (timer) {
+    if (controller.isClosed) {
+      timer.cancel();
+      return;
+    }
+    controller.add(mockTasks);
+  });
+
+  return (
+    tasks: controller.stream,
+    cancel: (taskId) => debugPrint('[mock-task] Cancel requested for $taskId'),
+    hasRunning: () => true,
+  );
+}
 
 /// The mock orchestrator shell. Renders a single catalog widget inside the
 /// real WindowManager (floating window with title bar) and provides an event
@@ -31,12 +130,13 @@ class MockShell extends StatefulWidget {
 }
 
 class _MockShellState extends State<MockShell> {
-  late final SduiContext _sduiContext;
+  late SduiContext _sduiContext;
   late final MockServiceCaller _mockCaller;
   String? _selectedWidget;
   List<String> _availableWidgets = [];
   List<String> _knownChannels = [];
   int _openCounter = 0;
+  bool _isDark = false;
 
   /// Resizable frame boundaries for testing widget resize behaviour.
   double _leftPadding = 80;
@@ -48,9 +148,22 @@ class _MockShellState extends State<MockShell> {
   @override
   void initState() {
     super.initState();
-
     _mockCaller = MockServiceCaller();
-    final theme = widget.sduiTheme ?? const SduiTheme.light();
+    _initSduiContext();
+  }
+
+  void _initSduiContext() {
+    final baseTheme = widget.sduiTheme;
+    final SduiTheme theme;
+    if (baseTheme != null && _isDark) {
+      // Re-parse from dark if tokens were provided.
+      theme = const SduiTheme.dark();
+    } else if (_isDark) {
+      theme = const SduiTheme.dark();
+    } else {
+      theme = baseTheme ?? const SduiTheme.light();
+    }
+
     _sduiContext = SduiContext.create(
       theme: theme,
       contractRegistry: createDefaultRegistry(),
@@ -59,12 +172,17 @@ class _MockShellState extends State<MockShell> {
     // Wire the mock service caller.
     _sduiContext.renderContext.serviceCaller = _mockCaller.call;
 
+    // Register TaskStream scope builder and wire mock provider.
+    _sduiContext.registry.registerScope('TaskStream', buildTaskStream,
+        metadata: taskStreamMetadata);
+    _sduiContext.renderContext.taskStreamProvider = _createMockTaskStreamProvider();
+
     // Set mock user context.
     _sduiContext.renderContext.setUserContext({
       'username': 'mock-user',
       'userId': 'mock-user-id',
       'token': '',
-      'isDark': false,
+      'isDark': _isDark,
     });
 
     // Load catalog if provided.
@@ -73,6 +191,8 @@ class _MockShellState extends State<MockShell> {
     }
 
     // Collect available Tier 2 (template) widgets and check mock compatibility.
+    _availableWidgets = [];
+    _incompatibleWidgets.clear();
     for (final meta in _sduiContext.registry.catalog) {
       if (meta.tier != 2) continue;
       _availableWidgets.add(meta.type);
@@ -99,6 +219,14 @@ class _MockShellState extends State<MockShell> {
       _updateKnownChannels(_selectedWidget!);
       _openWidget(_selectedWidget!);
     }
+  }
+
+  void _toggleTheme() {
+    _sduiContext.dispose();
+    setState(() {
+      _isDark = !_isDark;
+      _initSduiContext();
+    });
   }
 
   /// Walk template tree and return any unsupported scope types found.
@@ -293,10 +421,16 @@ class _MockShellState extends State<MockShell> {
                       _buildDragHandle(cs,
                           onDrag: (dx) =>
                               setState(() => _leftPadding += dx)),
-                      // Widget under test
+                      // Widget under test — dark theme applied only here.
                       SizedBox(
                         width: widgetW,
-                        child: _buildWidgetArea(cs, tt),
+                        child: _isDark
+                            ? Theme(
+                                data: const SduiTheme.dark().toMaterialTheme(),
+                                child: Builder(builder: (ctx) =>
+                                    _buildWidgetArea(Theme.of(ctx).colorScheme, Theme.of(ctx).textTheme)),
+                              )
+                            : _buildWidgetArea(cs, tt),
                       ),
                       // Right drag handle
                       _buildDragHandle(cs,
@@ -398,6 +532,19 @@ class _MockShellState extends State<MockShell> {
               }),
 
               const SizedBox(width: 24),
+
+              // Dark mode toggle
+              IconButton(
+                icon: Icon(
+                  _isDark ? Icons.light_mode : Icons.dark_mode,
+                  size: 16,
+                  color: cs.onSurfaceVariant,
+                ),
+                tooltip: _isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                visualDensity: VisualDensity.compact,
+                onPressed: _toggleTheme,
+              ),
+              const SizedBox(width: 4),
 
               // Reset frame size
               IconButton(

@@ -93,11 +93,9 @@
                 "id": "{{widgetId}}-ds",
                 "props": {
                   "service": "teamService",
-                  "method": "findTeamByOwner",
+                  "method": "findTeamByMember",
                   "args": [
-                    [
-                      "{{context.userId}}"
-                    ]
+                    "{{context.userId}}"
                   ],
                   "refreshOn": "navigator.refreshTree"
                 },
@@ -4687,7 +4685,9 @@
             "intent": "openImage",
             "propsMap": {
               "fileId": "fileId",
-              "fileName": "fileName"
+              "fileName": "fileName",
+              "projectId": "projectId",
+              "folderId": "folderId"
             },
             "windowTitle": "{{fileName}}",
             "windowSize": "large"
@@ -4697,7 +4697,8 @@
             "propsMap": {
               "workflowId": "workflowId",
               "stepId": "stepId",
-              "stepName": "stepName"
+              "stepName": "stepName",
+              "projectId": "projectId"
             },
             "windowTitle": "Images: {{stepName}}",
             "windowSize": "large"
@@ -4717,6 +4718,14 @@
             "required": false
           },
           "stepId": {
+            "type": "string",
+            "required": false
+          },
+          "projectId": {
+            "type": "string",
+            "required": false
+          },
+          "folderId": {
             "type": "string",
             "required": false
           }
@@ -4765,10 +4774,11 @@
                 "id": "{{widgetId}}-ds",
                 "props": {
                   "service": "tableSchemaService",
-                  "method": "getStepImages",
+                  "method": "getImages",
                   "args": [
                     "{{props.workflowId}}",
-                    "{{props.stepId}}"
+                    "{{props.stepId}}",
+                    "{{props.fileId}}"
                   ]
                 },
                 "children": [
@@ -4924,7 +4934,9 @@
                           "zoomOutChannel": "pngviewer.{{widgetId}}.zoomOut",
                           "fitChannel": "pngviewer.{{widgetId}}.fit",
                           "deleteChannel": "pngviewer.{{widgetId}}.delete",
-                          "selectionChannel": "pngviewer.{{widgetId}}.selection"
+                          "selectionChannel": "pngviewer.{{widgetId}}.selection",
+                          "projectId": "{{props.projectId}}",
+                          "folderId": "{{props.folderId}}"
                         }
                       }
                     ]
@@ -5605,6 +5617,9 @@
         "domain": "system",
         "capabilities": [
           "chat"
+        ],
+        "inboundEvents": [
+          "visualization.annotations.send"
         ],
         "selectionMode": "none"
       },
@@ -7381,6 +7396,7 @@
     {
       "metadata": {
         "type": "TaskMonitor",
+        "kind": "window",
         "tier": 2,
         "description": "Live task monitor showing running and completed tasks with progress, elapsed time, and cancel button. Use when the user wants to see running tasks.",
         "props": {},
@@ -7412,231 +7428,444 @@
         "type": "TaskStream",
         "id": "{{widgetId}}-stream",
         "props": {
-          "cancelChannel": "task.cancel"
+          "cancelChannel": "task.cancel",
+          "exportChannel": "task.{{widgetId}}.export"
         },
         "children": [
           {
-            "type": "Column",
+            "type": "WindowShell",
             "id": "{{widgetId}}-root",
             "props": {
-              "crossAxisAlignment": "stretch",
-              "mainAxisSize": "min"
+              "toolbarActions": [
+                {
+                  "icon": "download",
+                  "tooltip": "Download",
+                  "variant": "toolbar-secondary",
+                  "channel": "task.{{widgetId}}.export"
+                }
+              ]
             },
             "children": [
               {
-                "type": "Container",
-                "id": "{{widgetId}}-toolbar",
+                "type": "Column",
+                "id": "{{widgetId}}-body",
                 "props": {
-                  "color": "surfaceContainerHigh",
-                  "padding": "sm"
+                  "crossAxisAlignment": "stretch"
                 },
                 "children": [
                   {
-                    "type": "Row",
-                    "id": "{{widgetId}}-toolbar-row",
+                    "type": "Conditional",
+                    "id": "{{widgetId}}-empty-cond",
                     "props": {
-                      "mainAxisAlignment": "spaceBetween",
-                      "crossAxisAlignment": "center"
+                      "visible": "{{!hasTasks}}"
                     },
                     "children": [
                       {
-                        "type": "Row",
-                        "id": "{{widgetId}}-toolbar-left",
-                        "props": {
-                          "crossAxisAlignment": "center"
-                        },
+                        "type": "Center",
+                        "id": "{{widgetId}}-empty-c",
                         "children": [
                           {
-                            "type": "Icon",
-                            "id": "{{widgetId}}-icon",
+                            "type": "Padding",
+                            "id": "{{widgetId}}-empty-pad",
                             "props": {
-                              "icon": "checklist",
-                              "size": 16,
-                              "color": "primary"
-                            }
-                          },
-                          {
-                            "type": "SizedBox",
-                            "id": "{{widgetId}}-icon-gap",
-                            "props": {
-                              "width": 8
-                            }
-                          },
-                          {
-                            "type": "Text",
-                            "id": "{{widgetId}}-title",
-                            "props": {
-                              "text": "Task Monitor",
-                              "textStyle": "labelMedium",
-                              "color": "onSurface"
-                            }
+                              "padding": "lg"
+                            },
+                            "children": [
+                              {
+                                "type": "Column",
+                                "id": "{{widgetId}}-empty-col",
+                                "props": {
+                                  "mainAxisSize": "min"
+                                },
+                                "children": [
+                                  {
+                                    "type": "Icon",
+                                    "id": "{{widgetId}}-empty-icon",
+                                    "props": {
+                                      "icon": "check_circle",
+                                      "size": 32,
+                                      "color": "onSurfaceMuted"
+                                    }
+                                  },
+                                  {
+                                    "type": "SizedBox",
+                                    "id": "{{widgetId}}-empty-gap",
+                                    "props": {
+                                      "height": 8
+                                    }
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "id": "{{widgetId}}-empty-text",
+                                    "props": {
+                                      "text": "No tasks",
+                                      "textStyle": "bodySmall",
+                                      "color": "onSurfaceMuted"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
-                      },
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conditional",
+                    "id": "{{widgetId}}-running-cond",
+                    "props": {
+                      "visible": "{{hasRunning}}"
+                    },
+                    "children": [
                       {
-                        "type": "Conditional",
-                        "id": "{{widgetId}}-badge-cond",
+                        "type": "Padding",
+                        "id": "{{widgetId}}-running-hdr-pad",
                         "props": {
-                          "visible": "{{hasRunning}}"
+                          "padding": "sm"
                         },
                         "children": [
                           {
-                            "type": "Chip",
-                            "id": "{{widgetId}}-badge",
+                            "type": "Text",
+                            "id": "{{widgetId}}-running-hdr",
                             "props": {
-                              "label": "{{activeCount}} running",
-                              "color": "primary"
+                              "text": "Running",
+                              "textStyle": "labelSmall",
+                              "color": "onSurfaceMuted"
                             }
                           }
                         ]
                       }
                     ]
-                  }
-                ]
-              },
-              {
-                "type": "ForEach",
-                "id": "{{widgetId}}-running-fe",
-                "props": {
-                  "items": "{{runningTasks}}"
-                },
-                "children": [
+                  },
                   {
-                    "type": "Padding",
-                    "id": "{{widgetId}}-run-pad-{{_index}}",
+                    "type": "ForEach",
+                    "id": "{{widgetId}}-running-fe",
                     "props": {
-                      "padding": "sm"
+                      "items": "{{runningTasks}}"
                     },
                     "children": [
                       {
-                        "type": "Card",
-                        "id": "{{widgetId}}-run-card-{{_index}}",
+                        "type": "Padding",
+                        "id": "{{widgetId}}-run-pad-{{_index}}",
+                        "props": {
+                          "padding": [4, 8]
+                        },
                         "children": [
                           {
+                            "type": "Card",
+                            "id": "{{widgetId}}-run-card-{{_index}}",
+                            "children": [
+                              {
+                                "type": "Padding",
+                                "id": "{{widgetId}}-run-card-pad-{{_index}}",
+                                "props": {
+                                  "padding": "sm"
+                                },
+                                "children": [
+                                  {
+                                    "type": "Row",
+                                    "id": "{{widgetId}}-run-row-{{_index}}",
+                                    "props": {
+                                      "crossAxisAlignment": "center"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "Conditional",
+                                        "id": "{{widgetId}}-run-spinner-cond-{{_index}}",
+                                        "props": {
+                                          "visible": "{{item.isRunning}}"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "LoadingIndicator",
+                                            "id": "{{widgetId}}-run-spinner-{{_index}}",
+                                            "props": {
+                                              "size": 16
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Conditional",
+                                        "id": "{{widgetId}}-run-pending-cond-{{_index}}",
+                                        "props": {
+                                          "visible": "{{item.isPending}}"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "Icon",
+                                            "id": "{{widgetId}}-run-pending-{{_index}}",
+                                            "props": {
+                                              "icon": "clock",
+                                              "size": 16,
+                                              "color": "warning"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "SizedBox",
+                                        "id": "{{widgetId}}-run-gap-{{_index}}",
+                                        "props": {
+                                          "width": 8
+                                        }
+                                      },
+                                      {
+                                        "type": "Expanded",
+                                        "id": "{{widgetId}}-run-info-{{_index}}",
+                                        "children": [
+                                          {
+                                            "type": "Column",
+                                            "id": "{{widgetId}}-run-info-col-{{_index}}",
+                                            "props": {
+                                              "crossAxisAlignment": "start",
+                                              "mainAxisSize": "min"
+                                            },
+                                            "children": [
+                                              {
+                                                "type": "Text",
+                                                "id": "{{widgetId}}-run-wf-{{_index}}",
+                                                "props": {
+                                                  "text": "{{item.workflowName}}",
+                                                  "textStyle": "bodySmall",
+                                                  "color": "onSurface"
+                                                }
+                                              },
+                                              {
+                                                "type": "Row",
+                                                "id": "{{widgetId}}-run-detail-{{_index}}",
+                                                "children": [
+                                                  {
+                                                    "type": "Text",
+                                                    "id": "{{widgetId}}-run-proj-{{_index}}",
+                                                    "props": {
+                                                      "text": "{{item.projectName}}",
+                                                      "textStyle": "labelSmall",
+                                                      "color": "onSurfaceMuted"
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "SizedBox",
+                                                    "id": "{{widgetId}}-run-sep-{{_index}}",
+                                                    "props": {
+                                                      "width": 8
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "Text",
+                                                    "id": "{{widgetId}}-run-elapsed-{{_index}}",
+                                                    "props": {
+                                                      "text": "{{item.elapsed}}",
+                                                      "textStyle": "labelSmall",
+                                                      "color": "onSurfaceMuted"
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "IconButton",
+                                        "id": "{{widgetId}}-run-cancel-{{_index}}",
+                                        "props": {
+                                          "icon": "xmark",
+                                          "size": 16,
+                                          "color": "error",
+                                          "tooltip": "Cancel",
+                                          "channel": "task.cancel",
+                                          "payload": {
+                                            "taskId": "{{item.taskId}}"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Conditional",
+                    "id": "{{widgetId}}-recent-cond",
+                    "props": {
+                      "visible": "{{hasRecent}}"
+                    },
+                    "children": [
+                      {
+                        "type": "Column",
+                        "id": "{{widgetId}}-recent-section",
+                        "props": {
+                          "crossAxisAlignment": "stretch"
+                        },
+                        "children": [
+                          {
+                            "type": "Divider",
+                            "id": "{{widgetId}}-recent-div"
+                          },
+                          {
                             "type": "Padding",
-                            "id": "{{widgetId}}-run-card-pad-{{_index}}",
+                            "id": "{{widgetId}}-recent-hdr-pad",
                             "props": {
                               "padding": "sm"
                             },
                             "children": [
                               {
-                                "type": "Row",
-                                "id": "{{widgetId}}-run-row-{{_index}}",
+                                "type": "Text",
+                                "id": "{{widgetId}}-recent-hdr",
                                 "props": {
-                                  "crossAxisAlignment": "center"
+                                  "text": "Recent",
+                                  "textStyle": "labelSmall",
+                                  "color": "onSurfaceMuted"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "type": "ForEach",
+                            "id": "{{widgetId}}-recent-fe",
+                            "props": {
+                              "items": "{{recentTasks}}"
+                            },
+                            "children": [
+                              {
+                                "type": "Padding",
+                                "id": "{{widgetId}}-rec-pad-{{_index}}",
+                                "props": {
+                                  "padding": [4, 8]
                                 },
                                 "children": [
                                   {
-                                    "type": "Conditional",
-                                    "id": "{{widgetId}}-run-spinner-cond-{{_index}}",
+                                    "type": "Row",
+                                    "id": "{{widgetId}}-rec-row-{{_index}}",
                                     "props": {
-                                      "visible": "{{item.isRunning}}"
+                                      "crossAxisAlignment": "center"
                                     },
                                     "children": [
                                       {
-                                        "type": "LoadingIndicator",
-                                        "id": "{{widgetId}}-run-spinner-{{_index}}",
+                                        "type": "Conditional",
+                                        "id": "{{widgetId}}-rec-done-cond-{{_index}}",
                                         "props": {
-                                          "size": 16
-                                        }
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "type": "Conditional",
-                                    "id": "{{widgetId}}-run-pending-cond-{{_index}}",
-                                    "props": {
-                                      "visible": "{{item.isPending}}"
-                                    },
-                                    "children": [
-                                      {
-                                        "type": "Icon",
-                                        "id": "{{widgetId}}-run-pending-{{_index}}",
-                                        "props": {
-                                          "icon": "clock",
-                                          "size": 16,
-                                          "color": "warning",
-                                          "weight": "solid"
-                                        }
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "type": "SizedBox",
-                                    "id": "{{widgetId}}-run-gap-{{_index}}",
-                                    "props": {
-                                      "width": 8
-                                    }
-                                  },
-                                  {
-                                    "type": "Expanded",
-                                    "id": "{{widgetId}}-run-info-{{_index}}",
-                                    "children": [
-                                      {
-                                        "type": "Column",
-                                        "id": "{{widgetId}}-run-info-col-{{_index}}",
-                                        "props": {
-                                          "crossAxisAlignment": "start",
-                                          "mainAxisSize": "min"
+                                          "visible": "{{item.isDone}}"
                                         },
                                         "children": [
                                           {
-                                            "type": "Text",
-                                            "id": "{{widgetId}}-run-wf-{{_index}}",
+                                            "type": "Icon",
+                                            "id": "{{widgetId}}-rec-done-icon-{{_index}}",
                                             "props": {
-                                              "text": "{{item.workflowName}}",
-                                              "textStyle": "bodySmall",
-                                              "color": "onSurface"
+                                              "icon": "check_circle",
+                                              "size": 16,
+                                              "color": "success"
                                             }
-                                          },
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Conditional",
+                                        "id": "{{widgetId}}-rec-fail-cond-{{_index}}",
+                                        "props": {
+                                          "visible": "{{item.isFailed}}"
+                                        },
+                                        "children": [
                                           {
-                                            "type": "Row",
-                                            "id": "{{widgetId}}-run-detail-{{_index}}",
+                                            "type": "Icon",
+                                            "id": "{{widgetId}}-rec-fail-icon-{{_index}}",
+                                            "props": {
+                                              "icon": "close",
+                                              "size": 16,
+                                              "color": "error"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "Conditional",
+                                        "id": "{{widgetId}}-rec-cancel-cond-{{_index}}",
+                                        "props": {
+                                          "visible": "{{item.isCancelled}}"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "Icon",
+                                            "id": "{{widgetId}}-rec-cancel-icon-{{_index}}",
+                                            "props": {
+                                              "icon": "cancel",
+                                              "size": 16,
+                                              "color": "onSurfaceMuted"
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "SizedBox",
+                                        "id": "{{widgetId}}-rec-gap-{{_index}}",
+                                        "props": {
+                                          "width": 8
+                                        }
+                                      },
+                                      {
+                                        "type": "Expanded",
+                                        "id": "{{widgetId}}-rec-info-{{_index}}",
+                                        "children": [
+                                          {
+                                            "type": "Column",
+                                            "id": "{{widgetId}}-rec-info-col-{{_index}}",
+                                            "props": {
+                                              "crossAxisAlignment": "start",
+                                              "mainAxisSize": "min"
+                                            },
                                             "children": [
                                               {
                                                 "type": "Text",
-                                                "id": "{{widgetId}}-run-proj-{{_index}}",
+                                                "id": "{{widgetId}}-rec-wf-{{_index}}",
                                                 "props": {
-                                                  "text": "{{item.projectName}}",
-                                                  "textStyle": "labelSmall",
-                                                  "color": "onSurfaceMuted"
+                                                  "text": "{{item.workflowName}}",
+                                                  "textStyle": "bodySmall",
+                                                  "color": "onSurface"
                                                 }
                                               },
                                               {
-                                                "type": "SizedBox",
-                                                "id": "{{widgetId}}-run-sep-{{_index}}",
-                                                "props": {
-                                                  "width": 8
-                                                }
-                                              },
-                                              {
-                                                "type": "Text",
-                                                "id": "{{widgetId}}-run-elapsed-{{_index}}",
-                                                "props": {
-                                                  "text": "{{item.elapsed}}",
-                                                  "textStyle": "labelSmall",
-                                                  "color": "onSurfaceMuted"
-                                                }
+                                                "type": "Row",
+                                                "id": "{{widgetId}}-rec-detail-{{_index}}",
+                                                "children": [
+                                                  {
+                                                    "type": "Text",
+                                                    "id": "{{widgetId}}-rec-proj-{{_index}}",
+                                                    "props": {
+                                                      "text": "{{item.projectName}}",
+                                                      "textStyle": "labelSmall",
+                                                      "color": "onSurfaceMuted"
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "SizedBox",
+                                                    "id": "{{widgetId}}-rec-sep-{{_index}}",
+                                                    "props": {
+                                                      "width": 8
+                                                    }
+                                                  },
+                                                  {
+                                                    "type": "Text",
+                                                    "id": "{{widgetId}}-rec-elapsed-{{_index}}",
+                                                    "props": {
+                                                      "text": "{{item.elapsed}}",
+                                                      "textStyle": "labelSmall",
+                                                      "color": "onSurfaceMuted"
+                                                    }
+                                                  }
+                                                ]
                                               }
                                             ]
                                           }
                                         ]
                                       }
                                     ]
-                                  },
-                                  {
-                                    "type": "IconButton",
-                                    "id": "{{widgetId}}-run-cancel-{{_index}}",
-                                    "props": {
-                                      "icon": "close",
-                                      "size": 16,
-                                      "color": "error",
-                                      "tooltip": "Cancel",
-                                      "channel": "task.cancel",
-                                      "payload": {
-                                        "taskId": "{{item.taskId}}"
-                                      }
-                                    }
                                   }
                                 ]
                               }

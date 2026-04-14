@@ -224,11 +224,16 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
         break;
 
       case 'assistant_message':
-        _removeStreamingBubble();
-        _messages.add(_makeMessage(
-          role: 'assistant',
-          text: msg['text'] as String? ?? '',
-        ));
+        final msgText = msg['text'] as String? ?? '';
+        if (msgText.isNotEmpty) {
+          // Explicit final text — replace the streaming bubble.
+          _removeStreamingBubble();
+          _messages.add(_makeMessage(role: 'assistant', text: msgText));
+        } else {
+          // Empty text (e.g. from AgentClient) — finalize the streaming bubble
+          // in-place so streamed text_delta content is preserved.
+          _finalizeStreamingBubble();
+        }
         _isStreaming = false;
         _scheduleRebuild();
         break;
@@ -341,6 +346,22 @@ class _ChatStreamWidgetState extends State<_ChatStreamWidget> {
         _messages.last['role'] == 'assistant' &&
         _messages.last['isStreaming'] == true) {
       _messages.removeLast();
+    }
+  }
+
+  /// Convert the current streaming bubble into a finalized (non-streaming)
+  /// message, preserving the text accumulated from text_delta events.
+  void _finalizeStreamingBubble() {
+    if (_messages.isNotEmpty &&
+        _messages.last['role'] == 'assistant' &&
+        _messages.last['isStreaming'] == true) {
+      final text = _messages.last['text'] as String? ?? '';
+      if (text.isEmpty || text == 'Thinking...') {
+        // Nothing useful streamed — just remove it.
+        _messages.removeLast();
+      } else {
+        _messages.last['isStreaming'] = false;
+      }
     }
   }
 

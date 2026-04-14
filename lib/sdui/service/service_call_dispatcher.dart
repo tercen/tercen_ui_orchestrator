@@ -235,6 +235,9 @@ class ServiceCallDispatcher {
       case 'resourceSummary':
         final result = await svc.resourceSummary(args[0] as String);
         return result.toJson();
+      case 'findTeamByMember':
+        final result = await svc.findTeamByMember(args[0] as String);
+        return result.map((obj) => svc.toJson(obj)).toList();
       default:
         throw ArgumentError('Method "$method" not found on teamService');
     }
@@ -373,6 +376,17 @@ class ServiceCallDispatcher {
         final existing = await svc.get(fileId);
         final updated = await svc.upload(existing, Stream.value(bytes));
         return Map<String, dynamic>.from(svc.toJson(updated));
+      case 'upload':
+        // Upload a new file to a project.
+        // Args: [projectId, folderId, fileName, base64Content]
+        // Returns: serialized FileDocument
+        final projectId = args[0] as String;
+        final folderId = args.length > 1 ? args[1] as String : '';
+        final fileName = args.length > 2 ? args[2] as String : 'file';
+        final base64Content = args.length > 3 ? args[3] as String : '';
+        debugPrint('[ServiceDispatcher] fileService.upload($fileName → project $projectId)');
+        return uploadFile(
+            projectId, folderId, fileName, base64Decode(base64Content));
       default:
         throw ArgumentError('Method "$method" not found on fileService');
     }
@@ -386,6 +400,18 @@ class ServiceCallDispatcher {
         // Args: [workflowId, stepId]
         // Returns: {stepName, images: [{schemaId, filename, mimetype, url}]}
         return _getStepImages(args[0] as String, args[1] as String);
+      case 'getImages':
+        // Unified image loader: routes by which arg is non-empty.
+        // Args: [workflowId, stepId, fileId]
+        // - fileId non-empty → single file via _getFileImage
+        // - workflowId non-empty → step images via _getStepImages
+        final workflowId = args.isNotEmpty ? args[0]?.toString() ?? '' : '';
+        final stepId = args.length > 1 ? args[1]?.toString() ?? '' : '';
+        final fileId = args.length > 2 ? args[2]?.toString() ?? '' : '';
+        if (fileId.isNotEmpty) {
+          return _getFileImage(fileId);
+        }
+        return _getStepImages(workflowId, stepId);
       case 'select':
         // Args: [schemaId, columnNames, offset, limit]
         final schemaId = args[0] as String;
@@ -606,6 +632,37 @@ class ServiceCallDispatcher {
     }
 
     return {'stepName': stepName, 'images': images};
+  }
+
+  /// Gets a single file as an image entry (same shape as _getStepImages).
+  /// Used when opening a FileDocument directly from the Project Navigator.
+  Future<Map<String, dynamic>> _getFileImage(String fileId) async {
+    final svc = factory.fileService;
+    final fileDoc = await svc.get(fileId);
+    final fileJson = Map<String, dynamic>.from(svc.toJson(fileDoc));
+    final filename = fileJson['name'] as String? ?? fileId;
+
+    // Build authenticated download URL (same pattern as downloadUrl case).
+    final baseUri = (svc as dynamic)
+        .getServiceUri(Uri.parse('api/v1/file/download'));
+    final params = json.encode({'fileDocumentId': fileId});
+    final queryParams = <String, String>{'params': params};
+    if (authToken != null && authToken!.isNotEmpty) {
+      queryParams['authorization'] = authToken!;
+    }
+    final url = baseUri.replace(queryParameters: queryParams).toString();
+
+    debugPrint('[ServiceDispatcher] _getFileImage($fileId) → $filename');
+    return {
+      'images': [
+        {
+          'schemaId': fileId,
+          'filename': filename,
+          'mimetype': 'image/png',
+          'url': url,
+        }
+      ]
+    };
   }
 
   Future<dynamic> _workflowServiceCall(
