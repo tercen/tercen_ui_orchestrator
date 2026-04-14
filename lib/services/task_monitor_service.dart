@@ -9,6 +9,7 @@ import 'package:sdui/sdui.dart';
 /// and exposes an aggregated task stream for the TaskStream scope builder.
 class TaskMonitorService {
   final EventBus eventBus;
+  final String username;
 
   Timer? _pollTimer;
   bool _loading = false;
@@ -38,7 +39,7 @@ class TaskMonitorService {
   static const _maxCacheSize = 200;
   static const _maxEventIds = 1000;
 
-  TaskMonitorService({required this.eventBus});
+  TaskMonitorService({required this.eventBus, required this.username});
 
   Stream<List<Map<String, dynamic>>> get tasks => _taskStream.stream;
 
@@ -47,9 +48,100 @@ class TaskMonitorService {
 
   /// Start polling. Call after auth when ServiceFactory is available.
   void start() {
+    _loadRecent();
     _poll();
     _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
     debugPrint('[task-monitor] Started (polling every ${_pollInterval.inSeconds}s)');
+  }
+
+  /// Seed the recent list with completed task activities via activityService.
+  Future<void> _loadRecent() async {
+    final factory = _factory;
+    if (factory == null) return;
+
+    try {
+      if (username.isEmpty) {
+        debugPrint('[task-monitor] No username — skipping recent load');
+        return;
+      }
+
+      // Use the same API as HomePanel's Recent Activity card.
+      final svc = factory.activityService;
+      final activities = await svc.findStartKeys(
+        'findByUserAndDate',
+        startKey: [username, ''],
+        endKey: [username, '\uf000'],
+        limit: 100,
+        descending: true,
+      );
+
+      debugPrint('[task-monitor] findByUserAndDate returned ${activities.length} activities');
+
+      // Build recent entries from all activity types.
+      int loaded = 0;
+      for (final activity in activities) {
+        if (loaded >= _maxRecent) break;
+        final json = activity.toJson();
+        final type = (json['type'] ?? '') as String;
+        final objectKind = (json['objectKind'] ?? '') as String;
+        final objectName = _extractProperty(json, 'name') ?? objectKind;
+        final projectName = (json['projectName'] ?? '') as String;
+        final dateMap = json['date'] as Map?;
+        final dateValue = dateMap?['value'] as String? ?? '';
+        final actDate = DateTime.tryParse(dateValue) ?? DateTime.now();
+
+        final status = switch (type) {
+          'delete' => TaskStatus.failed,
+          _ => TaskStatus.done,
+        };
+
+        final verb = switch (type) {
+          'create' => 'Created',
+          'update' => 'Updated',
+          'delete' => 'Deleted',
+          'run' => 'Ran',
+          'complete' => 'Completed',
+          'fail' => 'Failed',
+          'cancel' => 'Cancelled',
+          _ => type,
+        };
+
+        _recent.add(TaskEntry(
+          taskId: json['id'] as String? ?? '',
+          channelId: '',
+          workflowId: '',
+          workflowName: objectName,
+          projectName: projectName,
+          stepName: '',
+          taskType: '$verb $objectKind',
+          status: status,
+          startedAt: actDate,
+          completedAt: actDate,
+        ));
+        loaded++;
+      }
+
+      if (_recent.isNotEmpty) {
+        debugPrint('[task-monitor] Loaded ${_recent.length} recent task(s)');
+        _notify();
+      } else {
+        debugPrint('[task-monitor] No task activities found for $username');
+      }
+    } catch (e, st) {
+      debugPrint('[task-monitor] Failed to load recent tasks: $e');
+      debugPrint('[task-monitor] $st');
+    }
+  }
+
+  /// Extract a value from the activity properties list by key.
+  static String? _extractProperty(Map json, String key) {
+    final props = json['properties'];
+    if (props is List) {
+      for (final p in props) {
+        if (p is Map && p['key'] == key) return p['value'] as String?;
+      }
+    }
+    return null;
   }
 
   sci.ServiceFactory? get _factory {

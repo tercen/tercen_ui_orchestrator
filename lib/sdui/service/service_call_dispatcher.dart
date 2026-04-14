@@ -236,8 +236,27 @@ class ServiceCallDispatcher {
         final result = await svc.resourceSummary(args[0] as String);
         return result.toJson();
       case 'findTeamByMember':
-        final result = await svc.findTeamByMember(args[0] as String);
-        return result.map((obj) => svc.toJson(obj)).toList();
+        // Raw HTTP POST — findTeamByMember is not in the published 1.16.1 client.
+        final httpSvc = _getService('teamService');
+        if (httpSvc is HttpClientService) {
+          final uri = Uri.parse('api/v1/team/findTeamByMember');
+          final params = <String, dynamic>{'userId': args[0] as String};
+          final response = await httpSvc.client.post(
+            httpSvc.getServiceUri(uri),
+            headers: httpSvc.contentCodec.contentTypeHeader,
+            responseType: httpSvc.contentCodec.responseType,
+            body: httpSvc.contentCodec.encode(params),
+          );
+          if (response.statusCode != 200) {
+            httpSvc.onResponseError(response);
+          }
+          final decoded = httpSvc.contentCodec.decode(response.body);
+          if (decoded is List) {
+            return decoded.map((m) => svc.fromJson(m as Map)).map((t) => svc.toJson(t)).toList();
+          }
+          return [];
+        }
+        throw ArgumentError('teamService is not HttpClientService');
       default:
         throw ArgumentError('Method "$method" not found on teamService');
     }

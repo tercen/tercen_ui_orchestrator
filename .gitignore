@@ -1,9 +1,11 @@
 .vscode/
 _local
+_issues/
 .dart_tool/
 **/.dart_tool/
 **/.server.pid
 .playwright-mcp/
+*.png
 
 # Flutter build artifacts — run `flutter build web` after cloning
 build/

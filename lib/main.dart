@@ -1235,7 +1235,9 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
   }
 
   void _initTaskMonitor() {
-    final monitor = TaskMonitorService(eventBus: _sduiContext.eventBus);
+    final jwtData = _decodeJwtPayload(_tercenToken)['data'] as Map<String, dynamic>? ?? {};
+    final monitorUsername = jwtData['u'] as String? ?? '';
+    final monitor = TaskMonitorService(eventBus: _sduiContext.eventBus, username: monitorUsername);
     _taskMonitor = monitor;
 
     // Wire the provider into SDUI context
