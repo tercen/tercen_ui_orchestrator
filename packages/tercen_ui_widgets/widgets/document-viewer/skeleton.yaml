@@ -1,4 +1,0 @@
-kind: window
-label: Window Widget
-description: Feature window for embedding within the Tercen UI orchestrator.
-design_reference: _references/window-design.md

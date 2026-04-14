@@ -4449,226 +4449,6 @@
     },
     {
       "metadata": {
-        "type": "DocumentViewer",
-        "tier": 2,
-        "description": "Viewer for file content and metadata. Use when the user wants to read or preview a document or file.",
-        "emittedEvents": [
-          "system.selection.file"
-        ],
-        "handlesIntent": [
-          {
-            "intent": "openFile",
-            "propsMap": {
-              "fileId": "fileId"
-            },
-            "windowTitle": "{{fileName}}",
-            "windowSize": "medium"
-          },
-          {
-            "intent": "FileDocument",
-            "propsMap": {
-              "id": "fileId",
-              "name": "fileName"
-            },
-            "windowTitle": "{{name}}",
-            "windowSize": "medium"
-          },
-          {
-            "intent": "ProjectDocument",
-            "propsMap": {
-              "id": "fileId",
-              "name": "fileName"
-            },
-            "windowTitle": "{{name}}",
-            "windowSize": "medium"
-          }
-        ],
-        "domain": "file",
-        "capabilities": [
-          "browse"
-        ],
-        "selectionMode": "none",
-        "dataSource": "fileService.get"
-      },
-      "template": {
-        "type": "Column",
-        "id": "{{widgetId}}-root",
-        "props": {
-          "crossAxisAlignment": "stretch"
-        },
-        "children": [
-          {
-            "type": "Container",
-            "id": "{{widgetId}}-toolbar",
-            "props": {
-              "color": "surfaceContainerHigh",
-              "padding": "sm"
-            },
-            "children": [
-              {
-                "type": "Row",
-                "id": "{{widgetId}}-toolbar-row",
-                "props": {
-                  "mainAxisAlignment": "spaceBetween"
-                },
-                "children": [
-                  {
-                    "type": "Row",
-                    "id": "{{widgetId}}-toolbar-left",
-                    "children": [
-                      {
-                        "type": "Icon",
-                        "id": "{{widgetId}}-toolbar-icon",
-                        "props": {
-                          "icon": "description",
-                          "size": 16,
-                          "color": "primary"
-                        }
-                      },
-                      {
-                        "type": "SizedBox",
-                        "id": "{{widgetId}}-toolbar-gap",
-                        "props": {
-                          "width": 8.0
-                        }
-                      },
-                      {
-                        "type": "Text",
-                        "id": "{{widgetId}}-title",
-                        "props": {
-                          "text": "{{fileName}}",
-                          "textStyle": "labelMedium",
-                          "color": "onSurface"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "Expanded",
-            "id": "{{widgetId}}-body",
-            "children": [
-              {
-                "type": "DataSource",
-                "id": "{{widgetId}}-ds",
-                "props": {
-                  "service": "fileService",
-                  "method": "download",
-                  "args": [
-                    "{{fileId}}"
-                  ]
-                },
-                "children": [
-                  {
-                    "type": "Conditional",
-                    "id": "{{widgetId}}-loading",
-                    "props": {
-                      "visible": "{{loading}}"
-                    },
-                    "children": [
-                      {
-                        "type": "Center",
-                        "id": "{{widgetId}}-spinner",
-                        "children": [
-                          {
-                            "type": "LoadingIndicator",
-                            "id": "{{widgetId}}-li",
-                            "props": {
-                              "variant": "skeleton",
-                              "text": "Loading\u2026"
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "type": "Conditional",
-                    "id": "{{widgetId}}-error",
-                    "props": {
-                      "visible": "{{error}}"
-                    },
-                    "children": [
-                      {
-                        "type": "Center",
-                        "id": "{{widgetId}}-err-center",
-                        "children": [
-                          {
-                            "type": "Column",
-                            "id": "{{widgetId}}-err-col",
-                            "props": {
-                              "mainAxisAlignment": "center"
-                            },
-                            "children": [
-                              {
-                                "type": "Icon",
-                                "id": "{{widgetId}}-err-icon",
-                                "props": {
-                                  "icon": "error_outline",
-                                  "size": 32,
-                                  "color": "error"
-                                }
-                              },
-                              {
-                                "type": "SizedBox",
-                                "id": "{{widgetId}}-err-gap",
-                                "props": {
-                                  "height": 8.0
-                                }
-                              },
-                              {
-                                "type": "Text",
-                                "id": "{{widgetId}}-err-text",
-                                "props": {
-                                  "text": "{{errorMessage}}",
-                                  "textStyle": "bodySmall",
-                                  "color": "error"
-                                }
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "type": "Conditional",
-                    "id": "{{widgetId}}-ready",
-                    "props": {
-                      "visible": "{{ready}}"
-                    },
-                    "children": [
-                      {
-                        "type": "Padding",
-                        "id": "{{widgetId}}-content-pad",
-                        "props": {
-                          "padding": "sm"
-                        },
-                        "children": [
-                          {
-                            "type": "SelectableText",
-                            "id": "{{widgetId}}-content",
-                            "props": {
-                              "text": "{{data}}",
-                              "textStyle": "bodySmall"
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "metadata": {
         "type": "PngViewer",
         "kind": "window",
         "tier": 2,
@@ -5490,6 +5270,7 @@
     {
       "metadata": {
         "type": "TeamManager",
+        "kind": "window",
         "tier": 2,
         "description": "Team member management. View, add, and remove team members. Use when the user wants to manage team membership.",
         "handlesIntent": {
@@ -5593,6 +5374,7 @@
     {
       "metadata": {
         "type": "ChatBox",
+        "kind": "window",
         "tier": 2,
         "description": "LLM chat interface. Displays message thread with markdown, code blocks, and streaming. Use when the user needs a chat window.",
         "props": {},
@@ -6179,6 +5961,7 @@
     {
       "metadata": {
         "type": "HomePanel",
+        "kind": "window",
         "tier": 2,
         "description": "Landing dashboard with recent projects, featured apps, help links, and recent activity in a card grid. Shown on startup.",
         "props": {},
@@ -7212,6 +6995,7 @@
     {
       "metadata": {
         "type": "MainHeader",
+        "kind": "header",
         "tier": 2,
         "description": "Top-level header bar with brand logo, user avatar, and dropdown menu. Frame chrome \u2014 not user-requested.",
         "props": {},
