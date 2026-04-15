@@ -346,6 +346,9 @@ void registerBehaviorWidgets(WidgetRegistry registry) {
               description: 'Arguments for the service call, may contain template expressions re-resolved at trigger time'),
           'watchChannels': PropSpec(type: 'map',
               description: 'Map of scopeKey → channel. Subscribes to each channel and keeps latest payload under scopeKey for arg resolution at trigger time.'),
+          'refreshChannel': PropSpec(type: 'string',
+              description: 'Optional EventBus channel to publish after a successful call (in addition to "<id>.completed"). '
+                  'Use this to trigger a DataSource refresh after a mutation.'),
         },
       ));
 
@@ -488,6 +491,18 @@ class _ServiceCallWidgetState extends State<_ServiceCallWidget> {
           data: {'result': result},
         ),
       );
+      // Publish to refreshChannel if specified (triggers DataSource refresh).
+      final refreshChannel = widget.node.props['refreshChannel'] as String?;
+      if (refreshChannel != null && refreshChannel.isNotEmpty) {
+        widget.context.eventBus.publish(
+          refreshChannel,
+          EventPayload(
+            type: 'service.refresh',
+            sourceWidgetId: widget.node.id,
+            data: {'result': result},
+          ),
+        );
+      }
       // Reset saved indicator after 2 seconds.
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) setState(() => _saved = false);

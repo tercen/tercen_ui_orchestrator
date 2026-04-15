@@ -231,6 +231,44 @@ class ServiceCallDispatcher {
         final privilege = model.Privilege()..type = privType;
         final result = await svc.setTeamPrivilege(username, principal, privilege);
         return {'success': true, 'result': result};
+      case 'findTeamMembers':
+        // args: [teamId]
+        // Returns User JSON objects enriched with their privilege level
+        // by cross-referencing the team's ACL aces list.
+        final teamId = args[0] as String;
+        final teamSvc = factory.teamService;
+        // Fetch the team to get its ACL.
+        final team = await teamSvc.get(teamId);
+        final teamJson = teamSvc.toJson(team);
+        final acl = teamJson['acl'] as Map<String, dynamic>? ?? {};
+        final aces = (acl['aces'] as List?) ?? [];
+        // Build a lookup: principalId → privilege type.
+        final privByUser = <String, String>{};
+        for (final ace in aces) {
+          if (ace is Map) {
+            final pid = ace['principalId'] as String? ?? '';
+            final type = ace['type'] as String? ?? '';
+            if (pid.isNotEmpty) privByUser[pid] = type;
+          }
+        }
+        // Fetch team members via HttpClientService.findKeys.
+        final httpSvc = _getService('userService');
+        if (httpSvc is! HttpClientService) {
+          throw ArgumentError('userService is not HttpClientService');
+        }
+        final members = await httpSvc.findKeys('teamMembers', keys: [teamId]);
+        return members.map((u) {
+          final json = httpSvc.toJson(u);
+          final uid = json['id'] as String? ?? '';
+          // Inject the privilege field; default to "Read" if not in ACL.
+          // The owner gets "Owner" as a synthetic privilege.
+          if (uid == acl['owner']) {
+            json['privilege'] = 'Owner';
+          } else {
+            json['privilege'] = privByUser[uid] ?? 'Read';
+          }
+          return json;
+        }).toList();
       default:
         throw ArgumentError('Method "$method" not found on userService');
     }
@@ -245,12 +283,27 @@ class ServiceCallDispatcher {
       case 'resourceSummary':
         final result = await svc.resourceSummary(args[0] as String);
         return result.toJson();
+      case 'create':
+        // Convenience override: accepts a bare name string and constructs
+        // the full Team JSON that the base create method requires.
+        final name = args[0] as String;
+        final team = model.Team()..name = name;
+        final result = await svc.create(team);
+        return svc.toJson(result);
+      case 'delete':
+        // Convenience override: accepts just the team ID and fetches the
+        // current rev before deleting (the template only has the ID).
+        final teamId = args[0] as String;
+        final existing = await svc.get(teamId);
+        await svc.delete(existing.id, existing.rev);
+        return {'success': true, 'id': existing.id};
       case 'findTeamByMember':
         // Raw HTTP POST — findTeamByMember is not in the published 1.16.1 client.
+        final userId = args[0] as String;
         final httpSvc = _getService('teamService');
         if (httpSvc is HttpClientService) {
           final uri = Uri.parse('api/v1/team/findTeamByMember');
-          final params = <String, dynamic>{'userId': args[0] as String};
+          final params = <String, dynamic>{'userId': userId};
           final response = await httpSvc.client.post(
             httpSvc.getServiceUri(uri),
             headers: httpSvc.contentCodec.contentTypeHeader,
@@ -262,7 +315,12 @@ class ServiceCallDispatcher {
           }
           final decoded = httpSvc.contentCodec.decode(response.body);
           if (decoded is List) {
-            return decoded.map((m) => svc.fromJson(m as Map)).map((t) => svc.toJson(t)).toList();
+            // Filter out the user's personal folder (team.id == userId).
+            return decoded
+                .map((m) => svc.fromJson(m as Map))
+                .where((t) => t.id != userId)
+                .map((t) => svc.toJson(t))
+                .toList();
           }
           return [];
         }
