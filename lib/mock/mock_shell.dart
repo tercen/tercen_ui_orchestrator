@@ -137,6 +137,7 @@ class _MockShellState extends State<MockShell> {
   List<String> _knownChannels = [];
   int _openCounter = 0;
   bool _isDark = false;
+  final List<StreamSubscription> _mockSubs = [];
 
   /// Resizable frame boundaries for testing widget resize behaviour.
   double _leftPadding = 80;
@@ -219,6 +220,9 @@ class _MockShellState extends State<MockShell> {
       _updateKnownChannels(_selectedWidget!);
       _openWidget(_selectedWidget!);
     }
+
+    // Mock handler: intercept addMember actions to update the mock member list.
+    _wireMockAddMember();
   }
 
   void _toggleTheme() {
@@ -361,8 +365,50 @@ class _MockShellState extends State<MockShell> {
     });
   }
 
+  /// Subscribe to team mutation events and update mock data + refresh DataSources.
+  void _wireMockAddMember() {
+    _mockSubs.add(_sduiContext.eventBus.subscribePrefix('team.').listen((event) {
+      // Handle addMember actions.
+      if (event.data['action'] == 'addMember') {
+        final teamId = event.data['teamId']?.toString() ?? '';
+        if (teamId.isEmpty) return;
+
+        _mockCaller.addTeamMember(teamId, 'New Member');
+        debugPrint('[MockShell] Added mock member to team $teamId');
+
+        _publishRefresh();
+      }
+    }));
+
+    // Handle ServiceCall completions — refresh team list after create/delete.
+    _mockSubs.add(_sduiContext.eventBus.subscribePrefix('mock-').listen((event) {
+      if (event.type != 'service.completed') return;
+      debugPrint('[MockShell] ServiceCall completed, refreshing');
+      _publishRefresh();
+    }));
+  }
+
+  /// Publish refresh to all known refresh channels.
+  void _publishRefresh() {
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      for (final ch in _knownChannels) {
+        if (ch.contains('.refresh')) {
+          _sduiContext.eventBus.publish(
+            ch,
+            EventPayload(type: 'refresh', sourceWidgetId: 'mock-shell', data: {}),
+          );
+        }
+      }
+    });
+  }
+
   @override
   void dispose() {
+    for (final sub in _mockSubs) {
+      sub.cancel();
+    }
+    _mockSubs.clear();
     _sduiContext.dispose();
     super.dispose();
   }

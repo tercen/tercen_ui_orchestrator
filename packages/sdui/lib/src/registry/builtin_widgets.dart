@@ -312,6 +312,9 @@ void registerBuiltinWidgets(WidgetRegistry registry) {
           'fontFamily': PropSpec(type: 'string', description: 'Font family for input text (e.g., "monospace")'),
           'prefixIcon': PropSpec(type: 'string', description: 'Icon name shown at the start of the field (e.g., "search")'),
           'size': PropSpec(type: 'string', description: 'Control height tier: "sm" (28px — compact/toolbar), "md" (36px — default). Only applies to single-line bordered fields.'),
+          'forbiddenChars': PropSpec(type: 'string',
+              description: 'Characters that cannot be typed. Input is filtered to deny these characters. '
+                  r'Use for path-illegal characters: \/:*?"<>|'),
         },
       ));
 
@@ -409,6 +412,9 @@ void registerBuiltinWidgets(WidgetRegistry registry) {
               description: 'EventBus channel for reactive updates. When set on toolbar variants, '
                   'the button subscribes and dynamically updates its icon/tooltip from event payload '
                   '({icon, tooltip}). Used for toggle-style toolbar buttons.'),
+          'hoverColor': PropSpec(type: 'string',
+              description: 'Icon color on hover (semantic token or hex). '
+                  'Use "error" for destructive actions.'),
         },
       ));
 
@@ -1398,6 +1404,15 @@ class _FormDialogState extends State<_FormDialog> {
   }
 
   @override
+  void didUpdateWidget(_FormDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newVisible = PropConverter.to<bool>(widget.node.props['visible']) ?? true;
+    if (newVisible != _visible) {
+      setState(() => _visible = newVisible);
+    }
+  }
+
+  @override
   void dispose() {
     _visibilitySub?.cancel();
     super.dispose();
@@ -2167,12 +2182,22 @@ Widget _buildTextField(
   );
 }
 
+/// Truthy evaluation for the `enabled` prop: null → true, bool → as-is,
+/// non-empty string → true, empty string / "false" / "0" → false.
+bool _isTruthyEnabled(dynamic raw) {
+  if (raw == null) return true;
+  if (raw is bool) return raw;
+  if (raw is num) return raw != 0;
+  final s = raw.toString();
+  return s.isNotEmpty && s != 'false' && s != '0';
+}
+
 Widget _buildElevatedButton(
     SduiNode node, List<Widget> children, SduiRenderContext ctx) {
   final text = PropConverter.to<String>(node.props['text']) ?? '';
   final channel = PropConverter.to<String>(node.props['channel']) ?? '';
   final payload = node.props['payload'] as Map<String, dynamic>? ?? {};
-  final enabled = PropConverter.to<bool>(node.props['enabled']) ?? true;
+  final enabled = _isTruthyEnabled(node.props['enabled']);
   final color = _resolveColor(node.props['color'], ctx.theme);
 
   final btn = ctx.theme.button;
@@ -2307,12 +2332,67 @@ Widget _buildIconButton(
   final size = PropConverter.to<double>(node.props['size']) ?? ctx.theme.iconSize.md;
   final color = _resolveColor(node.props['color'], ctx.theme) ??
       ctx.theme.colors.onSurface;
+  final hoverColor = _resolveColor(node.props['hoverColor'], ctx.theme);
+
+  if (hoverColor != null) {
+    return _HoverIconButton(
+      icon: iconData,
+      size: size,
+      color: enabled ? color : color.withAlpha(ctx.theme.opacity.disabled),
+      hoverColor: hoverColor,
+      tooltip: tooltip,
+      enabled: enabled,
+      onTap: onTap,
+    );
+  }
 
   return IconButton(
     icon: Icon(iconData, size: size, color: enabled ? color : color.withAlpha(ctx.theme.opacity.disabled)),
     tooltip: tooltip,
     onPressed: enabled ? onTap : null,
   );
+}
+
+/// Icon button with hover color change.
+class _HoverIconButton extends StatefulWidget {
+  final IconData icon;
+  final double size;
+  final Color color;
+  final Color hoverColor;
+  final String? tooltip;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _HoverIconButton({
+    required this.icon,
+    required this.size,
+    required this.color,
+    required this.hoverColor,
+    this.tooltip,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  State<_HoverIconButton> createState() => _HoverIconButtonState();
+}
+
+class _HoverIconButtonState extends State<_HoverIconButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.enabled && _hovered ? widget.hoverColor : widget.color;
+    return MouseRegion(
+      onEnter: widget.enabled ? (_) => setState(() => _hovered = true) : null,
+      onExit: widget.enabled ? (_) => setState(() => _hovered = false) : null,
+      child: IconButton(
+        icon: Icon(widget.icon, size: widget.size, color: c),
+        tooltip: widget.tooltip,
+        onPressed: widget.enabled ? widget.onTap : null,
+      ),
+    );
+  }
 }
 
 /// Toolbar-styled icon button with hover, primary/secondary variants,
@@ -3124,11 +3204,19 @@ class _SduiTextFieldState extends State<_SduiTextField> {
   Widget build(BuildContext context) {
     final theme = widget.context.theme;
     final hint = PropConverter.to<String>(widget.node.props['hint']);
-    // maxLines: null means unlimited (grow with content). 0 also treated as null.
+    // maxLines: null/0 means unlimited (grow with content) — but only when
+    // explicitly set in the template.  When the prop is absent, default to 1
+    // (single-line) so that TextFields in constrained layouts (e.g. Rows)
+    // don't accidentally become 80px-tall text areas.
     final rawMaxLines = widget.node.props['maxLines'];
-    final maxLines = (rawMaxLines == null || rawMaxLines == 'null' || rawMaxLines == 0)
-        ? null
-        : PropConverter.to<int>(rawMaxLines) ?? 1;
+    final hasExplicitMaxLines = widget.node.props.containsKey('maxLines');
+    final int? maxLines;
+    if (hasExplicitMaxLines &&
+        (rawMaxLines == null || rawMaxLines == 'null' || rawMaxLines == 0)) {
+      maxLines = null; // explicitly unlimited
+    } else {
+      maxLines = PropConverter.to<int>(rawMaxLines) ?? 1;
+    }
     final obscure = PropConverter.to<bool>(widget.node.props['obscureText']) ?? false;
     final enabled = PropConverter.to<bool>(widget.node.props['enabled']) ?? true;
     final autofocus = PropConverter.to<bool>(widget.node.props['autofocus']) ?? false;
@@ -3141,7 +3229,17 @@ class _SduiTextFieldState extends State<_SduiTextField> {
     final fontFamily = PropConverter.to<String>(widget.node.props['fontFamily']);
     final prefixIconName = PropConverter.to<String>(widget.node.props['prefixIcon']);
     final size = PropConverter.to<String>(widget.node.props['size']);
+    final forbiddenChars = PropConverter.to<String>(widget.node.props['forbiddenChars']);
     final isMultiline = !obscure && (maxLines == null || maxLines > 1);
+
+    // Build input formatters for forbidden characters.
+    final formatters = <TextInputFormatter>[];
+    if (forbiddenChars != null && forbiddenChars.isNotEmpty) {
+      // Escape regex special chars and build a deny pattern.
+      final escaped = forbiddenChars.replaceAllMapped(
+          RegExp(r'[\\^$.|?*+(){\[\]]'), (m) => '\\${m[0]}');
+      formatters.add(FilteringTextInputFormatter.deny(RegExp('[$escaped]')));
+    }
 
     Widget textField = TextField(
       controller: _controller,
@@ -3152,6 +3250,7 @@ class _SduiTextFieldState extends State<_SduiTextField> {
       obscureText: obscure,
       enabled: enabled,
       autofocus: autofocus,
+      inputFormatters: formatters.isNotEmpty ? formatters : null,
       style: TextStyle(
         color: color ?? theme.colors.onSurface,
         fontSize: theme.textStyles.bodyMedium.fontSize,
@@ -6765,8 +6864,8 @@ Widget _buildWindowShell(
               ? const SizedBox.shrink()
               : children.length == 1
                   ? children.first
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                  : Stack(
+                      fit: StackFit.expand,
                       children: children,
                     ),
         ),
@@ -6871,6 +6970,88 @@ class _WindowToolbar extends StatelessWidget {
       );
     }
 
+    // Popup menu — text dropdown with labelled options.
+    if (PropConverter.to<bool>(m['isPopupMenu']) == true) {
+      final items = (m['items'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final channel = PropConverter.to<String>(m['channel']) ?? '';
+      final tooltip = PropConverter.to<String>(m['tooltip']) ?? '';
+      final stateKey = PropConverter.to<String>(m['stateKey']);
+      final currentValue = stateKey != null ? manager?.get(stateKey)?.toString() : null;
+
+      // Find the label for the current value.
+      String currentLabel = '';
+      for (final item in items) {
+        if (PropConverter.to<String>(item['value']) == currentValue) {
+          currentLabel = PropConverter.to<String>(item['label']) ?? currentValue ?? '';
+          break;
+        }
+      }
+      if (currentLabel.isEmpty && items.isNotEmpty) {
+        currentLabel = PropConverter.to<String>(items.first['label']) ?? '';
+      }
+
+      final wt = theme.window;
+      final btnSize = wt.toolbarButtonSize;
+
+      return PopupMenuButton<String>(
+        tooltip: tooltip,
+        padding: EdgeInsets.zero,
+        position: PopupMenuPosition.under,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radius.sm)),
+        color: theme.colors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: theme.elevation.medium,
+        onSelected: (value) {
+          if (channel.isNotEmpty) {
+            ctx.eventBus.publish(
+              channel,
+              EventPayload(type: 'action', sourceWidgetId: parentNodeId, data: {'value': value}),
+            );
+          }
+        },
+        itemBuilder: (_) => items.map((item) {
+          final value = PropConverter.to<String>(item['value']) ?? '';
+          final label = PropConverter.to<String>(item['label']) ?? value;
+          final isSelected = currentValue == value;
+          return PopupMenuItem<String>(
+            value: value,
+            height: theme.controlHeight.md,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Expanded(child: Text(label, style: TextStyle(
+                  fontFamily: theme.fontFamily,
+                  fontSize: theme.textStyles.bodySmall.fontSize,
+                  color: isSelected ? theme.colors.primary : theme.colors.onSurface,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ))),
+                if (isSelected)
+                  Padding(
+                    padding: EdgeInsets.only(left: theme.spacing.md),
+                    child: FaIcon(FontAwesomeIcons.check, size: theme.iconSize.sm, color: theme.colors.primary),
+                  ),
+              ],
+            ),
+          );
+        }).toList(),
+        child: Container(
+          width: btnSize,
+          height: btnSize,
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colors.primary, width: wt.toolbarButtonBorderWidth),
+            borderRadius: BorderRadius.circular(wt.toolbarButtonRadius),
+          ),
+          child: Center(
+            child: FaIcon(
+              _iconMap[PropConverter.to<String>(m['icon']) ?? 'sort'] ?? FontAwesomeIcons.arrowDownWideShort,
+              size: wt.toolbarButtonIconSize,
+              color: theme.colors.primary,
+            ),
+          ),
+        ),
+      );
+    }
+
     // WorkflowActionButton — context-sensitive Run/Stop/Reset in the toolbar.
     if (PropConverter.to<bool>(m['isWorkflowAction']) == true) {
       final selChannel = PropConverter.to<String>(m['selectionChannel']) ?? '';
@@ -6950,11 +7131,13 @@ class _WindowToolbar extends StatelessWidget {
     }
 
     // Icon-only button
+    final isDanger = PropConverter.to<bool>(m['isDanger']) ?? false;
     return _IconShellButton(
       icon: iconData ?? FontAwesomeIcons.circleQuestion,
       tooltip: tooltip,
       isPrimary: isPrimary,
       isGhost: isGhost,
+      isDanger: isDanger,
       enabled: enabled,
       onTap: onTap,
       theme: theme,
@@ -7054,6 +7237,7 @@ class _IconShellButton extends StatefulWidget {
   final String tooltip;
   final bool isPrimary;
   final bool isGhost;
+  final bool isDanger;
   final bool enabled;
   final VoidCallback onTap;
   final SduiTheme theme;
@@ -7063,6 +7247,7 @@ class _IconShellButton extends StatefulWidget {
     this.tooltip = '',
     this.isPrimary = false,
     this.isGhost = false,
+    this.isDanger = false,
     this.enabled = true,
     required this.onTap,
     required this.theme,
@@ -7078,7 +7263,7 @@ class _IconShellButtonState extends State<_IconShellButton> {
   @override
   Widget build(BuildContext context) {
     final t = widget.theme;
-    final primary = t.colors.primary;
+    final accent = widget.isDanger ? t.colors.error : t.colors.primary;
 
     final Color bg;
     final Color fg;
@@ -7090,19 +7275,19 @@ class _IconShellButtonState extends State<_IconShellButton> {
       border = null;
     } else if (widget.isPrimary) {
       bg = _hovered
-          ? HSLColor.fromColor(primary).withLightness(
-              (HSLColor.fromColor(primary).lightness - 0.08).clamp(0, 1)).toColor()
-          : primary;
+          ? HSLColor.fromColor(accent).withLightness(
+              (HSLColor.fromColor(accent).lightness - 0.08).clamp(0, 1)).toColor()
+          : accent;
       fg = t.colors.onPrimary;
       border = null;
     } else if (widget.isGhost) {
-      bg = _hovered ? primary.withAlpha(t.opacity.subtle) : Colors.transparent;
-      fg = primary;
+      bg = _hovered ? accent.withAlpha(t.opacity.subtle) : Colors.transparent;
+      fg = accent;
       border = null;
     } else {
-      bg = _hovered ? primary.withAlpha(t.opacity.subtle) : Colors.transparent;
-      fg = primary;
-      border = Border.all(color: primary, width: t.window.toolbarButtonBorderWidth);
+      bg = _hovered ? accent.withAlpha(t.opacity.subtle) : Colors.transparent;
+      fg = accent;
+      border = Border.all(color: accent, width: t.window.toolbarButtonBorderWidth);
     }
 
     final wt = t.window;
@@ -7361,7 +7546,7 @@ Widget _buildDangerButton(
   final text = PropConverter.to<String>(node.props['text']) ?? '';
   final channel = PropConverter.to<String>(node.props['channel']) ?? '';
   final payload = node.props['payload'] as Map<String, dynamic>? ?? {};
-  final enabled = PropConverter.to<bool>(node.props['enabled']) ?? true;
+  final enabled = _isTruthyEnabled(node.props['enabled']);
 
   final btn = ctx.theme.button;
   final errorColor = ctx.theme.colors.error;
