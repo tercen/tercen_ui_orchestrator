@@ -55,33 +55,6 @@ class MockServiceCaller extends ChangeNotifier {
   /// Log of every call received, most recent first.
   final List<MockCallRecord> callLog = [];
 
-  /// Dynamically added team members (teamId → list of user docs).
-  final Map<String, List<Map<String, dynamic>>> _addedMembers = {};
-
-  /// Dynamically created teams.
-  final List<Map<String, dynamic>> _createdTeams = [];
-
-  /// Add a mock team member. Returns the generated user doc.
-  Map<String, dynamic> addTeamMember(String teamId, String username) {
-    final members = _addedMembers.putIfAbsent(teamId, () => []);
-    final idx = 100 + members.length;
-    final doc = _generateOne('User', idx);
-    doc['name'] = username.isNotEmpty ? username : 'New User ${members.length + 1}';
-    doc['id'] = 'added-user-$idx';
-    members.add(doc);
-    return doc;
-  }
-
-  /// Create a mock team. Returns the generated team doc.
-  Map<String, dynamic> createTeam(String name) {
-    final idx = 50 + _createdTeams.length;
-    final doc = _generateOne('Team', idx);
-    doc['name'] = name.isNotEmpty ? name : 'New Team ${_createdTeams.length + 1}';
-    doc['id'] = 'created-team-$idx';
-    _createdTeams.add(doc);
-    return doc;
-  }
-
   MockScenario get scenario => _scenario;
   set scenario(MockScenario s) {
     if (_scenario == s) return;
@@ -117,40 +90,6 @@ class MockServiceCaller extends ChangeNotifier {
     // Composite / special methods.
     final composite = _tryComposite(service, method, args);
     if (composite != null) return composite;
-
-    // Team creation: add to dynamic list and return the new team.
-    if (service == 'teamService' && method == 'create') {
-      final name = args.isNotEmpty ? args[0]?.toString() ?? '' : '';
-      return createTeam(name);
-    }
-
-    // Team list: include dynamically created teams.
-    if (service == 'teamService' && (method == 'findTeamByMember' || method.startsWith('find'))) {
-      final count = switch (_scenario) {
-        MockScenario.empty => 0,
-        MockScenario.single => 1,
-        MockScenario.many => 50,
-        _ => 5,
-      };
-      final base = List.generate(count, (i) => _generateOne(kind, i));
-      return [...base, ..._createdTeams];
-    }
-
-    // Team member lists: include dynamically added members.
-    if (service == 'userService' && method == 'findKeys' &&
-        args.isNotEmpty && args[0] == 'teamMembers') {
-      final teamIds = args.length > 1 && args[1] is List ? args[1] as List : [];
-      final teamId = teamIds.isNotEmpty ? teamIds.first.toString() : '';
-      final count = switch (_scenario) {
-        MockScenario.empty => 0,
-        MockScenario.single => 1,
-        MockScenario.many => 50,
-        _ => 5,
-      };
-      final base = List.generate(count, (i) => _generateOne(kind, i));
-      final added = _addedMembers[teamId] ?? [];
-      return [...base, ...added];
-    }
 
     // List methods (find*, list, explore, recent*, search, etc.).
     final count = switch (_scenario) {

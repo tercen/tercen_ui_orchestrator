@@ -1047,14 +1047,18 @@ class _OrchestratorAppState extends State<OrchestratorApp> {
             },
             // Git fields — hidden by default, shown when git switch is toggled
             {
-              'type': 'ReactTo',
+              'type': 'EventScope',
               'id': '$dialogId-git-react',
-              'props': {'channel': 'input.$dialogId-git-state.changed'},
+              'props': {
+                'channel': 'input.$dialogId-git-state.changed',
+                'scopeKey': 'git',
+                'defaultPayload': {'value': false},
+              },
               'children': [
                 {
                   'type': 'Conditional',
                   'id': '$dialogId-git-cond',
-                  'props': {'visible': '{{value}}'},
+                  'props': {'visible': '{{git.value}}'},
                   'children': [
                     {'type': 'SizedBox', 'id': '$dialogId-sp-git1', 'props': {'height': 8}, 'children': []},
                     {
