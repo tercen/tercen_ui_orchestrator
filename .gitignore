@@ -9,3 +9,4 @@ _issues/
 
 # Flutter build artifacts — run `flutter build web` after cloning
 build/
+*.log
