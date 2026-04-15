@@ -5568,72 +5568,71 @@
                             ]
                           },
                           {
-                            "_comment": "Body template (child 1): nested DataSource for team members. {{team}} from Accordion scope.",
-                            "type": "DataSource",
-                            "id": "{{widgetId}}-members-ds-{{team.id}}",
-                            "props": {
-                              "service": "userService",
-                              "method": "findKeys",
-                              "args": ["teamMembers", ["{{team.id}}"]],
-                              "refreshOn": "team.{{widgetId}}.refresh"
-                            },
+                            "_comment": "Body template (child 1): Column with DataSource + Divider + Add row. Add row is OUTSIDE DataSource to get bounded constraints.",
+                            "type": "Column",
+                            "id": "{{widgetId}}-body-col-{{team.id}}",
+                            "props": { "crossAxisAlignment": "stretch", "mainAxisSize": "min" },
                             "children": [
                               {
-                                "type": "Conditional",
-                                "id": "{{widgetId}}-members-loading-{{team.id}}",
-                                "props": { "visible": "{{loading}}" },
+                                "type": "DataSource",
+                                "id": "{{widgetId}}-members-ds-{{team.id}}",
+                                "props": {
+                                  "service": "userService",
+                                  "method": "findKeys",
+                                  "args": ["teamMembers", ["{{team.id}}"]],
+                                  "refreshOn": "team.{{widgetId}}.refresh"
+                                },
                                 "children": [
                                   {
-                                    "type": "Padding",
-                                    "id": "{{widgetId}}-members-load-pad-{{team.id}}",
-                                    "props": { "padding": "md" },
+                                    "type": "Conditional",
+                                    "id": "{{widgetId}}-members-loading-{{team.id}}",
+                                    "props": { "visible": "{{loading}}" },
                                     "children": [
                                       {
-                                        "type": "Center",
-                                        "id": "{{widgetId}}-members-load-center-{{team.id}}",
+                                        "type": "Padding",
+                                        "id": "{{widgetId}}-members-load-pad-{{team.id}}",
+                                        "props": { "padding": "md" },
                                         "children": [
-                                          { "type": "LoadingIndicator", "id": "{{widgetId}}-members-spinner-{{team.id}}", "props": { "variant": "spinner", "size": 16 } }
+                                          {
+                                            "type": "Center",
+                                            "id": "{{widgetId}}-members-load-center-{{team.id}}",
+                                            "children": [
+                                              { "type": "LoadingIndicator", "id": "{{widgetId}}-members-spinner-{{team.id}}", "props": { "variant": "spinner", "size": 16 } }
+                                            ]
+                                          }
                                         ]
                                       }
                                     ]
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "Conditional",
-                                "id": "{{widgetId}}-members-error-{{team.id}}",
-                                "props": { "visible": "{{error}}" },
-                                "children": [
+                                  },
                                   {
-                                    "type": "Padding",
-                                    "id": "{{widgetId}}-members-err-pad-{{team.id}}",
-                                    "props": { "padding": "md" },
+                                    "type": "Conditional",
+                                    "id": "{{widgetId}}-members-error-{{team.id}}",
+                                    "props": { "visible": "{{error}}" },
                                     "children": [
                                       {
-                                        "type": "Text",
-                                        "id": "{{widgetId}}-members-err-text-{{team.id}}",
-                                        "props": {
-                                          "text": "{{errorMessage}}",
-                                          "textStyle": "bodySmall",
-                                          "color": "error"
-                                        }
+                                        "type": "Padding",
+                                        "id": "{{widgetId}}-members-err-pad-{{team.id}}",
+                                        "props": { "padding": "md" },
+                                        "children": [
+                                          {
+                                            "type": "Text",
+                                            "id": "{{widgetId}}-members-err-text-{{team.id}}",
+                                            "props": {
+                                              "text": "{{errorMessage}}",
+                                              "textStyle": "bodySmall",
+                                              "color": "error"
+                                            }
+                                          }
+                                        ]
                                       }
                                     ]
-                                  }
-                                ]
-                              },
-                              {
-                                "type": "Conditional",
-                                "id": "{{widgetId}}-members-ready-{{team.id}}",
-                                "props": { "visible": "{{ready}}" },
-                                "children": [
+                                  },
                                   {
-                                    "type": "Column",
-                                    "id": "{{widgetId}}-members-col-{{team.id}}",
-                                    "props": { "crossAxisAlignment": "stretch" },
+                                    "type": "Conditional",
+                                    "id": "{{widgetId}}-members-ready-{{team.id}}",
+                                    "props": { "visible": "{{ready}}" },
                                     "children": [
                                       {
-                                        "_comment": "Member list",
                                         "type": "ForEach",
                                         "id": "{{widgetId}}-members-fe-{{team.id}}",
                                         "props": {
@@ -5644,7 +5643,7 @@
                                           {
                                             "type": "Padding",
                                             "id": "{{widgetId}}-member-pad-{{team.id}}-{{_index}}",
-                                            "props": { "padding": [4, 16] },
+                                            "props": { "padding": [4, 8] },
                                             "children": [
                                               {
                                                 "type": "Row",
@@ -5652,37 +5651,35 @@
                                                 "props": { "crossAxisAlignment": "center" },
                                                 "children": [
                                                   {
-                                                    "type": "Icon",
-                                                    "id": "{{widgetId}}-member-icon-{{team.id}}-{{_index}}",
-                                                    "props": {
-                                                      "icon": "person",
-                                                      "size": 16,
-                                                      "color": "onSurfaceMuted"
-                                                    }
+                                                    "type": "SizedBox",
+                                                    "id": "{{widgetId}}-member-col1-{{team.id}}-{{_index}}",
+                                                    "props": { "width": 24 },
+                                                    "children": [
+                                                      {
+                                                        "type": "Icon",
+                                                        "id": "{{widgetId}}-member-icon-{{team.id}}-{{_index}}",
+                                                        "props": { "icon": "person", "size": 16, "color": "onSurfaceMuted" }
+                                                      }
+                                                    ]
                                                   },
                                                   { "type": "SizedBox", "id": "{{widgetId}}-member-g1-{{team.id}}-{{_index}}", "props": { "width": 8 } },
                                                   {
-                                                    "type": "Expanded",
-                                                    "id": "{{widgetId}}-member-name-wrap-{{team.id}}-{{_index}}",
+                                                    "type": "SizedBox",
+                                                    "id": "{{widgetId}}-member-col2-{{team.id}}-{{_index}}",
+                                                    "props": { "width": 200 },
                                                     "children": [
                                                       {
                                                         "type": "Text",
                                                         "id": "{{widgetId}}-member-name-{{team.id}}-{{_index}}",
-                                                        "props": {
-                                                          "text": "{{item.name}}",
-                                                          "textStyle": "bodySmall",
-                                                          "color": "onSurface",
-                                                          "maxLines": 1,
-                                                          "overflow": "ellipsis"
-                                                        }
+                                                        "props": { "text": "{{item.name}}", "textStyle": "bodySmall", "color": "onSurface", "maxLines": 1, "overflow": "ellipsis" }
                                                       }
                                                     ]
                                                   },
                                                   { "type": "SizedBox", "id": "{{widgetId}}-member-g2-{{team.id}}-{{_index}}", "props": { "width": 8 } },
                                                   {
                                                     "type": "SizedBox",
-                                                    "id": "{{widgetId}}-member-priv-box-{{team.id}}-{{_index}}",
-                                                    "props": { "width": 240 },
+                                                    "id": "{{widgetId}}-member-col3-{{team.id}}-{{_index}}",
+                                                    "props": { "width": 120 },
                                                     "children": [
                                                       {
                                                         "type": "DropdownButton",
@@ -5691,7 +5688,7 @@
                                                           "value": "ReadWrite",
                                                           "items": [
                                                             {"value": "Admin", "label": "Admin"},
-                                                            {"value": "ReadWrite", "label": "Read/Write"},
+                                                            {"value": "ReadWrite", "label": "R/W"},
                                                             {"value": "Read", "label": "Read"}
                                                           ]
                                                         }
@@ -5700,89 +5697,87 @@
                                                   },
                                                   { "type": "SizedBox", "id": "{{widgetId}}-member-g3-{{team.id}}-{{_index}}", "props": { "width": 4 } },
                                                   {
-                                                    "type": "IconButton",
-                                                    "id": "{{widgetId}}-member-remove-{{team.id}}-{{_index}}",
-                                                    "props": {
-                                                      "icon": "xmark",
-                                                      "tooltip": "Remove member",
-                                                      "channel": "team.{{widgetId}}.removeMember",
-                                                      "payload": {
-                                                        "username": "{{item.name}}",
-                                                        "teamId": "{{team.id}}"
-                                                      },
-                                                      "size": 14,
-                                                      "color": "onSurfaceMuted"
-                                                    }
+                                                    "type": "SizedBox",
+                                                    "id": "{{widgetId}}-member-col4-{{team.id}}-{{_index}}",
+                                                    "props": { "width": 32 },
+                                                    "children": [
+                                                      {
+                                                        "type": "IconButton",
+                                                        "id": "{{widgetId}}-member-remove-{{team.id}}-{{_index}}",
+                                                        "props": { "icon": "xmark", "tooltip": "Remove member", "channel": "team.{{widgetId}}.removeMember", "payload": { "username": "{{item.name}}", "teamId": "{{team.id}}" }, "size": 14, "color": "onSurfaceMuted" }
+                                                      }
+                                                    ]
                                                   }
                                                 ]
                                               }
                                             ]
                                           }
                                         ]
-                                      },
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              { "type": "Divider", "id": "{{widgetId}}-add-divider-{{team.id}}", "props": { "height": 1, "color": "outlineVariant" } },
+                              {
+                                "_comment": "Add member row — OUTSIDE DataSource so it gets bounded constraints",
+                                "type": "Padding",
+                                "id": "{{widgetId}}-add-pad-{{team.id}}",
+                                "props": { "padding": [4, 8] },
+                                "children": [
+                                  {
+                                    "type": "Row",
+                                    "id": "{{widgetId}}-add-row-{{team.id}}",
+                                    "props": { "crossAxisAlignment": "center" },
+                                    "children": [
                                       {
-                                        "_comment": "Add member row",
-                                        "type": "Padding",
-                                        "id": "{{widgetId}}-add-pad-{{team.id}}",
-                                        "props": { "padding": [4, 16] },
+                                        "type": "SizedBox",
+                                        "id": "{{widgetId}}-add-col1-{{team.id}}",
+                                        "props": { "width": 24 }
+                                      },
+                                      { "type": "SizedBox", "id": "{{widgetId}}-add-g1-{{team.id}}", "props": { "width": 8 } },
+                                      {
+                                        "type": "SizedBox",
+                                        "id": "{{widgetId}}-add-col2-{{team.id}}",
+                                        "props": { "width": 200 },
                                         "children": [
                                           {
-                                            "type": "Row",
-                                            "id": "{{widgetId}}-add-row-{{team.id}}",
-                                            "props": { "crossAxisAlignment": "center" },
-                                            "children": [
-                                              { "type": "SizedBox", "id": "{{widgetId}}-add-indent-{{team.id}}", "props": { "width": 24 } },
-                                              {
-                                                "type": "Expanded",
-                                                "id": "{{widgetId}}-add-field-wrap-{{team.id}}",
-                                                "props": { "flex": 3 },
-                                                "children": [
-                                                  {
-                                                    "type": "TextField",
-                                                    "id": "{{widgetId}}-add-field-{{team.id}}",
-                                                    "props": {
-                                                      "hint": "Username or email",
-                                                      "size": "sm",
-                                                      "clearOn": "team.{{widgetId}}.memberAdded"
-                                                    }
-                                                  }
-                                                ]
-                                              },
-                                              { "type": "SizedBox", "id": "{{widgetId}}-add-g1-{{team.id}}", "props": { "width": 8 } },
-                                              {
-                                                "type": "Expanded",
-                                                "id": "{{widgetId}}-add-priv-box-{{team.id}}",
-                                                "props": { "flex": 1 },
-                                                "children": [
-                                                  {
-                                                    "type": "DropdownButton",
-                                                    "id": "{{widgetId}}-add-priv-{{team.id}}",
-                                                    "props": {
-                                                      "value": "ReadWrite",
-                                                      "items": [
-                                                        {"value": "Admin", "label": "Admin"},
-                                                        {"value": "ReadWrite", "label": "Read/Write"},
-                                                        {"value": "Read", "label": "Read"}
-                                                      ]
-                                                    }
-                                                  }
-                                                ]
-                                              },
-                                              { "type": "SizedBox", "id": "{{widgetId}}-add-g2-{{team.id}}", "props": { "width": 4 } },
-                                              {
-                                                "type": "IconButton",
-                                                "id": "{{widgetId}}-add-btn-{{team.id}}",
-                                                "props": {
-                                                  "icon": "plus",
-                                                  "tooltip": "Add member",
-                                                  "channel": "team.{{widgetId}}.addMember",
-                                                  "payload": {
-                                                    "teamId": "{{team.id}}"
-                                                  },
-                                                  "color": "primary"
-                                                }
-                                              }
-                                            ]
+                                            "type": "TextField",
+                                            "id": "{{widgetId}}-add-field-{{team.id}}",
+                                            "props": { "hint": "Username or email", "borderless": true, "clearOn": "team.{{widgetId}}.memberAdded" }
+                                          }
+                                        ]
+                                      },
+                                      { "type": "SizedBox", "id": "{{widgetId}}-add-g2-{{team.id}}", "props": { "width": 8 } },
+                                      {
+                                        "type": "SizedBox",
+                                        "id": "{{widgetId}}-add-col3-{{team.id}}",
+                                        "props": { "width": 120 },
+                                        "children": [
+                                          {
+                                            "type": "DropdownButton",
+                                            "id": "{{widgetId}}-add-priv-{{team.id}}",
+                                            "props": {
+                                              "value": "ReadWrite",
+                                              "items": [
+                                                {"value": "Admin", "label": "Admin"},
+                                                {"value": "ReadWrite", "label": "R/W"},
+                                                {"value": "Read", "label": "Read"}
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      },
+                                      { "type": "SizedBox", "id": "{{widgetId}}-add-g3-{{team.id}}", "props": { "width": 4 } },
+                                      {
+                                        "type": "SizedBox",
+                                        "id": "{{widgetId}}-add-col4-{{team.id}}",
+                                        "props": { "width": 32 },
+                                        "children": [
+                                          {
+                                            "type": "IconButton",
+                                            "id": "{{widgetId}}-add-btn-{{team.id}}",
+                                            "props": { "icon": "plus", "tooltip": "Add member", "channel": "team.{{widgetId}}.addMember", "payload": { "teamId": "{{team.id}}" }, "color": "primary" }
                                           }
                                         ]
                                       }
